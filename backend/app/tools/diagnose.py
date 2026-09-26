@@ -16,9 +16,10 @@ there is no evidence to rank them on. Built 26 Sep 2026 (Feature 2).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 
+from app.core import exam_evidence
 from app.core.academics import norm_topic, past_papers, same_course
 from app.core.citations import CitationSet
 from app.core.parser import past_papers_section_id, section, syllabus_section_id
@@ -42,6 +43,7 @@ class TopicStat:
     impact: int
     citation_id: str                  # past-papers section
     section_id: str | None            # syllabus section
+    gaps: list[dict] = field(default_factory=list)  # Smart Exam concept gaps (graded answers), most marks lost first
 
     @property
     def score(self) -> str:
@@ -66,7 +68,8 @@ class TopicStat:
 
     def dump(self) -> dict:
         return {"course": self.course, "topic": self.topic, "score": self.score,
-                "examWeight": round(self.exam_weight, 1), "impact": self.impact, "citationId": self.citation_id}
+                "examWeight": round(self.exam_weight, 1), "impact": self.impact, "citationId": self.citation_id,
+                **({"gaps": self.gaps} if self.gaps else {})}
 
 
 def _num(x: float) -> str:
@@ -147,9 +150,18 @@ def compute(student_id: str) -> tuple[list[TopicStat], list[str]]:
             stats.append(TopicStat(course=course, topic=topic, scored=scored, max=mx, marks=marks,
                                    exam_weight=weight, impact=max(0, min(100, impact)),
                                    citation_id=past_papers_section_id(course, topic),
-                                   section_id=syllabus_section_id(course, topic)))
+                                   section_id=syllabus_section_id(course, topic),
+                                   gaps=_gaps(student_id, course, topic)))
     stats.sort(key=lambda s: (-s.impact, -s.exam_weight, s.course, s.topic))
     return stats, notes
+
+
+def _gaps(student_id: str, course: str, topic: str) -> list[dict]:
+    """WeakTopic.gaps (contracts v3.7): the Smart Exam questions that lost concept marks on a weak topic.
+    citationId is the exam-system record (connector exam_system), not a document section."""
+    return [{"tag": g.tag, "evidence": f"{g.question} {g.exam}: {g.label}", "marksLost": g.lost,
+             "citationId": f"exam_system:{student_id}:{g.course}:{g.question}"}
+            for g in exam_evidence.weak_gaps(student_id, course, topic)]
 
 
 def card_from(stats: list[TopicStat]) -> dict:
@@ -184,7 +196,8 @@ def diagnose(student_id: str, *, persist: bool = True, cite_top: int = 3, course
     for s in stats[:cite_top]:
         c = cites.cite_section(s.citation_id)
         tag = f" [{c.id}]" if c else ""
-        result.facts.append(f"{s.topic} ({s.course}): impact {s.impact}; {s.marks_fact()}; {s.weight_fact()}{tag}")
+        gaps = "".join(f"; Smart Exam {g['evidence']} (lost {_num(g['marksLost'])})" for g in s.gaps[:2])
+        result.facts.append(f"{s.topic} ({s.course}): impact {s.impact}; {s.marks_fact()}; {s.weight_fact()}{gaps}{tag}")
     result.citations = cites.items
     result.data = {"stats": stats}
     return result

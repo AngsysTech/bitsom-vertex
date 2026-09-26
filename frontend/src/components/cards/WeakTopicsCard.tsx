@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CitePills } from '@/components/CitePill'
+import { Icon } from '@/components/Icon'
 import { MakeRelevantButton, RelevantSlot } from '@/components/relevant/MakeRelevant'
 import type { Citation, WeakTopicsCard as WeakTopicsCardT } from '@/types'
 import { CardLabel, CardShell } from './shared'
@@ -42,6 +43,18 @@ export function WeakTopicsCard({ card, citations, course }: { card: WeakTopicsCa
               impact <b className="text-ink">{t.impact}</b> · ≈{Math.round(t.examWeight)} marks/paper
             </span>
           </div>
+          {!!t.gaps?.length && (
+            <div className="flex flex-col gap-0.5 rounded-md border border-warn bg-warn-soft px-2 py-1">
+              <span className="flex items-center gap-1 text-[10px] font-bold tracking-[.06em] text-warn-ink uppercase" data-tip="Graded mid-sem answers from the exam system (synthetic connector)">
+                <Icon name="warning" size={12} /> Smart Exam · where the marks went
+              </span>
+              {t.gaps.map((g) => (
+                <span key={g.tag} className="text-xs leading-[16px] text-ink">
+                  <b>−{g.marksLost}</b> {g.evidence}
+                </span>
+              ))}
+            </div>
+          )}
           <RelevantSlot source={{ type: 'weak_topic', course: t.course, topic: t.topic }} className="mt-1" />
         </div>
       ))}

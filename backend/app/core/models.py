@@ -278,6 +278,13 @@ class CalendarItem(Model):
 
 # ---- academic coach: weak topics, weekly 1:1, escalation (contracts §4, §5, §7) --------
 
+class WeakTopicGap(Model):
+    tag: str
+    evidence: str
+    marksLost: float
+    citationId: str
+
+
 class WeakTopic(Model):
     course: str
     topic: str
@@ -285,6 +292,7 @@ class WeakTopic(Model):
     examWeight: float
     impact: int
     citationId: str
+    gaps: Optional[list[WeakTopicGap]] = None
 
 
 class WeakTopicsCard(Model):
