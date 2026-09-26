@@ -13,7 +13,7 @@ Checks (from the build brief):
  1. transcript path → status ready in < 60 s
  2. handout has >= 3 sections; every segmentId exists in the transcript
  3. coverage.missed has "Two-phase locking"; emphasized has the serializability exam-hint quote, verbatim in its segment
- 4. a next_lecture_topic commitment on deadlocks with dueBy = next CS F212 session in timetable.json
+ 4. a next_lecture_topic commitment on deadlocks, dueBy = the CS F212 session the lecturer named (timetable.json)
  5. actions: prep (deadlocks, due by next session), study (two-phase locking, why cites marks), review (serializability)
  6. accept the study action → plan block in StudentState + calendar item with source.type = "action"
  7. real audio clip through STT → ready, >= 2 sections
@@ -99,18 +99,30 @@ def wait_until_done(client: httpx.Client, lecture_id: str, timeout: float = 240)
 
 # ---- independent expectations (read the dataset directly, not through the app) ----------------
 
-def expected_next_session() -> datetime:
+def course_sessions(first_day: date, lectures_only: bool) -> list[datetime]:
+    """CS F212 session starts from timetable.json (stub `sessions` or generated `rows` format)."""
     tt = json.loads((DATA / "timetable.json").read_text())
-    rows = [r for r in tt["sessions"] if r["courseCode"] == COURSE]
+    rows = [r for r in (tt.get("sessions") or tt.get("rows") or []) if r["courseCode"] == COURSE
+            and (not lectures_only or r.get("kind", "lecture") == "lecture")]
     days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    lecture_day = date.fromisoformat(LECTURE_DATE)
-    for offset in range(1, 15):
-        d = lecture_day + timedelta(days=offset)
-        for r in sorted(rows, key=lambda r: r["start"]):
-            if days.index(r["day"].lower()[:3]) == d.weekday() and r.get("kind", "lecture") == "lecture":
+    out = []
+    for offset in range(0, 21):
+        d = first_day + timedelta(days=offset)
+        for r in rows:
+            if days.index(r["day"].lower()[:3]) == d.weekday():
                 h, m = map(int, r["start"].split(":"))
-                return datetime(d.year, d.month, d.day, h, m, tzinfo=TZ)
-    raise RuntimeError("no next session in timetable.json")
+                out.append(datetime(d.year, d.month, d.day, h, m, tzinfo=TZ))
+    return sorted(out)
+
+
+def expected_due(quote: str) -> datetime:
+    """What the lecturer said, resolved against the timetable: "next week" → the first session
+    of the following week; otherwise ("next lecture/session/time") → the next lecture."""
+    lecture_day = date.fromisoformat(LECTURE_DATE)
+    if "next week" in quote.lower():
+        monday = lecture_day + timedelta(days=7 - lecture_day.weekday())
+        return course_sessions(monday, lectures_only=False)[0]
+    return course_sessions(lecture_day + timedelta(days=1), lectures_only=True)[0]
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -158,18 +170,20 @@ def run_text_path(server: Server, label: str) -> bool:
           bool(hint) and all(norm(e["quote"]) in norm(seg.get(e["segmentId"], "")) for e in hint),
           f"{[(e['segmentId'], e['quote'][:70]) for e in hint]}")
 
-    next_session = expected_next_session()
     nl = [c for c in act["commitments"] if c["kind"] == "next_lecture_topic" and "deadlock" in norm(c["text"])]
-    check("4 next_lecture_topic (deadlocks) dueBy = next CS F212 session",
+    next_session = expected_due(nl[0]["quote"]) if nl else None
+    check("4 next_lecture_topic (deadlocks) dueBy = the CS F212 session the lecturer named, from timetable.json",
           bool(nl) and parse_dt(nl[0].get("dueBy")) == next_session,
-          f"expected {next_session.isoformat()}, got {[c.get('dueBy') for c in nl]}")
+          f"quote={nl[0]['quote'] if nl else None!r}; expected {next_session and next_session.isoformat()}, "
+          f"got {[c.get('dueBy') for c in nl]}")
 
     items = act["items"]
     prep = [a for a in items if a["kind"] == "prep" and "deadlock" in norm(a["title"] + " " + a["topic"])]
     study = [a for a in items if a["kind"] == "study" and norm(a["topic"]) == "two-phase locking"]
     review = [a for a in items if a["kind"] == "review" and "serializab" in norm(a["title"] + " " + a["topic"])]
     check("5a prep action on deadlocks, due by the next session",
-          bool(prep) and parse_dt(prep[0].get("dueBy")) is not None and parse_dt(prep[0]["dueBy"]) <= next_session,
+          bool(prep) and next_session is not None and parse_dt(prep[0].get("dueBy")) is not None
+          and parse_dt(prep[0]["dueBy"]) <= next_session,
           f"{[(a['title'], a.get('dueBy')) for a in prep]}")
     check("5b study action on two-phase locking, why cites past-paper marks",
           bool(study) and bool(re.search(r"\d+\s*(–|-|to)?\s*\d*\s*marks", study[0]["why"])),
@@ -208,13 +222,11 @@ def run_text_path(server: Server, label: str) -> bool:
 # ---- checks 7 and 8 -------------------------------------------------------------------------
 
 def make_audio(out_dir: Path) -> Path:
-    """~2 minutes of the stub lecture spoken by macOS `say`, as m4a."""
+    """~2 minutes of the lecture spoken by macOS `say`, as m4a: the first ~320 words, which is
+    what lectures/README.md asks the presenter to record for the live demo."""
     text = re.sub(r"\A---.*?---\s*", "", LECTURE_FILE.read_text(), flags=re.S)
     text = " ".join(line for line in text.splitlines() if not line.startswith("#"))
-    words = text.split()
-    # the opening (ACID + schedules) and the closing (assignment + next lecture)
-    closing = text[text.index("Right, we are almost out of time."):]
-    clip = " ".join(words[:230]) + " ... " + closing
+    clip = " ".join(text.split()[:320])
     aiff, m4a = out_dir / "clip.aiff", out_dir / "clip.m4a"
     subprocess.run(["say", "-r", "175", "-o", str(aiff), clip], check=True)
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(aiff), "-c:a", "aac", "-b:a", "64k", str(m4a)],

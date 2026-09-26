@@ -54,25 +54,29 @@ Prompts are in `app/prompts/class_companion.md`.
 It starts its own server on a temporary database, then runs checks 1–8: the text path,
 coverage, commitments, actions, accept → plan + calendar, real STT, and STT key killed.
 
-## Dataset files the companion reads (`app/data/`)
+## Dataset (`app/data/`)
 
-The files in the repo now are **stubs** (marked `stub`/`_stub`). Replace them with the
-generated dataset, keeping these shapes:
+This folder holds the generated synthetic dataset, copied from `backend_dataset/app/data`
+on 26 Sep. See `app/data/README.md` for its planted demo traps. To check it, run
+`python app/data/validate.py`.
 
-- `syllabus/<course-slug>.md`, e.g. `cs-f212.md`. Front matter has `docId`,
-  `courseCode`, `title` and `connectorId`. Each unit is `## Unit N: Title`, with its
-  topics as `- N.M Topic` lines (or `### N.M Topic`). Section ids come out as
-  `<docId>.N.M`.
-- `timetable.json`:
-  `{connectorId, timezone, term: {start, end}, sessions: [{id, courseCode, title, kind: "lecture"|"tutorial"|"lab", day: "Tue", start: "11:00", end: "12:50", room}]}`
-- `exam_calendar.json`:
-  `{connectorId, exams: [{id, courseCode, kind: "exam"|"quiz", component: "Mid-sem"|"End-sem"|"Quiz 2", title, date, start, end}]}`
-- `past_papers.json`:
-  `{connectorId, papers: [{id, courseCode, exam: "End-sem"|"Mid-sem", year, totalMarks, topics: [{topic, marks}]}]}`.
-  Topic names must match the syllabus topic strings, or the marks cannot be looked up.
-- `students/<id>.json`: `{student: {...}, records: {transcript, internalMarks, registrations}}`.
-  Each record is `{connectorId, rows}`, and internal-mark `topic` values use the syllabus
-  topic strings.
+The companion reads these files. Each loader accepts the generated shape, and also a
+simpler flat shape (`sessions[]`, `exams[]`, `papers[].topics[]`) for hand-written test
+data:
+
+- `syllabus/<course-slug>.md`, e.g. `cs-f212.md`: `## Unit N: Title`, then one
+  `### Topic` per topic (or `- N.M Topic`). Section ids come out as
+  `syllabus.<slug>.N.M`, and topic strings are the closed list every model call picks from.
+- `timetable.json`: `rows: [{courseCode, day: "Monday", start, end, room, kind}]`. Course
+  titles come from `catalog.json`.
+- `exam_calendar.json`: `courses: [{courseCode, midSemDate, endSemDate, quizDates[]}]`.
+  These have dates only, so exams are all-day and no time is invented.
+- `past_papers.json`: `courses: [{courseCode, papers: [{year, topicMarks}]}]`, all
+  end-sem. When a syllabus topic has no marks of its own (Two-phase locking), the action
+  cites its unit topic instead: "part of Transactions and concurrency, which carried
+  16–18 marks…".
+- `students/<id>.json`: the profile plus `{transcript, internalMarks, registrations}`
+  envelopes of the form `{connectorId, rows}`.
 - `lectures/*.md`: transcripts. Front matter and `#` headings are stripped before
   segmenting.
 

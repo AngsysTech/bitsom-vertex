@@ -29,8 +29,8 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.core import academics, db, llm, records, stt
-from app.core.academics import (TopicWeight, iso, lecture_start, next_exam, next_session, resolve_when,
-                                topic_weight)
+from app.core.academics import (TopicWeight, due_iso, iso, lecture_start, next_exam, next_session,
+                                resolve_when, topic_weight)
 from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
 from app.core.models import (ActionItem, ActionProvenance, ActionsCard, CalendarItem, Citation, CoverageCard,
                              CoverageCovered, CoverageEmphasized, CoverageMissed, Handout, HandoutDefinition,
@@ -233,6 +233,7 @@ class Ctx:
     actions: list[ActionItem] = field(default_factory=list)
     soft_error: str | None = None  # step finished but could not do all of its job
     section_topics: dict[str, list[str]] = field(default_factory=dict)  # handout section → syllabus topic ids
+    deferred_topics: set[str] = field(default_factory=set)  # missed, but the lecturer said it comes later
 
     @property
     def seg(self) -> dict[str, TranscriptSegment]:
@@ -256,7 +257,8 @@ def run_pipeline(lecture_id: str) -> None:
 def reload_data() -> None:
     """Pick up dataset files (re)generated while the server runs."""
     load_syllabus.cache_clear()
-    for cached in (academics.timetable, academics.exams, academics.past_papers, records._raw):
+    for cached in (academics.timetable, academics.exams, academics.past_papers, academics._catalog_titles,
+                   records._raw):
         cached.cache_clear()
 
 
@@ -543,6 +545,8 @@ class _Cov(BaseModel):
 class _Miss(BaseModel):
     topicId: str
     why: str
+    deferredSegmentId: Optional[str] = None
+    deferredQuote: Optional[str] = None
 
 
 class _Emph(BaseModel):
@@ -594,12 +598,22 @@ def step_coverage(ctx: Ctx) -> str:
     # and no handout section may map to the topic.
     why = {m.topicId: normalize_ws(m.why) for m in res.missed if m.topicId in unit_ids and m.why.strip()}
     order = {s.id: i for i, s in enumerate(handout.sections)}
+    deferred: dict[str, str] = {}
+    for m in res.missed:
+        exact = find_verbatim(m.deferredQuote, ctx.seg[m.deferredSegmentId].text) \
+            if m.deferredQuote and m.deferredSegmentId in ctx.seg else None
+        if exact:
+            deferred[m.topicId] = exact
     unclassified = []
     for t in unit.topics:
         if t.id in covered:
             card.covered.append(CoverageCovered(topic=t.title, handoutSectionIds=sorted(covered[t.id], key=order.get)))
         elif t.id in why:
-            card.missed.append(CoverageMissed(topic=t.title, syllabusSectionId=t.id, why=why[t.id]))
+            reason = why[t.id]
+            if t.id in deferred:
+                ctx.deferred_topics.add(t.title)
+                reason = f'{reason.rstrip(".")}. The lecturer deferred it: "{deferred[t.id]}".'
+            card.missed.append(CoverageMissed(topic=t.title, syllabusSectionId=t.id, why=reason))
         else:
             unclassified.append(t.title)
     if unclassified:
@@ -620,8 +634,11 @@ def step_coverage(ctx: Ctx) -> str:
         kept += 1
     db.put("coverage", lec.id, card.dump(), student_id=lec.studentId, parent_id=lec.id)
     ctx.coverage = card
+    deferred_note = f" (deferred by the lecturer, verified quote: {sorted(ctx.deferred_topics)})" \
+        if ctx.deferred_topics else ""
     return (f"{unit.title}: {len(card.covered)}/{len(unit.topics)} topics covered, missed "
-            f"{[m.topic for m in card.missed] or 'none'}; emphasized {kept} verified quotes, {dropped} dropped")
+            f"{[m.topic for m in card.missed] or 'none'}{deferred_note}; emphasized {kept} verified quotes, "
+            f"{dropped} dropped")
 
 
 # ---------------------------------------------------------------------------------
@@ -732,18 +749,19 @@ def _student_fact(student_id: str, course: str, topic: str) -> tuple[str | None,
     return f"you scored {r['scored']}/{r['max']} on it in {r.get('component', 'an internal')}{when}", pct
 
 
-def _candidates(ctx: Ctx) -> list[_Cand]:
+def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
     lec, cov = ctx.lecture, ctx.coverage
     course, student = lec.courseCode, lec.studentId
     lecture_at = _lecture_at(lec)
     now = datetime.now(TZ)
     session = next_session(course, lecture_at)
     exam = next_exam(course, max(lecture_at, now))
-    exam_due = iso(exam.start) if exam else None
+    exam_due = due_iso(exam) if exam else None
     session_due = iso(session.start) if session else None
     syl = ctx.syllabus
     by_title = {t.title: t for t in syl.topics} if syl else {}
     cands: list[_Cand] = []
+    notes: list[str] = []
     topics_seen: set[str] = set()
 
     def facts_for(topic: str) -> tuple[list[str], dict[str, str]]:
@@ -760,6 +778,8 @@ def _candidates(ctx: Ctx) -> list[_Cand]:
         return facts, prov
 
     for m in cov.missed if cov else []:
+        if m.topic in ctx.deferred_topics:
+            continue  # the lecturer will teach it next: the commitment becomes a prep action instead
         facts, prov = facts_for(m.topic)
         cands.append(_Cand(f"c{len(cands) + 1}", "study", m.topic, f"Not taught in this lecture: {m.why}", facts,
                            {"syllabusSectionId": m.syllabusSectionId, **prov}, exam_due))
@@ -785,14 +805,34 @@ def _candidates(ctx: Ctx) -> list[_Cand]:
                                f"Covered in this lecture; the student is weak on it", facts,
                                {**({"syllabusSectionId": sec_id} if sec_id else {}), **prov}, exam_due))
             topics_seen.add(c.topic)
+    # the student's weakest high-weight topics in this course, from internal marks × past papers
+    weak: list[tuple[float, str]] = []
+    for t in (syl.topics if syl else []):
+        if t.title in topics_seen:
+            continue
+        sf, pct = _student_fact(student, course, t.title)
+        w = topic_weight(course, t.title)
+        if sf and pct is not None and pct <= 0.5 and w:
+            weak.append(((1 - pct) * w.max_marks, t.title))
+    for _, title in sorted(weak, reverse=True)[:2]:
+        facts, prov = facts_for(title)
+        cands.append(_Cand(f"c{len(cands) + 1}", "review", title,
+                           "Weak in the student's internal marks (not from this lecture)", facts,
+                           {"syllabusSectionId": by_title[title].id, **prov}, exam_due))
+        topics_seen.add(title)
     emph_segments = {e.segmentId for e in (cov.emphasized if cov else [])}
     for cm in ctx.commitments:
         if cm.kind == "exam_hint" and cm.segmentId in emph_segments:
             continue  # already a review candidate from the same sentence
         kind = {"next_lecture_topic": "prep", "assignment": "deadline", "deadline": "deadline",
                 "reading": "resource", "exam_hint": "review"}[cm.kind]
+        if kind == "deadline" and not cm.dueBy:
+            kind = "review"  # work set without a date is practice, due before the next assessment
         due = cm.dueBy if kind == "deadline" else (cm.dueBy or session_due) if kind in ("prep", "resource") \
             else exam_due
+        if kind == "prep" and cal.parse_iso(due) and cal.parse_iso(due) < now:
+            notes.append(f"no prep for '{cm.text[:50]}': that session ({_fmt_due(due)}) has already happened")
+            continue
         due_dt = cal.parse_iso(due)
         facts = []
         if due_dt and kind in ("prep", "resource"):
@@ -801,7 +841,7 @@ def _candidates(ctx: Ctx) -> list[_Cand]:
             facts.append(f"due {due_dt:%a %d %b} as said in class")
         cands.append(_Cand(f"c{len(cands) + 1}", kind, cm.text, f'Lecturer said: "{cm.quote}"', facts,
                            {"segmentId": cm.segmentId, "commitmentId": cm.id}, due))
-    return cands
+    return cands, notes
 
 
 def _why_clause(text: str, kind: str) -> str:
@@ -813,12 +853,12 @@ def _why_clause(text: str, kind: str) -> str:
 
 def step_actions(ctx: Ctx) -> str:
     lec = ctx.lecture
-    cands = _candidates(ctx)
+    cands, notes = _candidates(ctx)
     for old in _actions_for(lec.id):  # re-processing replaces the proposals
         db.delete("action", old.id)
     if not cands:
         ctx.actions = []
-        return "no gaps, emphasis or commitments, so no actions"
+        return "no gaps, emphasis or commitments, so no actions" + (f"; {'; '.join(notes)}" if notes else "")
     by_id = {c.id: c for c in cands}
     listing = "\n".join(
         f"- {c.id} | kind={c.kind} | topic={c.topic} | {c.context}" + (f" | facts: {'; '.join(c.facts)}" if c.facts else "")
@@ -837,8 +877,8 @@ def step_actions(ctx: Ctx) -> str:
         if topic_id and ctx.syllabus and ctx.syllabus.topic(topic_id):
             topic = ctx.syllabus.topic(topic_id).title
         due = cand.due
-        if kind == "ask":
-            due = next_session(lec.courseCode, _lecture_at(lec))
+        if kind == "ask":  # take it to the next class that hasn't happened yet
+            due = next_session(lec.courseCode, max(_lecture_at(lec), datetime.now(TZ)))
             due = iso(due.start) if due else None
         return ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind=kind,
                           title=normalize_ws(title)[:120], course=lec.courseCode, topic=topic,
@@ -868,8 +908,9 @@ def step_actions(ctx: Ctx) -> str:
     if missing:
         ctx.soft_error = f"model left out {len(missing)} required candidate(s): {[c.topic for c in missing]}"
     kinds = Counter(a.kind for a in items)
+    skipped = f"; {'; '.join(notes)}" if notes else ""
     return (f"{len(cands)} candidates from missed/emphasized/commitments/marks → {len(items)} actions {dict(kinds)}; "
-            f"marks and dates computed from past_papers.json, exam_calendar.json, timetable.json")
+            f"marks and dates computed from past_papers.json, exam_calendar.json, timetable.json{skipped}")
 
 
 # ---------------------------------------------------------------------------------

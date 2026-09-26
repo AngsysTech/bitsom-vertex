@@ -14,7 +14,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.core.config import DATA_DIR, TZ
-from app.core.syllabus import course_slug
+from app.core.syllabus import course_slug, load_syllabus
 
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
@@ -46,6 +46,18 @@ def _hm(value: str) -> time:
 
 def iso(dt: datetime) -> str:
     return dt.astimezone(TZ).isoformat(timespec="seconds")
+
+
+@lru_cache(maxsize=1)
+def _catalog_titles() -> dict[str, str]:
+    data = _load("catalog.json") or {}
+    rows = data.get("courses", []) if isinstance(data, dict) else data
+    return {course_slug(r.get("code") or r.get("courseCode") or ""): r.get("title", "")
+            for r in rows if r.get("title")}
+
+
+def course_title(course_code: str) -> str | None:
+    return _catalog_titles().get(course_slug(course_code)) or None
 
 
 # ---- timetable -------------------------------------------------------------------
@@ -99,10 +111,10 @@ def sessions_between(start: datetime, end: datetime, courses: set[str] | None = 
             if e <= s:
                 e = s + timedelta(minutes=50)
             if start <= s < end:
-                out.append(Session(id=row.get("id") or f"{course_slug(code)}-{row.get('day')}",
-                                   course_code=code, title=row.get("title") or code,
-                                   kind=(row.get("kind") or "lecture").lower(), start=s, end=e,
-                                   room=row.get("room")))
+                kind = (row.get("kind") or "lecture").lower()
+                out.append(Session(id=row.get("id") or f"{course_slug(code)}-{kind}-{DAYS[day.weekday()]}-{s:%H%M}",
+                                   course_code=code, title=row.get("title") or course_title(code) or code,
+                                   kind=kind, start=s, end=e, room=row.get("room")))
         day += timedelta(days=1)
     return sorted(out, key=lambda x: x.start)
 
@@ -135,11 +147,36 @@ class Exam:
     title: str
     start: datetime
     end: datetime | None
+    all_day: bool = False  # the generated calendar has dates only; never invent a time
+
+
+def due_iso(e: Exam) -> str:
+    return e.start.date().isoformat() if e.all_day else iso(e.start)
+
+
+def _per_course_exams(courses: list[dict[str, Any]]) -> list[Exam]:
+    """{courses: [{courseCode, midSemDate, endSemDate, quizDates: [...]}]} → all-day Exams."""
+    out: list[Exam] = []
+    for c in courses:
+        code, slug = c.get("courseCode", ""), course_slug(c.get("courseCode", ""))
+        dated = [(f"{slug}-quiz{n}", "quiz", f"Quiz {n}", d) for n, d in enumerate(c.get("quizDates") or [], 1)]
+        if c.get("midSemDate"):
+            dated.append((f"{slug}-midsem", "exam", "Mid-sem", c["midSemDate"]))
+        if c.get("endSemDate"):
+            dated.append((f"{slug}-endsem", "exam", "End-sem", c["endSemDate"]))
+        for exam_id, kind, component, d in dated:
+            title = f"{code} {component}" + (" exam" if kind == "exam" else "")
+            out.append(Exam(id=exam_id, course_code=code, kind=kind, component=component, title=title,
+                            start=datetime.combine(date.fromisoformat(d[:10]), time(0, 0), TZ), end=None,
+                            all_day=True))
+    return out
 
 
 @lru_cache(maxsize=1)
 def exams() -> list[Exam]:
     data = _load("exam_calendar.json") or {}
+    if isinstance(data, dict) and isinstance(data.get("courses"), list):
+        return sorted(_per_course_exams(data["courses"]), key=lambda e: e.start)
     rows = data.get("exams") if isinstance(data, dict) else data
     out: list[Exam] = []
     for row in rows or []:
@@ -187,10 +224,16 @@ def past_papers() -> list[dict[str, Any]]:
         return data
     if "papers" in data:
         return data["papers"]
-    papers: list[dict[str, Any]] = []  # {"courses": {"CS F212": {"papers": [...]}}}
-    for code, course in (data.get("courses") or {}).items():
+    courses = data.get("courses") or []
+    if isinstance(courses, dict):  # {"CS F212": {"papers": [...]}}
+        courses = [{"courseCode": code, **c} for code, c in courses.items()]
+    papers: list[dict[str, Any]] = []
+    for course in courses:
         for p in course.get("papers", []):
-            papers.append({"courseCode": code, **p})
+            topics = p.get("topics") or [{"topic": t, "marks": m} for t, m in (p.get("topicMarks") or {}).items()]
+            # the generated dataset holds end-sem papers only (its README says so)
+            papers.append({"courseCode": course.get("courseCode"), "exam": p.get("exam", "End-sem"),
+                           "year": p.get("year"), "topics": topics})
     return papers
 
 
@@ -202,7 +245,28 @@ class TopicWeight:
 
 
 def topic_weight(course_code: str, topic: str) -> TopicWeight | None:
-    """Marks this topic carried in the course's last three end-sem papers, from past_papers.json."""
+    """Marks this topic carried in the course's last three end-sem papers, from past_papers.json.
+
+    Papers are sometimes set at unit level ("Transactions and concurrency") while the
+    syllabus lists finer topics ("Two-phase locking"). Then the fact names the unit topic
+    the marks belong to, e.g. "part of Transactions and concurrency, which carried ...".
+    """
+    exact = _weight(course_code, topic)
+    if exact:
+        return exact
+    syl = load_syllabus(course_code)
+    unit = next((u for u in syl.units if any(norm_topic(t.title) == norm_topic(topic) for t in u.topics)),
+                None) if syl else None
+    if unit is None:
+        return None
+    umbrella = re.sub(r"^\s*unit\s+\d+\s*[:.\-–]\s*", "", unit.title, flags=re.I).strip()
+    w = _weight(course_code, umbrella) if norm_topic(umbrella) != norm_topic(topic) else None
+    if w is None:
+        return None
+    return TopicWeight(fact=f"part of {umbrella}, which {w.fact}", citation_id=w.citation_id, max_marks=w.max_marks)
+
+
+def _weight(course_code: str, topic: str) -> TopicWeight | None:
     key = norm_topic(topic)
     ends = [p for p in past_papers()
             if same_course(p.get("courseCode"), course_code)
@@ -291,5 +355,5 @@ def resolve_when(when: dict[str, Any], course_code: str, lecture_at: datetime, q
         e = next_exam(course_code, lecture_at, component=comp or None)
         if not e:
             return None, "no matching exam in exam calendar"
-        return iso(e.start), f"{e.title} in exam calendar ({e.start:%d %b})"
+        return due_iso(e), f"{e.title} in exam calendar ({e.start:%d %b})"
     return None, "no time expression"

@@ -1,0 +1,122 @@
+{
+  "connectorId": "lms_moodle",
+  "resources": [
+    {
+      "kind": "ta_hours",
+      "name": "CS F212 TA Help Desk",
+      "forCourse": "CS F212",
+      "when": "Mon 17:00–18:00",
+      "where": "Learning Commons 1",
+      "contact": "ta-cs-f212@bits-campus.example"
+    },
+    {
+      "kind": "ta_hours",
+      "name": "CS F351 TA Help Desk",
+      "forCourse": "CS F351",
+      "when": "Tue 17:00–18:00",
+      "where": "Learning Commons 2",
+      "contact": "ta-cs-f351@bits-campus.example"
+    },
+    {
+      "kind": "ta_hours",
+      "name": "CS F372 TA Help Desk",
+      "forCourse": "CS F372",
+      "when": "Wed 17:00–18:00",
+      "where": "Learning Commons 3",
+      "contact": "ta-cs-f372@bits-campus.example"
+    },
+    {
+      "kind": "ta_hours",
+      "name": "CS F303 TA Help Desk",
+      "forCourse": "CS F303",
+      "when": "Thu 17:00–18:00",
+      "where": "Learning Commons 4",
+      "contact": "ta-cs-f303@bits-campus.example"
+    },
+    {
+      "kind": "ta_hours",
+      "name": "MATH F241 TA Help Desk",
+      "forCourse": "MATH F241",
+      "when": "Fri 16:00–17:00",
+      "where": "Learning Commons 5",
+      "contact": "ta-math-f241@bits-campus.example"
+    },
+    {
+      "kind": "ta_hours",
+      "name": "HSS F235 TA Help Desk",
+      "forCourse": "HSS F235",
+      "when": "Fri 15:00–16:00",
+      "where": "Learning Commons 6",
+      "contact": "ta-hss-f235@bits-campus.example"
+    },
+    {
+      "kind": "faculty",
+      "name": "Database Systems Faculty Office Hour",
+      "forCourse": "CS F212",
+      "when": "Wednesday 13:30–14:30",
+      "where": "Faculty Wing F-214",
+      "contact": "esha.kulkarni@bits-campus.example"
+    },
+    {
+      "kind": "faculty",
+      "name": "Operating Systems Faculty Office Hour",
+      "forCourse": "CS F372",
+      "when": "Thursday 12:00–13:00",
+      "where": "Faculty Wing F-118",
+      "contact": "rishi.menon@bits-campus.example"
+    },
+    {
+      "kind": "library",
+      "name": "Research and Reference Desk",
+      "when": "Mon–Sat 10:00–19:00",
+      "where": "Central Library Ground Floor",
+      "contact": "library.help@bits-campus.example"
+    },
+    {
+      "kind": "tutoring",
+      "name": "Peer Tutoring Program",
+      "when": "Mon–Fri 18:00–20:00",
+      "where": "Learning Commons",
+      "contact": "peer.tutoring@bits-campus.example"
+    },
+    {
+      "kind": "tutoring",
+      "name": "Writing Centre",
+      "forCourse": "HSS F235",
+      "when": "Tue & Thu 16:00–18:00",
+      "where": "Humanities Block H-102",
+      "contact": "writing.centre@bits-campus.example"
+    },
+    {
+      "kind": "lab",
+      "name": "Data Science Lab",
+      "forCourse": "MATH F241",
+      "when": "Mon–Fri 14:00–20:00",
+      "where": "Computing Block D-301",
+      "contact": "ds.lab@bits-campus.example"
+    },
+    {
+      "kind": "lab",
+      "name": "Systems Lab",
+      "forCourse": "CS F372",
+      "when": "Mon–Fri 10:00–18:00",
+      "where": "Computing Block S-204",
+      "contact": "systems.lab@bits-campus.example"
+    },
+    {
+      "kind": "library",
+      "name": "Exam Archive Desk",
+      "when": "Mon–Fri 11:00–17:00",
+      "where": "Central Library Level 1",
+      "contact": "exam.archive@bits-campus.example"
+    },
+    {
+      "kind": "tutoring",
+      "name": "Quant Support Clinic",
+      "forCourse": "MATH F241",
+      "when": "Saturday 10:00–12:00",
+      "where": "Learning Commons 4",
+      "contact": "quant.clinic@bits-campus.example"
+    }
+  ]
+}

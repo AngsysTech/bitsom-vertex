@@ -1,10 +1,90 @@
 {
-  "_stub": "STUB for companion testing; replace with the generated dataset",
   "connectorId": "academic_office",
-  "exams": [
-    { "id": "cs-f212-quiz2", "courseCode": "CS F212", "kind": "quiz", "component": "Quiz 2", "title": "CS F212 Quiz 2", "date": "2026-10-06", "start": "11:00", "end": "11:30" },
-    { "id": "cs-f212-midsem", "courseCode": "CS F212", "kind": "exam", "component": "Mid-sem", "title": "CS F212 Mid-semester examination", "date": "2026-10-14", "start": "14:00", "end": "15:30" },
-    { "id": "cs-f212-endsem", "courseCode": "CS F212", "kind": "exam", "component": "End-sem", "title": "CS F212 End-semester examination", "date": "2026-12-04", "start": "09:00", "end": "12:00" },
-    { "id": "cs-f211-midsem", "courseCode": "CS F211", "kind": "exam", "component": "Mid-sem", "title": "CS F211 Mid-semester examination", "date": "2026-10-12", "start": "09:00", "end": "10:30" }
+  "semester": 5,
+  "courses": [
+    {
+      "courseCode": "CS F212",
+      "midSemDate": "2026-09-08",
+      "endSemDate": "2026-11-30",
+      "quizDates": [
+        "2026-08-24",
+        "2026-10-12"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    },
+    {
+      "courseCode": "CS F351",
+      "midSemDate": "2026-09-09",
+      "endSemDate": "2026-12-02",
+      "quizDates": [
+        "2026-08-25",
+        "2026-10-13"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    },
+    {
+      "courseCode": "CS F372",
+      "midSemDate": "2026-09-10",
+      "endSemDate": "2026-12-04",
+      "quizDates": [
+        "2026-08-26",
+        "2026-10-14"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    },
+    {
+      "courseCode": "CS F303",
+      "midSemDate": "2026-09-11",
+      "endSemDate": "2026-12-06",
+      "quizDates": [
+        "2026-08-27",
+        "2026-10-15"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    },
+    {
+      "courseCode": "MATH F241",
+      "midSemDate": "2026-09-12",
+      "endSemDate": "2026-12-08",
+      "quizDates": [
+        "2026-08-28",
+        "2026-10-16"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    },
+    {
+      "courseCode": "HSS F235",
+      "midSemDate": "2026-09-13",
+      "endSemDate": "2026-12-10",
+      "quizDates": [
+        "2026-08-29",
+        "2026-10-17"
+      ],
+      "weightages": {
+        "quizzes": 20,
+        "midSem": 40,
+        "endSem": 40
+      }
+    }
   ]
 }

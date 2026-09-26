@@ -36,7 +36,7 @@ You receive the unit's canonical topics (a closed list with ids), the handout se
 Classify EVERY unit topic exactly once, as covered or missed. Judge from the transcript, not only from section headings: one section often teaches several topics.
 
 - covered: every unit topic the lecture actually teaches (explains, defines or works through), with the ids of the handout sections whose segments teach it. A topic that is only named in passing, or only announced for a future lecture, is NOT covered.
-- missed: every unit topic that is not covered, with one sentence of `why` saying what the lecture did instead. Use only the handout and the transcript, for example "The lecture moved from conflict serializability to recoverability without discussing it." Do not speculate about the lecturer's reasons.
+- missed: every unit topic that is not covered, with one sentence of `why` saying what the lecture did instead. Use only the handout and the transcript, for example "The lecture moved from conflict serializability to recoverability without discussing it." Do not speculate about the lecturer's reasons. If the lecturer explicitly says the topic will be taken up in a later lecture, also give deferredSegmentId and deferredQuote: that sentence, copied word for word from a single segment.
 - emphasized: sentences where the lecturer explicitly stresses importance, such as saying a topic will be on an exam, quiz or end-sem, or telling students to remember it. Copy each quote word for word from a single segment, and give that segmentId and the topicId it is about, chosen from the closed list of all course topics. Ordinary explanation is not emphasis.
 
 ## commitments

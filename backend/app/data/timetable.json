@@ -1,13 +1,102 @@
 {
-  "_stub": "STUB for companion testing; replace with the generated dataset",
-  "connectorId": "erp_sap",
-  "timezone": "Asia/Kolkata",
-  "term": { "start": "2026-08-03", "end": "2026-11-27" },
-  "sessions": [
-    { "id": "tt-cs-f212-tue", "courseCode": "CS F212", "title": "Database Systems", "kind": "lecture", "day": "Tue", "start": "11:00", "end": "12:50", "room": "F-105" },
-    { "id": "tt-cs-f211-mon", "courseCode": "CS F211", "title": "Data Structures and Algorithms", "kind": "lecture", "day": "Mon", "start": "09:00", "end": "09:50", "room": "F-102" },
-    { "id": "tt-cs-f211-wed", "courseCode": "CS F211", "title": "Data Structures and Algorithms", "kind": "lecture", "day": "Wed", "start": "09:00", "end": "09:50", "room": "F-102" },
-    { "id": "tt-cs-f213-thu", "courseCode": "CS F213", "title": "Object Oriented Programming", "kind": "lecture", "day": "Thu", "start": "14:00", "end": "15:50", "room": "G-201" },
-    { "id": "tt-cs-f214-fri", "courseCode": "CS F214", "title": "Logic in Computer Science", "kind": "lecture", "day": "Fri", "start": "10:00", "end": "10:50", "room": "F-201" }
+  "connectorId": "lms_moodle",
+  "semester": 5,
+  "rows": [
+    {
+      "courseCode": "CS F212",
+      "day": "Monday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "A-201",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F351",
+      "day": "Monday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "A-202",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F372",
+      "day": "Tuesday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "B-105",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F303",
+      "day": "Tuesday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "B-202",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "MATH F241",
+      "day": "Wednesday",
+      "start": "10:00",
+      "end": "11:00",
+      "room": "C-301",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "HSS F235",
+      "day": "Thursday",
+      "start": "14:00",
+      "end": "15:00",
+      "room": "H-110",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F212",
+      "day": "Thursday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "A-201",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F351",
+      "day": "Wednesday",
+      "start": "12:00",
+      "end": "13:00",
+      "room": "A-202",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "CS F372",
+      "day": "Friday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "B-105",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "CS F303",
+      "day": "Friday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "B-202",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "MATH F241",
+      "day": "Monday",
+      "start": "15:00",
+      "end": "16:00",
+      "room": "C-301",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "HSS F235",
+      "day": "Wednesday",
+      "start": "15:00",
+      "end": "16:00",
+      "room": "H-110",
+      "kind": "tutorial"
+    }
   ]
 }

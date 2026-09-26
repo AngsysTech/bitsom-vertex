@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from app.core import db
-from app.core.academics import exams, iso, sessions_between
+from app.core.academics import due_iso, exams, iso, sessions_between
 from app.core.config import TZ
 from app.core.models import CalendarItem
 from app.core.records import registered_courses
@@ -59,8 +59,10 @@ def _exam_items(student_id: str, start: datetime, end: datetime) -> list[Calenda
         if courses is not None and course_slug(e.course_code) not in courses:
             continue
         out.append(CalendarItem(id=f"exam:{e.id}", studentId=student_id, kind=e.kind, title=e.title,
-                                courseCode=e.course_code, start=iso(e.start),
-                                end=iso(e.end) if e.end else None, source={"type": "exam_calendar", "examId": e.id}))
+                                courseCode=e.course_code, start=due_iso(e),
+                                end=iso(e.end) if e.end and not e.all_day else None,
+                                allDay=True if e.all_day else None,
+                                source={"type": "exam_calendar", "examId": e.id}))
     return out
 
 

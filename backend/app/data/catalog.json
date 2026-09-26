@@ -1,0 +1,1183 @@
+{
+  "connectorId": "erp_core",
+  "courses": [
+    {
+      "code": "CS F111",
+      "title": "Computer Programming",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        1
+      ],
+      "slot": "T1",
+      "faculty": "Dr. Nila Verma",
+      "prereqs": [],
+      "skills": [
+        "python",
+        "algorithms",
+        "problem-solving"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Computer Programming."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in computer programming with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "MATH F211",
+      "title": "Mathematics I",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        1
+      ],
+      "slot": "T2",
+      "faculty": "Dr. Arjun Sen",
+      "prereqs": [],
+      "skills": [
+        "statistics",
+        "problem-solving"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Mathematics I."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in mathematics i with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "MATH F213",
+      "title": "Discrete Mathematics",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        2
+      ],
+      "slot": "T3",
+      "faculty": "Dr. Leena Bose",
+      "prereqs": [],
+      "skills": [
+        "algorithms",
+        "logic",
+        "problem-solving"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Discrete Mathematics."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in discrete mathematics with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "ECON F211",
+      "title": "Principles of Economics",
+      "units": 3,
+      "bucket": "open_elective",
+      "offeredIn": [
+        2,
+        6
+      ],
+      "slot": "M1",
+      "faculty": "Dr. Mira Kapoor",
+      "prereqs": [],
+      "skills": [
+        "analytics",
+        "communication"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Principles of Economics."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in principles of economics with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "HSS F221",
+      "title": "Critical Writing",
+      "units": 3,
+      "bucket": "humanities",
+      "offeredIn": [
+        2,
+        6
+      ],
+      "slot": "M2",
+      "faculty": "Dr. Tara Iyer",
+      "prereqs": [],
+      "skills": [
+        "communication",
+        "research"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Critical Writing."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in critical writing with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F211",
+      "title": "Data Structures",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        2
+      ],
+      "slot": "T4",
+      "faculty": "Dr. Dev Malhotra",
+      "prereqs": [
+        "CS F111"
+      ],
+      "skills": [
+        "algorithms",
+        "python",
+        "problem-solving"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Data Structures."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in data structures with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F213",
+      "title": "Object Oriented Programming",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        2
+      ],
+      "slot": "T5",
+      "faculty": "Dr. Kavya Rao",
+      "prereqs": [
+        "CS F111"
+      ],
+      "skills": [
+        "software-design",
+        "backend",
+        "testing"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Object Oriented Programming."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in object oriented programming with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F214",
+      "title": "Logic in Computer Science",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        3
+      ],
+      "slot": "T1",
+      "faculty": "Dr. Ishan Dutt",
+      "prereqs": [
+        "MATH F213"
+      ],
+      "skills": [
+        "logic",
+        "algorithms"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Logic in Computer Science."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in logic in computer science with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F241",
+      "title": "Microprocessors",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        3
+      ],
+      "slot": "T2",
+      "faculty": "Dr. Reva Nair",
+      "prereqs": [
+        "CS F111"
+      ],
+      "skills": [
+        "systems",
+        "embedded-systems"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Microprocessors."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in microprocessors with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "MATH F241",
+      "title": "Probability and Statistics",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        5
+      ],
+      "slot": "T6",
+      "faculty": "Dr. Noor Khan",
+      "prereqs": [
+        "MATH F211"
+      ],
+      "skills": [
+        "statistics",
+        "analytics",
+        "python"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Probability and Statistics."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Probability models, random variables, estimation, hypothesis testing and regression."
+    },
+    {
+      "code": "CS F301",
+      "title": "Principles of Programming Languages",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        4
+      ],
+      "slot": "T3",
+      "faculty": "Dr. Omar Mehta",
+      "prereqs": [
+        "CS F211",
+        "CS F213"
+      ],
+      "skills": [
+        "programming-languages",
+        "software-design"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Principles of Programming Languages."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in principles of programming languages with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F212",
+      "title": "Database Systems",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        5
+      ],
+      "slot": "T1",
+      "faculty": "Dr. Esha Kulkarni",
+      "prereqs": [
+        "CS F211"
+      ],
+      "skills": [
+        "sql",
+        "data-modeling",
+        "backend"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Database Systems."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Relational modeling, SQL, storage structures and transaction processing with an emphasis on dependable database-backed systems."
+    },
+    {
+      "code": "CS F303",
+      "title": "Computer Networks",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        5
+      ],
+      "slot": "T4",
+      "faculty": "Dr. Ved Suri",
+      "prereqs": [
+        "CS F211"
+      ],
+      "skills": [
+        "networking",
+        "distributed-systems"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Computer Networks."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Layered networking, transport protocols, routing and application protocols with practical packet-level reasoning."
+    },
+    {
+      "code": "CS F351",
+      "title": "Theory of Computation",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        5
+      ],
+      "slot": "T3",
+      "faculty": "Dr. Sana Roy",
+      "prereqs": [
+        "CS F214"
+      ],
+      "skills": [
+        "logic",
+        "algorithms"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Theory of Computation."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Formal languages, automata, grammars, computability and complexity foundations."
+    },
+    {
+      "code": "CS F372",
+      "title": "Operating Systems",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        5
+      ],
+      "slot": "T2",
+      "faculty": "Dr. Rishi Menon",
+      "prereqs": [
+        "CS F211"
+      ],
+      "skills": [
+        "systems",
+        "concurrency",
+        "distributed-systems"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Operating Systems."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Processes, threads, scheduling, synchronization, memory and file systems."
+    },
+    {
+      "code": "HSS F235",
+      "title": "Technology and Society",
+      "units": 3,
+      "bucket": "humanities",
+      "offeredIn": [
+        5
+      ],
+      "slot": "M3",
+      "faculty": "Dr. Anya Das",
+      "prereqs": [],
+      "skills": [
+        "communication",
+        "research",
+        "ethics"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Technology and Society."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "Social, ethical and institutional consequences of computing technologies."
+    },
+    {
+      "code": "CS F342",
+      "title": "Compiler Construction",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "T5",
+      "faculty": "Dr. Farah Gill",
+      "prereqs": [
+        "CS F351"
+      ],
+      "skills": [
+        "compilers",
+        "algorithms",
+        "systems"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Compiler Construction."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in compiler construction with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F363",
+      "title": "Compiler Design Lab",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "L1",
+      "faculty": "Dr. Kabir Shah",
+      "prereqs": [
+        "CS F342"
+      ],
+      "skills": [
+        "compilers",
+        "testing",
+        "systems"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Compiler Design Lab."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in compiler design lab with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F407",
+      "title": "Artificial Intelligence",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "T2",
+      "faculty": "Dr. Pia Thomas",
+      "prereqs": [
+        "CS F211",
+        "MATH F241"
+      ],
+      "skills": [
+        "python",
+        "ml",
+        "algorithms"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Artificial Intelligence."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in artificial intelligence with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F415",
+      "title": "Data Mining",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "T4",
+      "faculty": "Dr. Zoya Mir",
+      "prereqs": [
+        "CS F212",
+        "MATH F241"
+      ],
+      "skills": [
+        "python",
+        "statistics",
+        "data-modeling",
+        "ml"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Data Mining."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in data mining with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F429",
+      "title": "Natural Language Processing",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        7
+      ],
+      "slot": "T1",
+      "faculty": "Dr. Neil Anand",
+      "prereqs": [
+        "CS F407"
+      ],
+      "skills": [
+        "nlp",
+        "ml",
+        "python"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Natural Language Processing."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in natural language processing with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F432",
+      "title": "Data Visualization",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6,
+        7
+      ],
+      "slot": "T3",
+      "faculty": "Dr. Simran Lal",
+      "prereqs": [
+        "MATH F241"
+      ],
+      "skills": [
+        "visualization",
+        "analytics",
+        "python"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Data Visualization."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in data visualization with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F441",
+      "title": "Selected Topics: Cloud Computing",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        7
+      ],
+      "slot": "T5",
+      "faculty": "Dr. Yash Batra",
+      "prereqs": [
+        "CS F303",
+        "CS F372"
+      ],
+      "skills": [
+        "distributed-systems",
+        "backend",
+        "cloud"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Selected Topics: Cloud Computing."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in selected topics: cloud computing with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "CS F464",
+      "title": "Machine Learning",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "T6",
+      "faculty": "Dr. Ina George",
+      "prereqs": [
+        "MATH F241",
+        "CS F211"
+      ],
+      "skills": [
+        "ml",
+        "statistics",
+        "python"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Machine Learning."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in machine learning with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "BIO F201",
+      "title": "Computational Biology",
+      "units": 3,
+      "bucket": "open_elective",
+      "offeredIn": [
+        6,
+        7
+      ],
+      "slot": "M4",
+      "faculty": "Dr. Rhea Baner",
+      "prereqs": [],
+      "skills": [
+        "python",
+        "analytics",
+        "research"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Computational Biology."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 5,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in computational biology with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "DES F210",
+      "title": "Design Thinking",
+      "units": 3,
+      "bucket": "open_elective",
+      "offeredIn": [
+        6
+      ],
+      "slot": "M5",
+      "faculty": "Dr. Kian Arora",
+      "prereqs": [],
+      "skills": [
+        "product-thinking",
+        "communication",
+        "research"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Design Thinking."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in design thinking with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "MGTS F231",
+      "title": "Product Management Fundamentals",
+      "units": 3,
+      "bucket": "open_elective",
+      "offeredIn": [
+        6,
+        7
+      ],
+      "slot": "M6",
+      "faculty": "Dr. Aditi Bose",
+      "prereqs": [],
+      "skills": [
+        "product-thinking",
+        "analytics",
+        "communication"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Clear structure and useful examples in Product Management Fundamentals."
+        },
+        {
+          "rating": 4,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in product management fundamentals with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "EEE F245",
+      "title": "Internet of Things",
+      "units": 3,
+      "bucket": "open_elective",
+      "offeredIn": [
+        6,
+        7
+      ],
+      "slot": "M2",
+      "faculty": "Dr. Nikhil Paul",
+      "prereqs": [
+        "CS F241"
+      ],
+      "skills": [
+        "embedded-systems",
+        "networking",
+        "cloud"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Clear structure and useful examples in Internet of Things."
+        },
+        {
+          "rating": 3,
+          "blurb": "Workload is steady; weekly practice matters."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect well to the course outcomes."
+        }
+      ],
+      "description": "A structured course in internet of things with applied exercises and assessed problem solving."
+    },
+    {
+      "code": "PS F401",
+      "title": "Practice School / Thesis",
+      "units": 20,
+      "bucket": "practice_school",
+      "offeredIn": [
+        7,
+        8
+      ],
+      "slot": "PS",
+      "faculty": "Program Faculty",
+      "prereqs": [],
+      "skills": [
+        "research",
+        "communication",
+        "product-thinking"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Strong applied learning experience."
+        },
+        {
+          "rating": 4,
+          "blurb": "Requires disciplined project planning."
+        }
+      ],
+      "description": "Culminating supervised practice-school or thesis experience."
+    },
+    {
+      "code": "CS F221",
+      "title": "Algorithms",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        3
+      ],
+      "slot": "T4",
+      "faculty": "Dr. Kira Joshi",
+      "prereqs": [
+        "CS F211"
+      ],
+      "skills": [
+        "algorithms",
+        "problem-solving",
+        "python"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "The problem sets build strong algorithmic intuition."
+        },
+        {
+          "rating": 4,
+          "blurb": "Challenging but structured."
+        }
+      ],
+      "description": "Algorithm design, asymptotic analysis, graph algorithms and dynamic programming."
+    },
+    {
+      "code": "CS F222",
+      "title": "Computer Architecture",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        3
+      ],
+      "slot": "T5",
+      "faculty": "Dr. Varun Pillai",
+      "prereqs": [
+        "CS F241"
+      ],
+      "skills": [
+        "systems",
+        "embedded-systems"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Good bridge from processors to systems."
+        },
+        {
+          "rating": 4,
+          "blurb": "Labs make the datapath concrete."
+        }
+      ],
+      "description": "Processor organization, memory hierarchy, instruction execution and performance."
+    },
+    {
+      "code": "CS F225",
+      "title": "Software Engineering",
+      "units": 4,
+      "bucket": "core",
+      "offeredIn": [
+        4
+      ],
+      "slot": "T6",
+      "faculty": "Dr. Mira Lal",
+      "prereqs": [
+        "CS F213"
+      ],
+      "skills": [
+        "software-design",
+        "testing",
+        "backend"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Team project forces clear interfaces."
+        },
+        {
+          "rating": 5,
+          "blurb": "Useful testing and design practice."
+        }
+      ],
+      "description": "Software lifecycle, architecture, testing, teamwork and maintainability."
+    },
+    {
+      "code": "MATH F221",
+      "title": "Linear Algebra",
+      "units": 3,
+      "bucket": "core",
+      "offeredIn": [
+        2
+      ],
+      "slot": "M4",
+      "faculty": "Dr. Rohan Dey",
+      "prereqs": [
+        "MATH F211"
+      ],
+      "skills": [
+        "statistics",
+        "ml",
+        "problem-solving"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Strong foundation for later ML work."
+        },
+        {
+          "rating": 4,
+          "blurb": "Practice sheets are useful."
+        }
+      ],
+      "description": "Vectors, matrices, linear transformations, eigenvalues and decompositions."
+    },
+    {
+      "code": "ECON F212",
+      "title": "Data and Markets",
+      "units": 3,
+      "bucket": "core",
+      "offeredIn": [
+        4
+      ],
+      "slot": "M5",
+      "faculty": "Dr. Sia Mehra",
+      "prereqs": [
+        "ECON F211"
+      ],
+      "skills": [
+        "analytics",
+        "statistics",
+        "communication"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Good use of data in economic arguments."
+        },
+        {
+          "rating": 4,
+          "blurb": "Projects are practical."
+        }
+      ],
+      "description": "Quantitative reasoning about markets using data, uncertainty and incentives."
+    },
+    {
+      "code": "CS F320",
+      "title": "Human-Centred Computing",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        4,
+        6
+      ],
+      "slot": "T1",
+      "faculty": "Dr. Arohi Shah",
+      "prereqs": [
+        "CS F213"
+      ],
+      "skills": [
+        "product-thinking",
+        "research",
+        "communication"
+      ],
+      "feedback": [
+        {
+          "rating": 5,
+          "blurb": "Research exercises connect users to technical choices."
+        },
+        {
+          "rating": 4,
+          "blurb": "Project feedback is detailed."
+        }
+      ],
+      "description": "User research, interface evaluation and human-centred system design."
+    },
+    {
+      "code": "CS F330",
+      "title": "Information Retrieval",
+      "units": 4,
+      "bucket": "discipline_elective",
+      "offeredIn": [
+        4,
+        6
+      ],
+      "slot": "T4",
+      "faculty": "Dr. Naman Rao",
+      "prereqs": [
+        "CS F211"
+      ],
+      "skills": [
+        "python",
+        "algorithms",
+        "data-modeling"
+      ],
+      "feedback": [
+        {
+          "rating": 4,
+          "blurb": "Search ranking examples are practical."
+        },
+        {
+          "rating": 4,
+          "blurb": "Assignments connect theory to systems."
+        }
+      ],
+      "description": "Indexing, ranking, retrieval evaluation and search system design."
+    }
+  ]
+}
