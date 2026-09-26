@@ -16,6 +16,7 @@ from app.api import coach as coach_api
 from app.api import companion as companion_api
 from app.api import demo as demo_api
 from app.api import mindmap as mindmap_api
+from app.api import workspace as workspace_api
 from app.tools.companion import BadRequest, NotFound
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -26,6 +27,7 @@ app.include_router(companion_api.router)
 app.include_router(coach_api.router)
 app.include_router(demo_api.router)
 app.include_router(mindmap_api.router)
+app.include_router(workspace_api.router)
 
 
 @app.exception_handler(NotFound)

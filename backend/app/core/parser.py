@@ -42,6 +42,7 @@ class Doc:
     connector_id: str
     effective_date: str | None = None
     sections: list[Section] = field(default_factory=list)
+    path: str | None = None          # source file, for WorkspaceFile.updatedAt
 
     def dump(self) -> dict[str, Any]:
         out: dict[str, Any] = {"id": self.id, "kind": self.kind, "title": self.title,
@@ -100,7 +101,7 @@ def _handbook() -> list[Doc]:
     meta, body = _front_matter(path.read_text(encoding="utf-8"))
     return [Doc(id="handbook", kind="handbook", title=meta.get("title", "Academic Handbook"),
                 connector_id=meta.get("connectorId", "erp_core"), effective_date=meta.get("effectiveDate"),
-                sections=_markdown_sections("handbook", body))]
+                sections=_markdown_sections("handbook", body), path=str(path))]
 
 
 def _circulars() -> list[Doc]:
@@ -111,7 +112,8 @@ def _circulars() -> list[Doc]:
         doc_id = f"circular.{path.stem}"
         out.append(Doc(id=doc_id, kind="circular", title=meta.get("title", path.stem),
                        connector_id=meta.get("connectorId", "academic_office"),
-                       effective_date=meta.get("effectiveDate"), sections=_markdown_sections(doc_id, body)))
+                       effective_date=meta.get("effectiveDate"), sections=_markdown_sections(doc_id, body),
+                       path=str(path)))
     return out
 
 
@@ -141,7 +143,8 @@ def _catalog() -> list[Doc]:
         sections.append(Section(id=f"catalog.{course_slug(code)}", heading=f"{code} {c.get('title', '')}".strip(),
                                 text=" ".join(parts)))
     connector = data.get("connectorId", "erp_core") if isinstance(data, dict) else "erp_core"
-    return [Doc(id="catalog", kind="catalog", title="Course Catalog", connector_id=connector, sections=sections)]
+    return [Doc(id="catalog", kind="catalog", title="Course Catalog", connector_id=connector, sections=sections,
+                path=str(DATA_DIR / "catalog.json"))]
 
 
 def _syllabus_bodies(text: str) -> list[tuple[str, str, str]]:
@@ -186,7 +189,8 @@ def _syllabi() -> list[Doc]:
                     break
             sections.append(Section(id=t.id, heading=f"{t.unit_title} › {t.title}", text=desc or t.line))
         out.append(Doc(id=syl.doc_id, kind="syllabus", title=f"{syl.course_code} {syl.title}",
-                       connector_id=syl.connector_id, effective_date=meta.get("effectiveDate"), sections=sections))
+                       connector_id=syl.connector_id, effective_date=meta.get("effectiveDate"), sections=sections,
+                       path=str(path)))
     return out
 
 
@@ -222,7 +226,7 @@ def _exam_calendar() -> list[Doc]:
         return []
     return [Doc(id="exam_calendar", kind="exam_calendar", title="Semester 5 Exam Calendar",
                 connector_id=raw.get("connectorId", "academic_office") if isinstance(raw, dict) else "academic_office",
-                sections=sections)]
+                sections=sections, path=str(DATA_DIR / "exam_calendar.json"))]
 
 
 def past_papers_section_id(course_code: str, topic: str) -> str:
@@ -248,7 +252,7 @@ def _past_papers() -> list[Doc]:
         return []
     return [Doc(id="past_papers", kind="past_papers", title="Past papers: topic marks, 2023–2025",
                 connector_id=raw.get("connectorId", "academic_office") if isinstance(raw, dict) else "academic_office",
-                sections=sections)]
+                sections=sections, path=str(DATA_DIR / "past_papers.json"))]
 
 
 @lru_cache(maxsize=1)
