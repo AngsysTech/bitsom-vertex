@@ -1,4 +1,4 @@
-"""Dependency cut for the vendored notes code (app/vendored/audio_notes/NOTICE.md).
+"""Dependency cut for the vendored notes code (app/vendored/NOTICE.md).
 
 The vendored ``notes_generation.py`` imported ``get_settings`` from its old settings
 module and ``call_llm`` from its old provider client. Neither was copied. Its imports
