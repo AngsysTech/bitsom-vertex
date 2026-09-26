@@ -10,7 +10,7 @@
 #
 # POST /demo/reset/<student> deletes these. Re-run this script after any reset:
 #   bash backend/scripts/preload_demo.sh            # all of the list below
-#   API=http://localhost:8000 bash backend/scripts/preload_demo.sh
+#   ONLY=meera bash backend/scripts/preload_demo.sh  # one student (after POST /demo/reset/meera)
 set -euo pipefail
 API="${API:-http://localhost:8000}"
 STAGE="$(cd "$(dirname "$0")/.." && pwd)/data/stage"
@@ -29,6 +29,7 @@ field() { python3 -c "import json,sys; print(json.load(sys.stdin).get('$1',''))"
 ids=()
 for row in "${LIST[@]}"; do
   IFS='|' read -r student course day file <<<"$row"
+  [[ -n "${ONLY:-}" && "$student" != "$ONLY" ]] && continue
   lid=$(curl -sf -X POST "$API/lectures" -F "studentId=$student" -F "courseCode=$course" -F "date=$day" \
         -F "source=upload" -F "audio=@$STAGE/$file" | field id)
   curl -sf -X POST "$API/lectures/$lid/process" >/dev/null
