@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SectionChip } from '@/components/CitePill'
 import { Icon } from '@/components/Icon'
+import { HandoutViewToggle, LectureMindMap, type HandoutPaneView } from '@/components/LectureMindMap'
 import { MakeRelevantButton, RelevantSlot } from '@/components/relevant/MakeRelevant'
 import { Spinner } from '@/components/Spinner'
 import { API_URL } from '@/lib/config'
@@ -197,6 +198,7 @@ export function HandoutView({ courseCode, lectureId, focus }: { courseCode: stri
   const loadTranscript = useWS((s) => s.loadTranscript)
   const loadMarkers = useWS((s) => s.loadMarkers)
   const [showTranscript, setShowTranscript] = useState(false)
+  const [view, setView] = useState<HandoutPaneView>('handout')
   const audio = useRef<HTMLAudioElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
 
@@ -259,38 +261,54 @@ export function HandoutView({ courseCode, lectureId, focus }: { courseCode: stri
           )
         ) : (
           <>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold tracking-[.06em] text-ink-5 uppercase">
-                {courseCode} · Handout{lecture ? ` · ${fmtDayShort(lecture.date)}` : ''}
-                {lecture?.durationSec ? ` · ${mmss(lecture.durationSec)}` : ''}
-              </span>
-              <h2 className="text-2xl leading-8 font-black">{h.title}</h2>
+            <div className="flex items-end justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold tracking-[.06em] text-ink-5 uppercase">
+                  {courseCode} · Handout{lecture ? ` · ${fmtDayShort(lecture.date)}` : ''}
+                  {lecture?.durationSec ? ` · ${mmss(lecture.durationSec)}` : ''}
+                </span>
+                <h2 className="text-2xl leading-8 font-black">{h.title}</h2>
+              </div>
+              <HandoutViewToggle value={view} onChange={setView} />
             </div>
-            {lecture?.audioUrl && <audio ref={audio} controls preload="none" src={audioSrc(lecture.audioUrl)} className="h-9 w-full max-w-[520px]" />}
-            <p className="rounded-lg bg-soft px-4 py-3 text-[15px] leading-6 text-pretty">{h.summary}</p>
-            {lecture && <Timeline lecture={lecture} handout={h} segments={segments} pins={pins} onSeek={seek} />}
-            {h.sections.map((s) => (
-              <SectionCard key={s.id} s={s} lecture={lecture ?? ({ id: lectureId, courseCode } as Lecture)} segments={segMap} focused={focusSection?.id === s.id} onSeg={onSeg} />
-            ))}
-            <div className="flex flex-col gap-2 rounded-lg border border-line">
-              <button type="button" onClick={() => setShowTranscript(!showTranscript)} className="flex cursor-pointer items-center gap-2 px-4 py-3 text-left text-[13px] font-bold">
-                <Icon name={showTranscript ? 'expand_less' : 'expand_more'} size={18} />
-                Transcript · {segments.length} segments
-                {transcript?.status === 'loading' && <Spinner size={11} />}
-              </button>
-              {showTranscript && (
-                <div className="flex flex-col px-2 pb-2">
-                  {segments.map((s) => (
-                    <div key={s.id} id={`seg-${s.id}`} className={cn('flex gap-3 rounded-md px-2 py-1.5 text-[13px] leading-5', s.id === focusSegment && 'animate-flash bg-cyan-soft')}>
-                      <button type="button" onClick={() => onSeg(s.id)} className="w-12 flex-none cursor-pointer text-right font-mono text-[11px] font-bold text-link">
-                        {mmss(s.startSec)}
-                      </button>
-                      <span className="text-ink">{s.text}</span>
-                    </div>
-                  ))}
-                  {transcript?.status === 'error' && <span className="px-2 text-xs text-bad">Couldn’t load the transcript: {transcript.error}</span>}
-                </div>
-              )}
+            {view === 'mindmap' && (
+              <LectureMindMap
+                lectureId={lectureId}
+                onOpenSection={(id) => {
+                  setView('handout')
+                  navigate(classPath(courseCode, 'lectures', lectureId, id))
+                  requestAnimationFrame(() => document.getElementById(`hs-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+                }}
+                className="h-[min(72vh,760px)] overflow-hidden rounded-lg border border-line"
+              />
+            )}
+            <div className={cn('flex flex-col gap-4', view === 'mindmap' && 'hidden')}>
+              {lecture?.audioUrl && <audio ref={audio} controls preload="none" src={audioSrc(lecture.audioUrl)} className="h-9 w-full max-w-[520px]" />}
+              <p className="rounded-lg bg-soft px-4 py-3 text-[15px] leading-6 text-pretty">{h.summary}</p>
+              {lecture && <Timeline lecture={lecture} handout={h} segments={segments} pins={pins} onSeek={seek} />}
+              {h.sections.map((s) => (
+                <SectionCard key={s.id} s={s} lecture={lecture ?? ({ id: lectureId, courseCode } as Lecture)} segments={segMap} focused={focusSection?.id === s.id} onSeg={onSeg} />
+              ))}
+              <div className="flex flex-col gap-2 rounded-lg border border-line">
+                <button type="button" onClick={() => setShowTranscript(!showTranscript)} className="flex cursor-pointer items-center gap-2 px-4 py-3 text-left text-[13px] font-bold">
+                  <Icon name={showTranscript ? 'expand_less' : 'expand_more'} size={18} />
+                  Transcript · {segments.length} segments
+                  {transcript?.status === 'loading' && <Spinner size={11} />}
+                </button>
+                {showTranscript && (
+                  <div className="flex flex-col px-2 pb-2">
+                    {segments.map((s) => (
+                      <div key={s.id} id={`seg-${s.id}`} className={cn('flex gap-3 rounded-md px-2 py-1.5 text-[13px] leading-5', s.id === focusSegment && 'animate-flash bg-cyan-soft')}>
+                        <button type="button" onClick={() => onSeg(s.id)} className="w-12 flex-none cursor-pointer text-right font-mono text-[11px] font-bold text-link">
+                          {mmss(s.startSec)}
+                        </button>
+                        <span className="text-ink">{s.text}</span>
+                      </div>
+                    ))}
+                    {transcript?.status === 'error' && <span className="px-2 text-xs text-bad">Couldn’t load the transcript: {transcript.error}</span>}
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

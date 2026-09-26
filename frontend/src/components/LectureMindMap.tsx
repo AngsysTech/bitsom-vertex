@@ -14,21 +14,14 @@ import {
   type MouseEvent,
   type PointerEvent,
 } from 'react'
-import {
-  getMindMap,
-  getSegmentStarts,
-  makeItRelevant,
-  rebuildMindMap,
-  type MindMap,
-  type MindMapNode,
-  type RelevantResult,
-  type RelevantSource,
-} from '@/api/mindmap'
-import { RelevantCard } from '@/components/cards/RelevantCard'
+import { getMindMap, rebuildMindMap, type MindMap, type MindMapNode } from '@/api/mindmap'
+import { docIdOf } from '@/components/CitePill'
 import { Icon } from '@/components/Icon'
+import { MakeRelevantButton, RelevantSlot } from '@/components/relevant/MakeRelevant'
 import { navigate } from '@/lib/route'
 import { cn } from '@/lib/utils'
-import { useWS } from '@/store/workspace'
+import { relevantKey, useWS } from '@/store/workspace'
+import type { RelevantCard } from '@/types'
 // @ts-expect-error vendored JS (prior code, jury-approved) ships without type declarations
 import MindMapGraphJs from '@/vendored/mindmap/MindMapGraph.jsx'
 // @ts-expect-error vendored JS (prior code, jury-approved) ships without type declarations
@@ -79,6 +72,7 @@ const BASE_CSS = `
 .lmm .mindmap-branch { stroke: #22d3ee; }
 .lmm .mindmap-toggle { background: #fff; border-color: #cbd5e1; color: #0f172a; }
 .lmm [role="treeitem"][aria-selected="true"] > [data-level] { --tw-ring-color: #22d3ee; }
+.lmm [role="treeitem"] { padding: 10px 0; } /* room for the badges; the layout measures it, so siblings space out */
 `
 
 const BADGE =
@@ -106,7 +100,7 @@ function overlayCss(map: MindMap): string {
       out.push(`${box}::before{content:"exam hint";${BADGE};left:10px;top:-9px;background:#ecfeff;color:#0e7490;border-color:#67e8f9}`)
     }
     if (reviewActionId) {
-      out.push(`${sel(n.id)}::after{content:"✓ review planned";${BADGE};right:14px;bottom:-9px;background:#ecfdf5;color:#047857;border-color:#a7f3d0}`)
+      out.push(`${sel(n.id)}::after{content:"✓ review planned";${BADGE};right:14px;bottom:1px;background:#ecfdf5;color:#047857;border-color:#a7f3d0}`)
     }
   }
   return out.join('\n')
@@ -124,8 +118,15 @@ const KIND_LABEL: Record<MindMapNode['kind'], string> = {
   ghost_missed: 'Not covered in lecture',
 }
 
-/** `syllabus.cs-f212.3.5` → the document `syllabus.cs-f212`. */
-const syllabusDoc = (sectionId: string) => sectionId.replace(/(\.\d+)+$/, '')
+type RelevantSource = NonNullable<RelevantCard['source']>
+
+/** Make it relevant on a section (the handout section) or a ghost (the skipped topic). */
+function relevantSource(map: MindMap, n: MindMapNode): RelevantSource | undefined {
+  if (n.kind === 'ghost_missed') return { type: 'weak_topic', course: map.courseCode, topic: n.label }
+  if (n.kind !== 'section' || !n.handoutSectionId) return undefined
+  const markerId = n.flags.stuck?.markerIds[0]
+  return { type: 'handout_section', lectureId: map.lectureId, sectionId: n.handoutSectionId, ...(markerId ? { markerId } : {}) }
+}
 
 // ---- the Handout | Mind map toggle for the Lectures tab --------------------------------------
 
@@ -145,7 +146,7 @@ export function HandoutViewToggle({ value, onChange }: { value: HandoutPaneView;
           role="tab"
           aria-selected={value === v}
           onClick={() => onChange(v)}
-          className={cn('cursor-pointer rounded px-2.5 py-1', value === v ? 'bg-white text-ink shadow-sm' : 'text-ink-5 hover:text-ink')}
+          className={cn('cursor-pointer rounded px-2.5 py-1 whitespace-nowrap', value === v ? 'bg-white text-ink shadow-sm' : 'text-ink-5 hover:text-ink')}
         >
           {label}
         </button>
@@ -155,8 +156,6 @@ export function HandoutViewToggle({ value, onChange }: { value: HandoutPaneView;
 }
 
 // ---- the map -----------------------------------------------------------------------------------
-
-type Mir = { nodeId: string; label: string; card?: RelevantResult; error?: string }
 
 export function LectureMindMap({
   lectureId,
@@ -168,16 +167,15 @@ export function LectureMindMap({
   onOpenSection?: (handoutSectionId: string) => void
   className?: string
 }) {
-  const studentId = useWS((s) => s.studentId)
   const [map, setMap] = useState<MindMap | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
-  const [starts, setStarts] = useState<Record<string, number>>({})
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [hover, setHover] = useState<{ id: string; x: number; y: number; up: boolean } | null>(null)
-  const [mir, setMir] = useState<Mir | null>(null)
+  const [mir, setMir] = useState<{ label: string; source: RelevantSource } | null>(null)
+  const mirOpen = useWS((s) => (mir ? !!s.relevant[relevantKey(mir.source)] : false))
   const [rebuilding, setRebuilding] = useState(false)
 
   useEffect(() => {
@@ -189,26 +187,29 @@ export function LectureMindMap({
       (m) => live && setMap(m),
       (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
     )
-    // Timestamps for the exam-hint chip only; the map itself never reads the transcript.
-    getSegmentStarts(lectureId).then(
-      (s) => live && setStarts(s),
-      () => live && setStarts({}),
-    )
     return () => {
       live = false
     }
   }, [lectureId, reload])
 
+  // Segment start times, for the exam-hint mm:ss chip only; the map never reads the transcript.
+  const transcript = useWS((s) => s.transcripts[lectureId])
+  const loadTranscript = useWS((s) => s.loadTranscript)
+  useEffect(() => {
+    void loadTranscript(lectureId)
+  }, [lectureId, loadTranscript])
+  const starts = useMemo(() => new Map((transcript?.value?.segments ?? []).map((x) => [x.id, x.startSec])), [transcript])
+
   const index = useMemo<Index | null>(() => (map ? indexProjection(toProjection(map)) : null), [map])
   const byId = useMemo(() => new Map((map?.nodes ?? []).map((n) => [n.id, n])), [map])
   const css = useMemo(() => (map ? overlayCss(map) : ''), [map])
 
-  // A new map keeps what was open; the first one opens two levels (one on a big lecture).
+  // A new map keeps what was open; the first one opens the root, so sections and skipped topics show.
   useEffect(() => {
     if (!index || !map) return
     setExpanded((prev) => {
       const kept: Set<string> = retainState(index, prev)
-      return kept.size ? kept : initialExpanded(index, map.stats.points > 40 ? 1 : 2)
+      return kept.size ? kept : initialExpanded(index, 1)
     })
   }, [index, map])
 
@@ -230,7 +231,7 @@ export function LectureMindMap({
   const open = useCallback(
     (n: MindMapNode) => {
       if (n.kind === 'ghost_missed' && n.syllabusSectionId) {
-        navigate(`/files/${syllabusDoc(n.syllabusSectionId)}/${n.syllabusSectionId}`)
+        navigate(`/files/${docIdOf(n.syllabusSectionId)}/${n.syllabusSectionId}`)
       } else if ((n.kind === 'section' || n.kind === 'point') && n.handoutSectionId) {
         onOpenSection?.(n.handoutSectionId)
       }
@@ -291,27 +292,6 @@ export function LectureMindMap({
   }
 
   // ---- actions ----
-  const relevant = async (n: MindMapNode) => {
-    if (!map) return
-    if (!studentId) return setMir({ nodeId: n.id, label: n.label, error: 'no student selected' })
-    const source: RelevantSource =
-      n.kind === 'ghost_missed'
-        ? { type: 'weak_topic', course: map.courseCode, topic: n.label }
-        : {
-            type: 'handout_section',
-            lectureId: map.lectureId,
-            sectionId: n.handoutSectionId ?? '',
-            ...(n.flags.stuck ? { markerId: n.flags.stuck.markerIds[0] } : {}),
-          }
-    setHover(null)
-    setMir({ nodeId: n.id, label: n.label })
-    try {
-      setMir({ nodeId: n.id, label: n.label, card: await makeItRelevant({ studentId, source }) })
-    } catch (e) {
-      setMir({ nodeId: n.id, label: n.label, error: e instanceof Error ? e.message : String(e) })
-    }
-  }
-
   const rebuild = async () => {
     setRebuilding(true)
     try {
@@ -417,31 +397,18 @@ export function LectureMindMap({
             onOpen={
               hovered.kind === 'ghost_missed' ? () => open(hovered) : onOpenSection && hovered.handoutSectionId ? () => open(hovered) : undefined
             }
-            onRelevant={hovered.kind === 'section' || hovered.kind === 'ghost_missed' ? () => relevant(hovered) : undefined}
+            relevant={relevantSource(map, hovered)}
+            onRelevant={(source) => {
+              setMir({ label: hovered.label, source })
+              setHover(null)
+            }}
           />
         )}
 
-        {mir && (
-          <div className="absolute bottom-3 left-3 z-20 flex max-h-[55%] w-[min(560px,calc(100%-72px))] flex-col gap-1.5 overflow-auto rounded-lg bg-white shadow-[0_12px_32px_-12px_rgba(15,23,42,.35)]">
-            <div className="flex items-center gap-2 px-3 pt-2 text-[11px] font-bold tracking-[.06em] text-ink-5 uppercase">
-              <span className="truncate">Make it relevant · {mir.label}</span>
-              <button type="button" aria-label="Close" onClick={() => setMir(null)} className="ml-auto cursor-pointer p-0 text-ink-4 hover:text-ink">
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-            {mir.card ? (
-              <RelevantCard card={mir.card} citations={[]} />
-            ) : mir.error ? (
-              <div className="flex items-center gap-2 px-3 pb-3 text-[13px] text-ink-5">
-                <Icon name="error" size={16} className="text-bad" />
-                <span>Make it relevant failed</span>
-                <span className="truncate text-xs text-ink-4" title={mir.error}>
-                  ({mir.error})
-                </span>
-              </div>
-            ) : (
-              <div className="px-3 pb-3 text-[13px] text-ink-5">Reframing through your interest…</div>
-            )}
+        {mir && mirOpen && (
+          <div className="absolute bottom-3 left-3 z-20 flex max-h-[60%] w-[min(620px,calc(100%-72px))] flex-col gap-2 overflow-auto rounded-lg border border-line bg-white p-3 shadow-[0_12px_32px_-12px_rgba(15,23,42,.35)]">
+            <span className="truncate text-[11px] font-bold tracking-[.06em] text-ink-5 uppercase">Make it relevant · {mir.label}</span>
+            <RelevantSlot source={mir.source} />
           </div>
         )}
       </div>
@@ -456,18 +423,20 @@ function HoverCard({
   onEnter,
   onLeave,
   onOpen,
+  relevant,
   onRelevant,
 }: {
   node: MindMapNode
-  starts: Record<string, number>
+  starts: Map<string, number>
   style: CSSProperties
   onEnter: () => void
   onLeave: () => void
   onOpen?: () => void
-  onRelevant?: () => void
+  relevant?: RelevantSource
+  onRelevant: (source: RelevantSource) => void
 }) {
   const { stuck, emphasized, missed, reviewActionId } = node.flags
-  const at = emphasized ? starts[emphasized.segmentId] : undefined
+  const at = emphasized ? starts.get(emphasized.segmentId) : undefined
   return (
     <div
       data-lmm-card
@@ -496,7 +465,7 @@ function HoverCard({
         </span>
       )}
       {reviewActionId && <span className="text-emerald-700">✓ Review planned · in the Actions card</span>}
-      {(onOpen || onRelevant) && (
+      {(onOpen || relevant) && (
         <span className="mt-1 flex flex-wrap gap-1.5">
           {onOpen && (
             <button
@@ -507,14 +476,10 @@ function HoverCard({
               {node.kind === 'ghost_missed' ? 'Open syllabus section' : 'Open in handout'}
             </button>
           )}
-          {onRelevant && (
-            <button
-              type="button"
-              onClick={onRelevant}
-              className="cursor-pointer rounded-md border border-cyan bg-cyan-soft px-2 py-1 text-[12px] font-bold text-ink hover:bg-cyan-mark"
-            >
-              Make it relevant
-            </button>
+          {relevant && (
+            <span onClickCapture={() => onRelevant(relevant)}>
+              <MakeRelevantButton source={relevant} />
+            </span>
           )}
         </span>
       )}
