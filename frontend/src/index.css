@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Palette: ink #0F172A for structure, cyan #22D3EE for accent only (AGENTS.md §8). */
+@theme {
+  --font-sans: Lato, system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  --color-ink: #0f172a;
+  --color-ink-7: #1e293b;
+  --color-ink-6: #334155;
+  --color-ink-5: #475569;
+  --color-ink-4: #94a3b8;
+  --color-ink-3: #cbd5e1;
+  --color-line: #e2e8f0;
+  --color-mist: #f1f5f9;
+  --color-soft: #f8fafc;
+
+  --color-cyan: #22d3ee;
+  --color-cyan-soft: #ecfeff;
+  --color-cyan-mark: #cffafe;
+  --color-link: #0891b2;
+
+  --color-ok: #10b981;
+  --color-ok-soft: #ecfdf5;
+  --color-warn: #f59e0b;
+  --color-warn-soft: #fffbeb;
+  --color-warn-ink: #b45309;
+  --color-bad: #ef4444;
+
+  --animate-dot: dot 1.2s infinite;
+  @keyframes dot {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+}
+
+/* shadcn/ui tokens, mapped onto the same palette so `npx shadcn add …` components match. */
+:root {
+  --radius: 0.5rem;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0f172a;
+  --primary-foreground: #ffffff;
+  --secondary: #f8fafc;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #ecfeff;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #22d3ee;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-ink);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Material Symbols (loaded in index.html). Width is fixed by <Icon> so ligature text never flashes. */
+.icon {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  flex: none;
+  font-variation-settings: 'FILL' 0;
+}
+.icon-fill {
+  font-variation-settings: 'FILL' 1;
+}
