@@ -27,10 +27,11 @@ the full parent`. The action shows an amber **Smart Exam gap** chip, and the cla
 **Best clip for this trial: B** (CMU B+Tree Indexes, 0:15:22–0:26:19, about 11 min, upload as .mp4). It covers
 B+ trees, so it should produce a review item like "Revisit your B+ trees gap before the next class", due at the
 next CS F212 class (Mon 28 Sep 09:00). A stuck tap at 8:38 (split propagation, her Q5a) links to that same review
-item, so it shows 🚩 8:38 beside the chip. So far this has only been run on the planted CS F372 scheduling
-transcript ("Revisit your CPU scheduling gap before the next class", due Tue 29 Sep 09:00), not on clip B itself.
-If the lecturer stresses B+ trees as exam material, that review item keeps the lecturer's quote instead, still
-with the chip.
+item, so it shows 🚩 8:38 beside the chip. If the lecturer also stresses B+ trees as exam material, it is still
+one revisit item due at the next class. Any other review whose topic isn't built on today (e.g. Normalization on
+this clip) reads "… before CS F212 Quiz 2" and is due then. Verified end to end on the planted CS F372 scheduling
+transcript ("Revisit your CPU scheduling gap before the next class", due Tue 29 Sep 09:00). The clip-B case has
+only a direct test so far: real clip B runs showed a Quiz 2 due date, fixed in `872c73b`, and a re-run is pending.
 
 ## 1. Get the file
 
