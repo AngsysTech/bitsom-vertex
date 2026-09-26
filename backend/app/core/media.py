@@ -61,6 +61,26 @@ def probe(path: Path) -> Probe | None:
     return Probe(video=video, audio=audio, duration_sec=duration)
 
 
+def chapters(path: Path) -> list[tuple[float, str]]:
+    """(start seconds, title) of each chapter mark in the file (recorder bookmarks, mp4/m4a chapters,
+    mp3 CHAP frames). [] when ffprobe is missing, the file has none, or it can't be read."""
+    if not shutil.which("ffprobe"):
+        return []
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_chapters", "-of", "json", str(path)],
+                             capture_output=True, text=True, timeout=60, check=True).stdout
+        rows = json.loads(out or "{}").get("chapters") or []
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return []
+    marks = []
+    for c in rows:
+        try:
+            marks.append((float(c.get("start_time")), str((c.get("tags") or {}).get("title") or "")))
+        except (TypeError, ValueError):
+            continue
+    return marks
+
+
 def extract_audio(src: Path, dst: Path) -> float:
     """Write src's first audio track to dst as mono 16 kHz AAC (plenty for speech). Returns seconds taken."""
     if not available():

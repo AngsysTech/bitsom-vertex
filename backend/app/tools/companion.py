@@ -191,7 +191,26 @@ def create_lecture(*, student_id: str, course_code: str, lecture_date: str, titl
         audio_url = f"/lectures/{lecture_id}/audio"
     lec = Lecture(id=lecture_id, studentId=student_id, courseCode=course_code, date=day.isoformat(),
                   title=title, source=src, audioUrl=audio_url, status="uploaded", connectorId=CONNECTOR_ID)
-    return _save_lecture(lec)
+    lec = _save_lecture(lec)
+    if src == "upload":
+        _import_stuck_chapters(lec)
+    return lec
+
+
+# "I'm stuck: lost at the 2PL diagram" / "Stuck" / "stuck - note". Anything else ("Stuck in traffic") is not a tap.
+_STUCK_CHAPTER = re.compile(r"^\s*(?:i['’]?m\s+)?stuck\s*(?:[:\-–—]\s*(?P<note>.*?))?\s*$", re.I)
+
+
+def _import_stuck_chapters(lec: Lecture) -> None:
+    """Stuck taps saved inside the uploaded file, the way phone recorders keep bookmarks: a chapter mark
+    titled "I'm stuck: <note>" becomes a StuckMarker at the chapter's start, exactly as if it had been
+    tapped live. Other chapters are ignored; a file without chapters changes nothing."""
+    marks = [(start, m.group("note")) for start, title in media.chapters(audio_path(lec.id))
+             if (m := _STUCK_CHAPTER.match(title))]
+    for start, note in marks:
+        add_marker(lec.id, start, note)
+    if marks:
+        log.info("lecture %s: %d stuck marker(s) imported from the file's chapter marks", lec.id, len(marks))
 
 
 def _store_media(folder: Path, data: bytes | BinaryIO, filename: str | None) -> None:
