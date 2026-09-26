@@ -99,12 +99,16 @@ export const KIND_STYLE: Record<CalendarItemKind, { label: string; block: string
   deadline: { label: 'Deadline', block: 'border-bad bg-white text-ink', dot: '#EF4444' },
   action: { label: 'Action', block: 'border-cyan bg-white text-ink', dot: '#0891B2' },
   event: { label: 'Event', block: 'border-ink-3 bg-soft text-ink', dot: '#94A3B8' },
+  task: { label: 'My task', block: 'border-violet-500 bg-violet-50 text-ink', dot: '#8B5CF6' },
 }
 
-export const CALENDAR_KINDS: CalendarItemKind[] = ['class', 'exam', 'quiz', 'study_block', 'prep', 'action', 'deadline', 'event']
+export const CALENDAR_KINDS: CalendarItemKind[] = ['class', 'exam', 'quiz', 'study_block', 'prep', 'action', 'deadline', 'event', 'task']
 
 /** Kinds a student can mark done / missed / planned. Classes and exams are read-only. */
 export const STUDY_KINDS: CalendarItemKind[] = ['study_block', 'prep', 'action', 'deadline']
+
+/** STUDY_KINDS plus the student's own tasks (v3.12): everything that takes a status. */
+export const STATUS_KINDS: CalendarItemKind[] = [...STUDY_KINDS, 'task']
 
 export const ACTION_KIND_LABEL: Record<ActionItem['kind'], string> = {
   study: 'Study',

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app import workspace as ws
-from app.core.records import load_records, load_student
+from app.core.records import add_interest, load_records, load_student, remove_interest
 
 router = APIRouter()
 
@@ -31,6 +31,36 @@ def student_state(student_id: str) -> dict[str, Any]:
 def student_records(student_id: str) -> dict[str, Any]:
     _student(student_id)
     return load_records(student_id)
+
+
+# ---- interests (Make it Relevant reframes through these; the first is the default) ------
+
+@router.get("/students/{student_id}/interests")
+def interests(student_id: str) -> list[str]:
+    _student(student_id)
+    return load_student(student_id).get("interests") or []
+
+
+@router.post("/students/{student_id}/interests")
+async def interests_add(student_id: str, request: Request) -> list[str]:
+    _student(student_id)
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "body must be JSON: {\"interest\": \"...\"}")
+    try:
+        return add_interest(student_id, str(body.get("interest") or "") if isinstance(body, dict) else "")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+
+@router.delete("/students/{student_id}/interests/{interest:path}")
+def interests_remove(student_id: str, interest: str) -> list[str]:
+    _student(student_id)
+    try:
+        return remove_interest(student_id, interest)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
 
 
 @router.get("/workspace/{student_id}")

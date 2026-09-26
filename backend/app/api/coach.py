@@ -18,6 +18,7 @@ from app.tools import diagnose as dx
 from app.tools import lookback
 from app.tools import plan as planner
 from app.tools import relevant
+from app.tools import tasks
 
 router = APIRouter()
 
@@ -83,6 +84,21 @@ async def item_status(item_id: str, request: Request) -> dict[str, Any]:
     body = await _body(request)
     with _errors():
         return cal.set_item_status(item_id, str(body.get("status") or ""), body.get("studentId") or None)
+
+
+# ---- the student's own tasks (v3.12) ---------------------------------------------------
+
+@router.post("/calendar/tasks")
+async def add_task(request: Request) -> dict[str, Any]:
+    body = await _body(request)
+    with _errors():
+        return tasks.add(str(body.get("studentId") or ""), body)
+
+
+@router.delete("/calendar/tasks/{item_id}")
+def delete_task(item_id: str) -> dict[str, Any]:
+    with _errors():
+        return tasks.delete(item_id)
 
 
 # ---- weekly 1:1 ------------------------------------------------------------------------

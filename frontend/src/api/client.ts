@@ -35,6 +35,16 @@ export interface Workspace {
 
 export type CalendarStatus = NonNullable<CalendarItem['status']>
 
+/** POST /calendar/tasks: a timed task (start + minutes) or an all-day one (date-only start). */
+export interface NewTask {
+  studentId: StudentId
+  title: string
+  start: string
+  minutes?: number
+  allDay?: boolean
+  courseCode?: string
+}
+
 /** POST /lectures: multipart (audio) or JSON (transcriptText). */
 export type NewLecture =
   | { studentId: StudentId; courseCode: string; date: string; audio: Blob; filename: string; source: 'recording' | 'upload' }
@@ -42,6 +52,8 @@ export type NewLecture =
 
 export interface Api {
   getStudents(): Promise<Student[]> // GET  /students
+  addInterest(studentId: StudentId, interest: string): Promise<string[]> // POST /students/:id/interests
+  removeInterest(studentId: StudentId, interest: string): Promise<string[]> // DELETE /students/:id/interests/:interest
   getWorkspace(studentId: StudentId): Promise<Workspace> // GET  /workspace/:studentId
   getClasses(studentId: StudentId): Promise<ClassChannel[]> // GET  /classes/:studentId
   getStudentState(studentId: StudentId): Promise<StudentState> // GET  /students/:id/state
@@ -68,6 +80,8 @@ export interface Api {
   // Calendar
   getCalendar(studentId: StudentId, q: { from: string; to: string; courseCode?: string }): Promise<CalendarItem[]> // GET /calendar/:studentId
   setCalendarStatus(itemId: string, status: CalendarStatus, studentId: StudentId): Promise<CalendarItem> // POST /calendar/items/:id/status
+  addTask(body: NewTask): Promise<CalendarItem> // POST /calendar/tasks
+  deleteTask(itemId: string): Promise<CalendarItem> // DELETE /calendar/tasks/:id
 
   // Weekly 1:1
   getOneOnOne(studentId: StudentId): Promise<OneOnOne> // GET  /one-on-one/:studentId/current

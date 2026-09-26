@@ -27,7 +27,7 @@ import type {
   WeakTopic,
   WorkspaceFile,
 } from '@/types'
-import { ApiError, type Api, type CalendarStatus, type NewLecture } from '../client'
+import { ApiError, type Api, type CalendarStatus, type NewLecture, type NewTask } from '../client'
 import { build, cannedFor, fmtMMSS, isoLocal, MOCK_COURSES, nextExam, nextSession, reframe, sessionsBetween, type Built } from './companion'
 import {
   CONNECTORS,
@@ -86,6 +86,14 @@ function studentOf(id: string): DStudent {
 }
 const registered = (s: DStudent) => s.registrations.rows.filter((r) => r.status === 'registered').map((r) => r.courseCode)
 
+/** Same rules as the backend (records.add_interest / remove_interest); edits live in memory until reload. */
+function setInterests(s: DStudent, interests: string[]): string[] {
+  s.interests = interests
+  const listed = STUDENT_LIST.find((x) => x.id === s.id)
+  if (listed) listed.interests = interests
+  return clone(interests)
+}
+
 const COACH: Agent = {
   id: 'academic_coach',
   kind: 'specialist',
@@ -126,7 +134,7 @@ interface MockLecture {
 const lectures = new Map<string, MockLecture>()
 const threads = new Map<string, Thread>()
 const states = new Map<string, StudentState>()
-const items = new Map<string, CalendarItem>() // stored: plan blocks + accepted actions
+const items = new Map<string, CalendarItem>() // stored: plan blocks + accepted actions + the student's own tasks
 const statuses = new Map<string, CalendarStatus>() // overlay, like tools/calendar.py
 const tickets: Ticket[] = []
 const oneOnOnes = new Map<string, OneOnOne>()
@@ -244,7 +252,8 @@ const studyMinutesOn = (s: DStudent, day: Date) => {
   const lo = dayMs(day)
   let n = 0
   for (const i of items.values())
-    if (i.studentId === s.id && i.end && !i.allDay) {
+    // a task counts as study time only when it's tied to a course (like tools/plan.py)
+    if (i.studentId === s.id && i.end && !i.allDay && !(i.kind === 'task' && !i.courseCode)) {
       const a = parse(i.start).getTime()
       if (a >= lo && a < lo + DAY) n += (parse(i.end).getTime() - a) / 60000
     }
@@ -978,6 +987,24 @@ export const mockApi: Api = {
     await delay(120)
     return clone(STUDENT_LIST)
   },
+  async addInterest(studentId, text) {
+    await delay(80)
+    const s = studentOf(studentId)
+    const interest = text.replace(/\s+/g, ' ').trim()
+    if (!interest) throw new ApiError('interest is required', 400)
+    if (interest.length > 40) throw new ApiError('keep an interest under 40 characters', 400)
+    if (s.interests.some((i) => i.toLowerCase() === interest.toLowerCase())) return clone(s.interests)
+    if (s.interests.length >= 10) throw new ApiError('at most 10 interests; remove one first', 400)
+    return setInterests(s, [...s.interests, interest])
+  },
+  async removeInterest(studentId, text) {
+    await delay(80)
+    const s = studentOf(studentId)
+    const key = text.replace(/\s+/g, ' ').trim().toLowerCase()
+    const kept = s.interests.filter((i) => i.toLowerCase() !== key)
+    if (kept.length === s.interests.length) throw new ApiError(`'${text}' is not one of ${studentId}'s interests`, 404)
+    return setInterests(s, kept)
+  },
   async getWorkspace(studentId) {
     await delay(180)
     const s = studentOf(studentId)
@@ -1150,6 +1177,42 @@ export const mockApi: Api = {
     const s = studentOf(studentId)
     const list = calendar(s, parse(from), to.length === 10 ? new Date(parse(to).getTime() + DAY) : parse(to))
     return clone(courseCode ? list.filter((i) => i.courseCode === courseCode) : list)
+  },
+  async addTask(body: NewTask) {
+    await delay(200)
+    const s = studentOf(body.studentId)
+    const title = (body.title ?? '').split(/\s+/).filter(Boolean).join(' ')
+    if (!title) throw new ApiError('title is required', 400)
+    if (title.length > 80) throw new ApiError('title must be at most 80 characters', 400)
+    if (body.courseCode && !registered(s).some((c) => slug(c) === slug(body.courseCode!)))
+      throw new ApiError(`${body.courseCode} is not one of this student's registered courses`, 400)
+    const allDay = !!body.allDay || body.start.length === 10
+    const start = parse(body.start)
+    if (Number.isNaN(start.getTime())) throw new ApiError(`'${body.start}' is not an ISO date or datetime`, 400)
+    const minutes = Math.round(Number(body.minutes ?? 0))
+    if (!allDay && !(minutes > 0)) throw new ApiError('a timed task needs end or minutes (or allDay: true)', 400)
+    if (!allDay && minutes > 480) throw new ApiError('a task can be at most 8 hours', 400)
+    const it: CalendarItem = {
+      id: `task:${uid('t')}`,
+      studentId: s.id,
+      kind: 'task',
+      title,
+      ...(body.courseCode ? { courseCode: body.courseCode } : {}),
+      ...(allDay ? { start: ymd(start), allDay: true } : { start: isoLocal(start), end: isoLocal(new Date(start.getTime() + minutes * 60000)) }),
+      source: { type: 'manual' },
+      status: 'planned',
+    }
+    items.set(it.id, it)
+    return clone(it)
+  },
+  async deleteTask(id) {
+    await delay(150)
+    const it = items.get(id)
+    if (!it || it.source.type !== 'manual') throw new ApiError(`task ${id} not found (only tasks you added can be deleted)`, 404)
+    items.delete(id)
+    const removed = withStatus(it)
+    statuses.delete(id)
+    return clone(removed)
   },
   async setCalendarStatus(id, status) {
     await delay(200)

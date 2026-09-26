@@ -3,7 +3,7 @@ import { MOCK } from '@/lib/config'
 import type { Api } from './client'
 import { httpApi } from './http'
 
-export type { Api, CalendarStatus, NewLecture, Workspace } from './client'
+export type { Api, CalendarStatus, NewLecture, NewTask, Workspace } from './client'
 export { ApiError } from './client'
 
 /** The mock is imported on first use, so real mode never loads (or breaks on) mock code. */

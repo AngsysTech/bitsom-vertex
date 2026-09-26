@@ -1,4 +1,5 @@
-"""Merged calendar (contracts §9b): timetable + exam calendar + plan blocks + accepted actions.
+"""Merged calendar (contracts §9b): timetable + exam calendar + plan blocks + accepted actions
+(+ the student's own tasks, tools/tasks.py, v3.12).
 
 Every item carries its ``source``; nothing appears that can't be traced to one of
 those four. Study time is placed by code into free evening slots that don't
@@ -153,7 +154,7 @@ def build_calendar(student_id: str, start: datetime, end: datetime) -> list[dict
 # The overlay never edits another module's calendar_item docs; build_calendar applies it.
 
 STATUSES = ("planned", "done", "missed")
-STUDY_KINDS = ("study_block", "action", "prep", "deadline")
+STUDY_KINDS = ("study_block", "action", "prep", "deadline", "task")
 
 
 def _derived_plan_item(item_id: str, student_id: str | None) -> CalendarItem | None:

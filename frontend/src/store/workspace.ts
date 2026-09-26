@@ -116,7 +116,8 @@ export interface LectureJob {
   dmMessageId?: string
 }
 
-export type RelevantState = { status: 'loading' | 'ready' | 'error'; interest: string; card?: RelevantCard; error?: string }
+/** `idle`: the slot is open but there's no interest to reframe through yet (the student adds one inline). */
+export type RelevantState = { status: 'idle' | 'loading' | 'ready' | 'error'; interest: string; card?: RelevantCard; error?: string }
 
 export interface CalendarEntry {
   status: 'loading' | 'ready' | 'error'
@@ -230,6 +231,9 @@ interface Actions {
   answerQuestion(questionId: string, answer: string): Promise<void>
   completeOneOnOne(shareWithAdvisor: boolean): Promise<void>
   makeRelevant(key: string, source: NonNullable<RelevantCard['source']>, interest: string): Promise<void>
+  /** Saves the interest on the student (backend) and returns the list; throws with the backend's reason. */
+  addInterest(interest: string): Promise<string[]>
+  removeInterest(interest: string): Promise<void>
   set(patch: Partial<State> | ((s: State) => Partial<State>)): void
 }
 
@@ -779,6 +783,10 @@ export const useWS = create<Store>()((set, get) => {
     async makeRelevant(key, source, interest) {
       const { studentId } = get()
       if (!studentId) return
+      if (!interest) {
+        set((s) => ({ relevant: { ...s.relevant, [key]: { status: 'idle', interest: '', card: s.relevant[key]?.card } } }))
+        return
+      }
       const gen = generation
       set((s) => ({ relevant: { ...s.relevant, [key]: { status: 'loading', interest, card: s.relevant[key]?.card } } }))
       try {
@@ -788,6 +796,21 @@ export const useWS = create<Store>()((set, get) => {
       } catch (e) {
         if (gen === generation) set((s) => ({ relevant: { ...s.relevant, [key]: { status: 'error', interest, error: errText(e), card: s.relevant[key]?.card } } }))
       }
+    },
+
+    async addInterest(interest) {
+      const { studentId } = get()
+      if (!studentId) throw new Error('No student selected')
+      const interests = await api.addInterest(studentId, interest)
+      set((s) => ({ students: s.students.map((x) => (x.id === studentId ? { ...x, interests } : x)) }))
+      return interests
+    },
+
+    async removeInterest(interest) {
+      const { studentId } = get()
+      if (!studentId) return
+      const interests = await api.removeInterest(studentId, interest)
+      set((s) => ({ students: s.students.map((x) => (x.id === studentId ? { ...x, interests } : x)) }))
     },
   }
 })

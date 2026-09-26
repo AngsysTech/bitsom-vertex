@@ -260,7 +260,12 @@ class SourceAction(Model):
     lectureId: str
 
 
-CalendarItemKind = Literal["class", "exam", "quiz", "study_block", "action", "prep", "deadline"]
+class SourceManual(Model):
+    """Added by the student on the calendar (contracts v3.12); plans are built around it."""
+    type: Literal["manual"] = "manual"
+
+
+CalendarItemKind = Literal["class", "exam", "quiz", "study_block", "action", "prep", "deadline", "task"]
 
 
 class CalendarItem(Model):
@@ -272,7 +277,7 @@ class CalendarItem(Model):
     start: str
     end: Optional[str] = None
     allDay: Optional[bool] = None
-    source: Union[SourceTimetable, SourceExam, SourcePlanBlock, SourceAction]
+    source: Union[SourceTimetable, SourceExam, SourcePlanBlock, SourceAction, SourceManual]
     status: Optional[Literal["planned", "done", "missed"]] = None
 
 

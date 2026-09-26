@@ -1,5 +1,5 @@
 // =====================================================================
-// STUDENT-FACING CONTRACT — buildathon  (v3.9)
+// STUDENT-FACING CONTRACT — buildathon  (v3.12)
 // Frontend mocks against these shapes; backend returns exactly these.
 // Backend is FastAPI returning plain JSON. No streaming, no auth.
 //
@@ -9,6 +9,9 @@
 // Activity feed.
 // v3 changes: Class Companion (audio → handout → coverage → actions) as P0;
 // CoverageCard + ActionsCard in the Card union.
+// v3.12: student-added calendar tasks (CalendarItem kind "task", source {type:"manual"}, POST/DELETE /calendar/tasks);
+// plan rebuilds keep them and place study blocks around them.
+// v3.11: student-editable interests (GET/POST/DELETE /students/:id/interests), added inline from Make it Relevant.
 // v3.9: MindMap over the handout (jury-approved reuse), GET /lectures/:id/mindmap.
 // v3.8: OneOnOne recap fields as built (blocksMissed, prepMet/Missed, movementNote, window); direct
 // /diagnose and /plan tool endpoints; simulate-week semantics as built (moves the student's clock).
@@ -108,7 +111,7 @@ export interface Student {
   program: string;            // "B.Tech CSE"
   semester: number;
   careerGoal: string;         // "Data Analyst"
-  interests: string[];        // drives Make it Relevant
+  interests: string[];        // drives Make it Relevant (first = default); editable at runtime (v3.11)
   avatarEmoji?: string;
 }
 
@@ -605,7 +608,7 @@ export interface MindMap {
 
 // ---- Calendar: one merged view of classes, exams, study blocks, actions ----
 
-export type CalendarItemKind = "class" | "exam" | "quiz" | "study_block" | "action" | "prep" | "deadline" | "event";
+export type CalendarItemKind = "class" | "exam" | "quiz" | "study_block" | "action" | "prep" | "deadline" | "event" | "task";
 
 export interface CalendarItem {
   id: string;
@@ -621,7 +624,8 @@ export interface CalendarItem {
     | { type: "exam_calendar"; examId: string }
     | { type: "plan_block"; planBlockId: string }
     | { type: "action"; actionId: string; lectureId: string }
-    | { type: "event"; pickId: string; eventId?: string; clubSlug?: string }; // accepted campus pick
+    | { type: "event"; pickId: string; eventId?: string; clubSlug?: string } // accepted campus pick
+    | { type: "manual" };                                                      // added by the student (v3.12)
   status?: "planned" | "done" | "missed";
 }
 
@@ -638,6 +642,9 @@ export interface CalendarItem {
 //   GET  /students                          -> Student[]
 //   GET  /students/:id/state                -> StudentState  (runs audit on first load if missing)
 //   GET  /students/:id/records              -> StudentRecords
+//   GET    /students/:id/interests            -> string[]  (the connector's list until edited, then the edited list)
+//   POST   /students/:id/interests {interest} -> string[]  (appends; ≤40 chars, max 10, case-insensitive duplicate = no-op)
+//   DELETE /students/:id/interests/:interest  -> string[]  (404 if not on the list; POST /demo/reset restores the connector's list)
 //   GET  /files/:studentId                  -> WorkspaceFile[]
 //   GET  /documents/:docId                  -> Document
 //   GET  /documents/:docId/sections/:secId  -> DocumentSection (citation viewer)
@@ -687,6 +694,11 @@ export interface CalendarItem {
 //   GET  /calendar/:studentId?from=&to=&courseCode= -> CalendarItem[] (timetable + exams + plan blocks + accepted actions,
 //                                                       merged; courseCode filters to one class's Schedule tab)
 //   POST /calendar/items/:id/status {status: "done"|"missed"|"planned"} -> CalendarItem  (feeds the weekly lookback)
+//   POST   /calendar/tasks {studentId, title, start, end?|minutes?, allDay?, courseCode?} -> CalendarItem
+//          (kind "task", source {type:"manual"}; a date-only start is all-day; ≤80-char title, ≤8 h, registered course only.
+//           Plan rebuilds never move or delete it and place study blocks around it; a timed task with a
+//           courseCode counts toward that day's study cap; adding/removing one makes the next plan request rebuild)
+//   DELETE /calendar/tasks/:id              -> CalendarItem (the removed task; 404 for anything the student didn't add)
 //   GET  /students/:id/lectures             -> Lecture[]
 //   (when a lecture reaches "ready", the backend also appends an agent Message to the
 //    academic_coach thread with the handout summary, coverage + actions cards, and trace)
@@ -697,7 +709,7 @@ export interface CalendarItem {
 //
 // Coach tools, callable directly (the chat router calls the same functions)
 //   POST /students/:id/diagnose             -> WeakTopicsCard   (recomputes and writes StudentState.weakTopics)
-//   POST /students/:id/plan                 -> StudyPlanCard    (rebuilds plan + its calendar items; leaves action/event items alone)
+//   POST /students/:id/plan                 -> StudyPlanCard    (rebuilds plan + its calendar items; leaves action/event/task items alone)
 //
 // Demo setup (disclosed on stage; writes statuses and moves that student's clock, never text)
 //   POST /demo/simulate-week/:studentId     -> { updated: number; clockNow: string }

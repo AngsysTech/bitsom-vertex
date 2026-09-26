@@ -7,11 +7,13 @@
 3. place (code): 25/50-minute blocks after the student's last class of the day, never over
    a class, quiz or exam (exam-calendar dates without a time block the whole day), every
    block for a course before that course's end-sem, at most 120 study minutes a day
-   including accepted-action blocks, spread across the week.
+   including accepted-action blocks, spread across the week. The student's own calendar tasks
+   (tools/tasks.py) are fixed: blocks go around them, and a timed task tied to a course counts
+   toward that day's cap.
 4. persist: PlanBlocks into StudentState.plan and one CalendarItem per block with source
    {type: "plan_block"}. A rebuild replaces only this module's own future blocks: accepted-
-   action blocks (class companion) are never touched, and past blocks stay on the calendar
-   with their done/missed status as history.
+   action blocks (class companion) and the student's own tasks are never touched, and past
+   blocks stay on the calendar with their done/missed status as history.
 
 Numbers in a block's ``why`` come from code (marks, weights); the model contributes a
 short clause with no digits. Built 26 Sep 2026 (Feature 2).
@@ -40,6 +42,7 @@ from app.core.state import get_state, plan_week_monday, save_state, week_label
 from app.core.syllabus import course_slug
 from app.core.verify import normalize_ws
 from app.tools import diagnose as dx
+from app.tools import tasks as own_tasks
 from app.tools.base import Stopwatch, ToolResult, trace
 
 TOOL = "build_study_plan"
@@ -104,7 +107,7 @@ class Candidate:
 @dataclass
 class Context:
     now: datetime
-    intervals: list[tuple[datetime, datetime]]          # classes, timed exams, action blocks
+    intervals: list[tuple[datetime, datetime]]          # classes, timed exams, action blocks, own tasks
     blocked_days: dict[date, list[str]]                  # all-day exams/quizzes
     used: dict[date, int]                                # minutes already committed (action blocks)
     last_class_end: dict[date, datetime]
@@ -197,6 +200,13 @@ def _context(student_id: str, now: datetime, until: date) -> Context:
         src = item.get("source") or {}
         if src.get("type") == "action" and not item.get("allDay") and item.get("end"):
             intervals.append((_parse(item["start"]), _parse(item["end"])))
+    for item in own_tasks.tasks(student_id):  # the student's own tasks: fixed, planned around
+        if item.get("allDay") or not item.get("end"):
+            continue
+        s, e = _parse(item["start"]), _parse(item["end"])
+        intervals.append((s, e))
+        if item.get("courseCode"):  # course work the student scheduled counts toward the daily cap
+            used[s.date()] += int((e - s).total_seconds() // 60)
     return Context(now=now, intervals=intervals, blocked_days=dict(blocked), used=dict(used),
                    last_class_end=last_end, exams=student_exams)
 
@@ -603,12 +613,16 @@ def build_plan(student_id: str, *, extra: dict[str, Any] | None = None) -> ToolR
                 "impacts": [{"course": s.course, "topic": s.topic, "impact": s.impact, "score": s.score}
                             for s in diag.data["stats"]],
                 "carryOver": extra.get("carryOver") or [], "answers": extra.get("answers") or [],
+                "tasks": own_tasks.fingerprint(student_id),
             }, student_id=student_id)
         three_weeks = sum(1 for p in placed if p.start < now + timedelta(days=21))
+        n_tasks = sum(1 for t in own_tasks.tasks(student_id) if t.get("end") and not t.get("allDay")
+                      and _parse(t["end"]) > now)
         summary = (f"placed {len(placed)} blocks ({sum(p.minutes for p in placed)} min; {three_weeks} in the next "
-                   f"3 weeks) after the last class of each day, none over a class, quiz or exam, each course "
-                   f"before its end-sem, ≤{DAILY_CAP} min/day incl. accepted actions; replaced {removed} future "
-                   f"blocks, kept {kept_past} past blocks as history")
+                   f"3 weeks) after the last class of each day, none over a class, quiz, exam or any of the "
+                   f"student's {n_tasks} own upcoming timed tasks, each course before its end-sem, ≤{DAILY_CAP} "
+                   f"min/day incl. accepted actions and course tasks; replaced {removed} future blocks, kept "
+                   f"{kept_past} past blocks as history")
         result.trace.append(trace(f"{TOOL}.place", summary + (f"; could not place: {'; '.join(unplaced[:5])}"
                                                                if unplaced else ""), sw_place.ms,
                                   error=f"{len(unplaced)} blocks unplaced" if unplaced else None))
@@ -655,6 +669,9 @@ def _facts(student_id: str, result: ToolResult, placed: list[Placed], now: datet
     total = sum(p.minutes for p in week)
     result.facts.insert(0, f"next 7 days: {len(week)} study blocks, {total} min in total, placed after classes "
                            f"with at most {DAILY_CAP} min a day")
+    own = own_tasks.upcoming_fact(student_id, now)
+    if own:
+        result.facts.insert(1, own)
     result.citations = cites.items
 
 
@@ -672,9 +689,11 @@ def fresh(student_id: str) -> tuple[bool, str]:
         return False, "weak-topic impact changed since the plan was built"
     if _unplaced_actions(student_id, get_state(student_id).get("plan") or {}):
         return False, "an accepted action is not in the plan yet"
+    if meta.get("tasks", []) != own_tasks.fingerprint(student_id):
+        return False, "the student added, moved or removed their own calendar tasks since the plan was built"
     if not upcoming(student_id, days=7):
         return False, "no study blocks in the next 7 days"
-    return True, f"plan built {built:%a %d %b %H:%M}; weak topics and accepted actions unchanged since"
+    return True, f"plan built {built:%a %d %b %H:%M}; weak topics, accepted actions and own tasks unchanged since"
 
 
 def course_card(card: dict[str, Any] | None, course: str) -> dict[str, Any]:
@@ -726,6 +745,9 @@ def current(student_id: str, course: str | None = None) -> ToolResult:
             if cit:
                 result.facts.append(f"next {code} assessment: {e.component} on {fmt_day(e.start.date())} [{cit.id}]")
     result.facts.insert(0, f"next 7 days: {len(blocks)} study blocks, {sum(b['minutes'] for b in blocks)} min in total")
+    own = own_tasks.upcoming_fact(student_id, now)
+    if own:
+        result.facts.insert(1, own)
     result.citations = cites.items
     result.data = {"reused": True}
     return result

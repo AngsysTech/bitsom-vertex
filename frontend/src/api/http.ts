@@ -44,7 +44,7 @@ const handout = (h: Handout): Handout => ({
 
 const enc = encodeURIComponent
 
-async function req<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function req<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
   let res: Response
   const form = body instanceof FormData
   try {
@@ -71,6 +71,8 @@ const qs = (q: Record<string, string | undefined>) => {
 
 export const httpApi: Api = {
   getStudents: () => req('GET', '/students'),
+  addInterest: (studentId, interest) => req('POST', `/students/${enc(studentId)}/interests`, { interest }),
+  removeInterest: (studentId, interest) => req('DELETE', `/students/${enc(studentId)}/interests/${enc(interest)}`),
   getWorkspace: (studentId) =>
     req<Awaited<ReturnType<Api['getWorkspace']>>>('GET', `/workspace/${enc(studentId)}`).then((w) => ({
       channels: w.channels ?? [],
@@ -115,6 +117,8 @@ export const httpApi: Api = {
   getCalendar: (studentId, q) => req('GET', `/calendar/${enc(studentId)}${qs(q)}`),
   // studentId is optional on the backend; it lets it resolve plan blocks that have no stored item.
   setCalendarStatus: (id, status, studentId) => req('POST', `/calendar/items/${enc(id)}/status`, { status, studentId }),
+  addTask: (body) => req('POST', '/calendar/tasks', body),
+  deleteTask: (id) => req('DELETE', `/calendar/tasks/${enc(id)}`),
 
   getOneOnOne: (studentId) => req<OneOnOne>('GET', `/one-on-one/${enc(studentId)}/current`).then(oneOnOne),
   answerOneOnOne: (id, body) => req<OneOnOne>('POST', `/one-on-one/${enc(id)}/answer`, body).then(oneOnOne),

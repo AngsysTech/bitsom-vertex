@@ -2,15 +2,22 @@
 
 Reads backend/app/data/students/<id>.json. Accepts either
 {"student": {...}, "records": {...}} or a flat profile with the record keys at top level.
+Interests start as the connector's list; once the student edits them (POST/DELETE
+/students/:id/interests) the edited list lives in SQLite and the dataset file is never written.
 """
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from typing import Any
 
+from app.core import db
 from app.core.config import DATA_DIR
 from app.core.academics import same_course, norm_topic
+
+INTEREST_MAX_LEN = 40
+INTEREST_MAX_COUNT = 10
 
 
 @lru_cache(maxsize=64)
@@ -26,8 +33,54 @@ def load_student(student_id: str) -> dict[str, Any] | None:
     if raw is None:
         return None
     profile = raw.get("student") or raw.get("profile") or raw
-    return {k: v for k, v in profile.items() if k in
-            ("id", "name", "program", "semester", "careerGoal", "interests", "avatarEmoji")} | {"id": student_id}
+    student = {k: v for k, v in profile.items() if k in
+               ("id", "name", "program", "semester", "careerGoal", "interests", "avatarEmoji")} | {"id": student_id}
+    edited = db.get("interests", student_id)
+    if edited is not None:
+        student["interests"] = edited["interests"]
+    return student
+
+
+def _clean(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+def _interest(text: str) -> str:
+    interest = _clean(text)
+    if not interest:
+        raise ValueError("interest is required")
+    if len(interest) > INTEREST_MAX_LEN:
+        raise ValueError(f"keep an interest under {INTEREST_MAX_LEN} characters")
+    return interest
+
+
+def _save_interests(student_id: str, interests: list[str]) -> list[str]:
+    db.put("interests", student_id, {"interests": interests}, student_id=student_id)
+    return interests
+
+
+def add_interest(student_id: str, text: str) -> list[str]:
+    """Appends (case-insensitive: an existing interest is kept as spelled). Returns the whole list."""
+    student = load_student(student_id)
+    if student is None:
+        raise LookupError(f"student {student_id} not found")
+    interest, current = _interest(text), list(student.get("interests") or [])
+    if any(i.casefold() == interest.casefold() for i in current):
+        return current
+    if len(current) >= INTEREST_MAX_COUNT:
+        raise ValueError(f"at most {INTEREST_MAX_COUNT} interests; remove one first")
+    return _save_interests(student_id, [*current, interest])
+
+
+def remove_interest(student_id: str, text: str) -> list[str]:
+    student = load_student(student_id)
+    if student is None:
+        raise LookupError(f"student {student_id} not found")
+    current = list(student.get("interests") or [])
+    kept = [i for i in current if i.casefold() != _clean(text).casefold()]
+    if len(kept) == len(current):
+        raise LookupError(f"{text!r} is not one of {student_id}'s interests")
+    return _save_interests(student_id, kept)
 
 
 def load_records(student_id: str) -> dict[str, Any]:
