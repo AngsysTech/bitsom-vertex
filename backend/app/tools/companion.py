@@ -29,8 +29,8 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.core import academics, db, llm, records, stt
-from app.core.academics import (TopicWeight, due_iso, iso, lecture_start, next_exam, next_session,
-                                resolve_when, topic_weight)
+from app.core.academics import (Exam, TopicWeight, due_iso, iso, lecture_start, next_exam, next_session,
+                                norm_topic, resolve_when, topic_weight)
 from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
 from app.core.models import (ActionItem, ActionProvenance, ActionsCard, CalendarItem, Citation, CoverageCard,
                              CoverageCovered, CoverageEmphasized, CoverageMissed, Handout, HandoutDefinition,
@@ -702,6 +702,14 @@ def step_commitments(ctx: Ctx) -> str:
 # ---------------------------------------------------------------------------------
 # 6. actions
 # ---------------------------------------------------------------------------------
+#
+# The model titles and explains candidates that code built. Code then decides what the card
+# holds: every action's topic is a canonical syllabus topic wherever one applies, there is
+# one action per (topic, kind), and every missed topic gets its action even when the model
+# left it out. Actions built that way are marked "origin: guaranteed" in the trace only.
+
+ACTIONS_SEED = 212  # fixed seed for the actions call; the API treats it as best effort
+
 
 @dataclass
 class _Cand:
@@ -712,6 +720,17 @@ class _Cand:
     facts: list[str]
     provenance: dict[str, str]
     due: str | None
+    canonical: bool = False  # topic is a syllabus topic fixed by code; the model's topicId can't change it
+
+
+@dataclass
+class _Need:
+    """The action one missed topic must end up with."""
+    kind: str                         # "study", or "prep" when deferred to a session still ahead
+    due: str | None                   # study: the next assessment; prep: the session the lecturer named
+    note: str                         # how that was decided, for the trace
+    segment_id: str | None = None     # segment of the verified deferral quote
+    commitment_id: str | None = None  # the next_lecture_topic commitment that is the same sentence
 
 
 class _ItemOut(BaseModel):
@@ -750,13 +769,103 @@ def _student_fact(student_id: str, course: str, topic: str) -> tuple[str | None,
     return f"you scored {r['scored']}/{r['max']} on it in {r.get('component', 'an internal')}{when}", pct
 
 
-def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
+def _facts_for(ctx: Ctx, topic: str, exam: Exam | None) -> tuple[list[str], dict[str, str]]:
+    """Past-paper marks, the student's own marks and the next assessment, all computed."""
+    course = ctx.lecture.courseCode
+    facts, prov = [], {}
+    w: TopicWeight | None = topic_weight(course, topic)
+    if w:
+        facts.append(w.fact)
+        prov["pastPapersCitationId"] = w.citation_id
+    sf, _ = _student_fact(ctx.lecture.studentId, course, topic)
+    if sf:
+        facts.append(sf)
+    if exam:
+        facts.append(f"next {course} assessment: {exam.title} on {exam.start:%a %d %b}")
+    return facts, prov
+
+
+def _words(text: str) -> str:
+    """Lower-case words with a plural 's' dropped: how a topic title is found in a quote."""
+    return " ".join(w[:-1] if len(w) > 3 and w.endswith("s") else w
+                    for w in re.sub(r"[^a-z0-9]+", " ", (text or "").casefold()).split())
+
+
+def _same_sentence(a: str, b: str) -> bool:
+    """Two verified quotes are the same statement: most words of the shorter are in the longer."""
+    short, long = sorted((_words(a).split(), _words(b).split()), key=len)
+    words = set(long)
+    return bool(short) and sum(w in words for w in short) >= 0.6 * len(short)
+
+
+def _topic_named_in(ctx: Ctx, quote: str) -> str | None:
+    """The syllabus topic whose title the lecturer said in ``quote``, when exactly one is."""
+    said = f" {_words(quote)} "
+    hits = {t.title for t in (ctx.syllabus.topics if ctx.syllabus else []) if f" {_words(t.title)} " in said}
+    return hits.pop() if len(hits) == 1 else None
+
+
+def _commitment_topic(ctx: Ctx, cm: LectureCommitment) -> str | None:
+    """A commitment's canonical topic when code can tell: the missed topic whose verified
+    deferral is this same sentence, else the one syllabus topic its quote names."""
+    for topic, (seg_id, quote) in ctx.deferred_topics.items():
+        if cm.segmentId == seg_id and _same_sentence(cm.quote, quote):
+            return topic
+    return _topic_named_in(ctx, cm.quote)
+
+
+def _named_session(ctx: Ctx, seg_id: str, quote: str) -> tuple[str | None, str | None, str]:
+    """When a deferred topic will be taught: (dueBy, commitment id, how). The dueBy of the
+    next_lecture_topic commitment that is the same sentence, else the quote resolved against
+    the timetable, else the next session (the default a prep commitment gets too)."""
+    lec = ctx.lecture
+    lecture_at = _lecture_at(lec)
+    cm = next((c for c in ctx.commitments if c.kind == "next_lecture_topic" and c.segmentId == seg_id
+               and _same_sentence(c.quote, quote)), None)
+    cm_id = cm.id if cm else None
+    if cm and cm.dueBy:
+        return cm.dueBy, cm_id, f"as commitment {cm.id}"
+    said = quote.lower()
+    when = "next_week" if "next week" in said else \
+        "next_lecture" if re.search(r"\b(next|tomorrow|following)\b", said) else None
+    if when:
+        due, how = resolve_when({"type": when}, lec.courseCode, lecture_at, quote,
+                                context=ctx.seg[seg_id].text if seg_id in ctx.seg else "")
+        if due:
+            return due, cm_id, how
+    s = next_session(lec.courseCode, lecture_at)
+    return (iso(s.start), cm_id, "no session named, so the next one") if s else \
+        (None, cm_id, "the timetable has no later session")
+
+
+def _missed_needs(ctx: Ctx, exam: Exam | None, now: datetime) -> dict[str, _Need]:
+    """Every missed topic needs one study action due before the next assessment. One the
+    lecturer deferred to a session still ahead needs a prep action due by that session
+    instead. A deferral to a session that has already happened no longer covers the gap."""
+    exam_due = due_iso(exam) if exam else None
+    needs: dict[str, _Need] = {}
+    for m in ctx.coverage.missed if ctx.coverage else []:
+        if m.topic not in ctx.deferred_topics:
+            needs[m.topic] = _Need("study", exam_due, "not taught in this lecture")
+            continue
+        seg_id, quote = ctx.deferred_topics[m.topic]
+        due, cm_id, how = _named_session(ctx, seg_id, quote)
+        at = cal.parse_iso(due)
+        if at and at > now:
+            needs[m.topic] = _Need("prep", due, f"the lecturer deferred it to {at:%a %d %b %H:%M}, {how}", seg_id, cm_id)
+        else:
+            note = f"the lecturer deferred it to {at:%a %d %b}, which has passed" if at else \
+                f"the lecturer deferred it, but {how}"
+            needs[m.topic] = _Need("study", exam_due, note, seg_id, cm_id)
+    return needs
+
+
+def _candidates(ctx: Ctx, needs: dict[str, _Need], exam: Exam | None,
+                now: datetime) -> tuple[list[_Cand], list[str]]:
     lec, cov = ctx.lecture, ctx.coverage
     course, student = lec.courseCode, lec.studentId
     lecture_at = _lecture_at(lec)
-    now = datetime.now(TZ)
     session = next_session(course, lecture_at)
-    exam = next_exam(course, max(lecture_at, now))
     exam_due = due_iso(exam) if exam else None
     session_due = iso(session.start) if session else None
     syl = ctx.syllabus
@@ -766,24 +875,17 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
     topics_seen: set[str] = set()
 
     def facts_for(topic: str) -> tuple[list[str], dict[str, str]]:
-        facts, prov = [], {}
-        w: TopicWeight | None = topic_weight(course, topic)
-        if w:
-            facts.append(w.fact)
-            prov["pastPapersCitationId"] = w.citation_id
-        sf, _ = _student_fact(student, course, topic)
-        if sf:
-            facts.append(sf)
-        if exam:
-            facts.append(f"next {course} assessment: {exam.title} on {exam.start:%a %d %b}")
-        return facts, prov
+        return _facts_for(ctx, topic, exam)
 
     for m in cov.missed if cov else []:
-        if m.topic in ctx.deferred_topics:
-            continue  # the lecturer will teach it next: the commitment becomes a prep action instead
+        need = needs[m.topic]
+        if need.kind == "prep":
+            continue  # deferred to a session still ahead: its commitment becomes the prep action
         facts, prov = facts_for(m.topic)
+        if need.segment_id:  # deferred to a session that has already happened
+            facts.insert(0, need.note)
         cands.append(_Cand(f"c{len(cands) + 1}", "study", m.topic, f"Not taught in this lecture: {m.why}", facts,
-                           {"syllabusSectionId": m.syllabusSectionId, **prov}, exam_due))
+                           {"syllabusSectionId": m.syllabusSectionId, **prov}, exam_due, canonical=True))
         topics_seen.add(m.topic)
     for e in cov.emphasized if cov else []:
         if e.topic in topics_seen:
@@ -792,7 +894,7 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
         sec_id = by_title[e.topic].id if e.topic in by_title else None
         cands.append(_Cand(f"c{len(cands) + 1}", "review", e.topic, f'Lecturer said: "{e.quote}"', facts,
                            {"segmentId": e.segmentId, **({"syllabusSectionId": sec_id} if sec_id else {}), **prov},
-                           exam_due))
+                           exam_due, canonical=True))
         topics_seen.add(e.topic)
     # the student's own weak spots among what this lecture covered
     for c in cov.covered if cov else []:
@@ -804,7 +906,8 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
             sec_id = by_title[c.topic].id if c.topic in by_title else None
             cands.append(_Cand(f"c{len(cands) + 1}", "review", c.topic,
                                f"Covered in this lecture; the student is weak on it", facts,
-                               {**({"syllabusSectionId": sec_id} if sec_id else {}), **prov}, exam_due))
+                               {**({"syllabusSectionId": sec_id} if sec_id else {}), **prov}, exam_due,
+                               canonical=True))
             topics_seen.add(c.topic)
     # the student's weakest high-weight topics in this course, from internal marks × past papers
     weak: list[tuple[float, str]] = []
@@ -819,7 +922,7 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
         facts, prov = facts_for(title)
         cands.append(_Cand(f"c{len(cands) + 1}", "review", title,
                            "Weak in the student's internal marks (not from this lecture)", facts,
-                           {"syllabusSectionId": by_title[title].id, **prov}, exam_due))
+                           {"syllabusSectionId": by_title[title].id, **prov}, exam_due, canonical=True))
         topics_seen.add(title)
     emph_segments = {e.segmentId for e in (cov.emphasized if cov else [])}
     for cm in ctx.commitments:
@@ -829,8 +932,13 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
                 "reading": "resource", "exam_hint": "review"}[cm.kind]
         if kind == "deadline" and not cm.dueBy:
             kind = "review"  # work set without a date is practice, due before the next assessment
-        due = cm.dueBy if kind == "deadline" else (cm.dueBy or session_due) if kind in ("prep", "resource") \
-            else exam_due
+        topic = _commitment_topic(ctx, cm)
+        need = needs.get(topic) if topic else None
+        if kind == "prep" and need and need.kind == "prep":
+            due = need.due  # the session this missed topic was deferred to
+        else:
+            due = cm.dueBy if kind == "deadline" else (cm.dueBy or session_due) if kind in ("prep", "resource") \
+                else exam_due
         if kind == "prep" and cal.parse_iso(due) and cal.parse_iso(due) < now:
             notes.append(f"no prep for '{cm.text[:50]}': that session ({_fmt_due(due)}) has already happened")
             continue
@@ -840,8 +948,11 @@ def _candidates(ctx: Ctx) -> tuple[list[_Cand], list[str]]:
             facts.append(f"next {course} lecture: {due_dt:%a %d %b, %H:%M}")
         elif due_dt and kind == "deadline":
             facts.append(f"due {due_dt:%a %d %b} as said in class")
-        cands.append(_Cand(f"c{len(cands) + 1}", kind, cm.text, f'Lecturer said: "{cm.quote}"', facts,
-                           {"segmentId": cm.segmentId, "commitmentId": cm.id}, due))
+        prov = {"segmentId": cm.segmentId, "commitmentId": cm.id}
+        if topic in by_title:
+            prov["syllabusSectionId"] = by_title[topic].id
+        cands.append(_Cand(f"c{len(cands) + 1}", kind, topic or cm.text, f'Lecturer said: "{cm.quote}"', facts,
+                           prov, due, canonical=topic is not None))
     return cands, notes
 
 
@@ -852,40 +963,118 @@ def _why_clause(text: str, kind: str) -> str:
     return clause or _KIND_FACT[kind]
 
 
+def _dedupe(items: list[ActionItem], order: dict[str, int]) -> tuple[list[ActionItem], list[str]]:
+    """One action per (topic, kind): the one due first stays, then the one from the earlier
+    candidate (coverage and marks come before commitments). The others are dropped."""
+    kept: dict[tuple[str, str], ActionItem] = {}
+    dropped: list[str] = []
+    for a in sorted(items, key=lambda a: (a.dueBy or "9999", order.get(a.id, 0))):
+        key = (norm_topic(a.topic), a.kind)
+        if key in kept:
+            dropped.append(f"{a.kind} '{a.title}' (same as '{kept[key].title}')")
+        else:
+            kept[key] = a
+    return list(kept.values()), dropped
+
+
+def _guaranteed_action(ctx: Ctx, m: CoverageMissed, need: _Need, exam: Exam | None) -> ActionItem:
+    """Template action for a missed topic the model gave none. Every figure and date is computed."""
+    lec = ctx.lecture
+    if need.kind == "study":
+        facts, prov = _facts_for(ctx, m.topic, exam)
+        if need.segment_id:
+            facts.insert(0, need.note)
+        title, minutes, why = f"Self-study {m.topic}", 45, "; ".join([_KIND_FACT["study"]] + facts)
+        provenance = {"syllabusSectionId": m.syllabusSectionId, **prov}
+    else:
+        at = cal.parse_iso(need.due)
+        title, minutes = f"Preview {m.topic} before the {at:%a %d %b} lecture", 30
+        why = f"The lecturer deferred it to that lecture; {lec.courseCode} lecture: {at:%a %d %b, %H:%M}"
+        provenance = {"segmentId": need.segment_id, "syllabusSectionId": m.syllabusSectionId,
+                      "commitmentId": need.commitment_id}
+    return ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind=need.kind, title=title,
+                      course=lec.courseCode, topic=m.topic, minutes=minutes, dueBy=need.due, why=why,
+                      provenance=ActionProvenance(**provenance))
+
+
+def _guarantee(ctx: Ctx, items: list[ActionItem], needs: dict[str, _Need], exam: Exam | None,
+               now: datetime) -> tuple[list[str], list[str]]:
+    """Give every missed topic its one study action, or its prep action due by the session it
+    was deferred to. Returns (trace notes for guaranteed actions, dueBy fixes)."""
+    made: list[str] = []
+    fixed: list[str] = []
+    for m in ctx.coverage.missed if ctx.coverage else []:
+        need = needs[m.topic]
+        have = next((a for a in items if a.kind == need.kind and norm_topic(a.topic) == norm_topic(m.topic)), None)
+        if have is not None:
+            if need.kind == "prep" and not (have.dueBy and cal.parse_iso(have.dueBy) <= cal.parse_iso(need.due)):
+                fixed.append(f"prep '{m.topic}' dueBy {have.dueBy} → {need.due}, the session it was deferred to")
+                have.dueBy = need.due
+            continue
+        action = _guaranteed_action(ctx, m, need, exam)
+        items.append(action)
+        # accepting it places a block with the same clash-free slot finder; say if none is free yet
+        due = cal.parse_iso(action.dueBy)
+        full = due is not None and cal.find_slot(ctx.lecture.studentId, action.minutes or 45, now, due) is None
+        made.append(f"{action.kind} '{m.topic}' {action.id} ({need.note}"
+                    + (f"; no free evening slot before {due:%a %d %b} yet" if full else "") + ")")
+    return made, fixed
+
+
 def step_actions(ctx: Ctx) -> str:
     lec = ctx.lecture
-    cands, notes = _candidates(ctx)
+    now = datetime.now(TZ)
+    exam = next_exam(lec.courseCode, max(_lecture_at(lec), now))
+    needs = _missed_needs(ctx, exam, now)
+    cands, notes = _candidates(ctx, needs, exam, now)
     for old in _actions_for(lec.id):  # re-processing replaces the proposals
         db.delete("action", old.id)
-    if not cands:
-        ctx.actions = []
-        return "no gaps, emphasis or commitments, so no actions" + (f"; {'; '.join(notes)}" if notes else "")
     by_id = {c.id: c for c in cands}
-    listing = "\n".join(
-        f"- {c.id} | kind={c.kind} | topic={c.topic} | {c.context}" + (f" | facts: {'; '.join(c.facts)}" if c.facts else "")
-        for c in cands)
-    student = load_student(lec.studentId) or {}
-    topics = _topic_list(ctx.syllabus.topics) if ctx.syllabus else "(no syllabus)"
-    res = llm.json(f"Student: {student.get('name', lec.studentId)}, goal: {student.get('careerGoal', 'n/a')}.\n"
-                   f"Course: {lec.courseCode}. Lecture of {lec.date}.\n\nCandidates:\n{listing}\n\n"
-                   f"Syllabus topics (closed list, optional topicId for an item):\n{topics}",
-                   _Actions, system=prompt("actions"), max_tokens=2500)
+    res = _Actions()
+    if cands:
+        listing = "\n".join(
+            f"- {c.id} | kind={c.kind} | topic={c.topic} | {c.context}" + (f" | facts: {'; '.join(c.facts)}" if c.facts else "")
+            for c in cands)
+        student = load_student(lec.studentId) or {}
+        topics = _topic_list(ctx.syllabus.topics) if ctx.syllabus else "(no syllabus)"
+        # temperature 0 where the model allows it (llm.py falls back to the default where it doesn't)
+        res = llm.json(f"Student: {student.get('name', lec.studentId)}, goal: {student.get('careerGoal', 'n/a')}.\n"
+                       f"Course: {lec.courseCode}. Lecture of {lec.date}.\n\nCandidates:\n{listing}\n\n"
+                       f"Syllabus topics (closed list, optional topicId for an item):\n{topics}",
+                       _Actions, system=prompt("actions"), max_tokens=2500, temperature=0.0, seed=ACTIONS_SEED)
+    # the syllabus mapping coverage uses for emphasized quotes: segment → its handout section's topic
+    seg_topic = {sid: s.syllabusTopic for s in (ctx.handout.sections if ctx.handout else [])
+                 for sid in s.segmentIds if s.syllabusTopic}
+    retopic: Counter[str] = Counter()
     used: set[str] = set()
     items: list[ActionItem] = []
+    order: dict[str, int] = {}  # action id → position of its candidate
+
+    def topic_of(cand: _Cand, topic_id: str | None) -> str:
+        if cand.canonical:
+            return cand.topic
+        picked = ctx.syllabus.topic(topic_id) if topic_id and ctx.syllabus else None
+        if picked:
+            retopic["the model's topicId"] += 1
+            return picked.title
+        if cand.provenance.get("segmentId") in seg_topic:
+            retopic["its handout section"] += 1
+            return seg_topic[cand.provenance["segmentId"]]
+        retopic["none (no syllabus topic applies)"] += 1
+        return cand.topic
 
     def make(cand: _Cand, kind: str, title: str, why: str, minutes: int, topic_id: str | None) -> ActionItem:
-        topic = cand.topic
-        if topic_id and ctx.syllabus and ctx.syllabus.topic(topic_id):
-            topic = ctx.syllabus.topic(topic_id).title
         due = cand.due
         if kind == "ask":  # take it to the next class that hasn't happened yet
-            due = next_session(lec.courseCode, max(_lecture_at(lec), datetime.now(TZ)))
+            due = next_session(lec.courseCode, max(_lecture_at(lec), now))
             due = iso(due.start) if due else None
-        return ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind=kind,
-                          title=normalize_ws(title)[:120], course=lec.courseCode, topic=topic,
+        item = ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind=kind,
+                          title=normalize_ws(title)[:120], course=lec.courseCode, topic=topic_of(cand, topic_id),
                           minutes=max(10, min(int(minutes or 45), 180)), dueBy=due,
                           why="; ".join([_why_clause(why, kind)] + cand.facts),
                           provenance=ActionProvenance(**cand.provenance))
+        order[item.id] = int(cand.id[1:])
+        return item
 
     for it in res.items:
         cand = by_id.get(it.candidateId)
@@ -900,18 +1089,37 @@ def step_actions(ctx: Ctx) -> str:
         cand = by_id.get(ask.candidateId)
         if cand:
             items.append(make(cand, "ask", ask.title, ask.why, ask.minutes, None))
-    missing = [c for c in cands if c.id not in used and c.kind in ("study", "prep", "deadline")]
+    items, duplicates = _dedupe(items, order)
+    guaranteed, fixed = _guarantee(ctx, items, needs, exam, now)
+    if not cands and not items:
+        ctx.actions = []
+        return "no gaps, emphasis or commitments, so no actions" + (f"; {'; '.join(notes)}" if notes else "")
     rank = {"prep": 0, "deadline": 1, "study": 2, "review": 3, "resource": 4, "ask": 5}
     items.sort(key=lambda a: (a.dueBy or "9999", rank[a.kind]))
     for a in items:
         db.put("action", a.id, a.dump(), student_id=lec.studentId, parent_id=lec.id)
     ctx.actions = items
+    have = {(norm_topic(a.topic), a.kind) for a in items}
+    missing = [c for c in cands if c.id not in used and c.kind in ("study", "prep", "deadline")
+               and (norm_topic(c.topic), c.kind) not in have]
     if missing:
         ctx.soft_error = f"model left out {len(missing)} required candidate(s): {[c.topic for c in missing]}"
     kinds = Counter(a.kind for a in items)
-    skipped = f"; {'; '.join(notes)}" if notes else ""
-    return (f"{len(cands)} candidates from missed/emphasized/commitments/marks → {len(items)} actions {dict(kinds)}; "
-            f"marks and dates computed from past_papers.json, exam_calendar.json, timetable.json{skipped}")
+    parts = [f"{len(cands)} candidates from missed/emphasized/commitments/marks → {len(items)} actions {dict(kinds)}"]
+    said = sum(1 for c in cands if c.canonical and "commitmentId" in c.provenance)
+    if said or retopic:
+        parts.append("commitment topics → syllabus: " + ", ".join(
+            [f"{said} from the lecturer's own words"] + [f"{n} via {how}" for how, n in retopic.items()]))
+    deferred = [f"{t}: {n.note} → {n.kind}" for t, n in needs.items() if n.segment_id]
+    if deferred:
+        parts.append(f"deferred: {'; '.join(deferred)}")
+    if duplicates:
+        parts.append(f"dropped {len(duplicates)} duplicate (topic, kind): {'; '.join(duplicates)}")
+    parts += fixed
+    if guaranteed:
+        parts.append(f"origin: guaranteed (the model gave no action for these missed topics): {'; '.join(guaranteed)}")
+    parts.append("marks and dates computed from past_papers.json, exam_calendar.json, timetable.json")
+    return "; ".join(parts + notes)
 
 
 # ---------------------------------------------------------------------------------
