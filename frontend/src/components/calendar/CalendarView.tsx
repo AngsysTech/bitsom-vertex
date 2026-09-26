@@ -1,13 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { api } from '@/api'
 import { Icon } from '@/components/Icon'
 import { Spinner } from '@/components/Spinner'
 import { useCalendarRange } from '@/hooks/useCalendar'
-import { CALENDAR_KINDS, KIND_STYLE, STUDY_KINDS } from '@/lib/labels'
+import { askCoach } from '@/lib/actions'
+import { CALENDAR_KINDS, KIND_STYLE, STATUS_KINDS } from '@/lib/labels'
 import { classPath, navigate } from '@/lib/route'
 import { addDays, fmtDayShort, fmtDM, fmtHM, isoDate, minutesBetween, mondayOf, parseISO, sameDay, startOfDay } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useWS } from '@/store/workspace'
 import type { CalendarItem, CalendarItemKind } from '@/types'
+import { AddTaskDialog, type TaskDraft } from './AddTaskDialog'
 
 const START_H = 7
 const END_H = 23
@@ -19,7 +22,9 @@ const KIND_FILTERS: { label: string; kinds: CalendarItemKind[] }[] = [
   { label: 'Prep', kinds: ['prep'] },
   { label: 'Actions', kinds: ['action'] },
   { label: 'Deadlines', kinds: ['deadline'] },
+  { label: 'My tasks', kinds: ['task'] },
 ]
+const pad = (n: number) => String(n).padStart(2, '0')
 
 const start = (i: CalendarItem) => parseISO(i.start)
 const isAllDay = (i: CalendarItem) => !!i.allDay || !i.end
@@ -54,6 +59,7 @@ function useSourceText() {
       return b ? `Plan block · why: ${b.why}` : 'Plan block'
     }
     if (src.type === 'event') return `Campus pick ${src.pickId}${src.eventId ? ` · event ${src.eventId}` : ''}`
+    if (src.type === 'manual') return 'Added by you · plan rebuilds keep it and fit study blocks around it'
     const lec = lectures?.find((l) => l.id === src.lectureId)
     return `From lecture ${lec ? fmtDM(lec.date) : src.lectureId} · action ${src.actionId}`
   }
@@ -101,7 +107,22 @@ function ItemPopover({ pop, onClose }: { pop: PopState; onClose: () => void }) {
   const setItemStatus = useWS((s) => s.setItemStatus)
   const channel = useWS((s) => s.classes.find((c) => c.courseCode === live.courseCode))
   const sourceText = useSourceText()
-  const editable = STUDY_KINDS.includes(live.kind)
+  const editable = STATUS_KINDS.includes(live.kind)
+  const mine = live.source.type === 'manual'
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const remove = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await api.deleteTask(live.id)
+      useWS.getState().bumpCalendar()
+      onClose()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : String(e))
+      setDeleting(false)
+    }
+  }
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ left: pop.x, top: pop.y })
   useLayoutEffect(() => {
@@ -159,6 +180,15 @@ function ItemPopover({ pop, onClose }: { pop: PopState; onClose: () => void }) {
             )}
           </div>
         )}
+        {mine && (
+          <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
+            {deleteError ? <span className="min-w-0 flex-1 truncate text-bad">{deleteError}</span> : <span className="text-ink-5">Your task</span>}
+            <button type="button" disabled={deleting} onClick={() => void remove()} className="flex cursor-pointer items-center gap-1 font-bold text-bad disabled:cursor-wait disabled:opacity-60">
+              {deleting ? <Spinner size={11} /> : <Icon name="delete" size={14} />}
+              Delete task
+            </button>
+          </div>
+        )}
       </div>
     </>
   )
@@ -208,7 +238,7 @@ function AllDayChip({ item, onOpen }: { item: CalendarItem; onOpen: (e: React.Mo
   )
 }
 
-function WeekGrid({ monday, items, onOpen }: { monday: Date; items: CalendarItem[]; onOpen: (item: CalendarItem, e: React.MouseEvent) => void }) {
+function WeekGrid({ monday, items, onOpen, onAdd }: { monday: Date; items: CalendarItem[]; onOpen: (item: CalendarItem, e: React.MouseEvent) => void; onAdd: (d: TaskDraft) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
   const today = new Date()
   const scroller = useRef<HTMLDivElement>(null)
@@ -254,7 +284,7 @@ function WeekGrid({ monday, items, onOpen }: { monday: Date; items: CalendarItem
       <div className="grid flex-none border-b border-line" style={cols}>
         <span className="px-1 py-1 text-right text-[10px] leading-4 text-ink-4">all-day</span>
         {allDay.map((list, i) => (
-          <div key={i} className="flex min-w-0 flex-col gap-0.5 border-l border-line p-0.5">
+          <div key={i} onClick={(e) => e.target === e.currentTarget && onAdd({ date: days[i]! })} className="flex min-w-0 flex-col gap-0.5 border-l border-line p-0.5">
             {list.map((it) => (
               <AllDayChip key={it.id} item={it} onOpen={(e) => onOpen(it, e)} />
             ))}
@@ -276,6 +306,12 @@ function WeekGrid({ monday, items, onOpen }: { monday: Date; items: CalendarItem
             return (
               <div
                 key={d.toISOString()}
+                onClick={(e) => {
+                  if (e.target !== e.currentTarget) return // a block, not the empty grid
+                  const mins = START_H * 60 + Math.floor(((e.clientY - e.currentTarget.getBoundingClientRect().top) / HOUR_PX) * 2) * 30
+                  const h = Math.min(END_H - 1, Math.floor(mins / 60))
+                  onAdd({ date: d, time: `${pad(h)}:${pad(h === Math.floor(mins / 60) ? mins % 60 : 0)}` })
+                }}
                 className={cn('relative border-l border-line', isToday && 'bg-cyan-soft/40')}
                 style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX - 1}px, #E2E8F0 ${HOUR_PX - 1}px, #E2E8F0 ${HOUR_PX}px)` }}
               >
@@ -360,6 +396,9 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
   const [courses, setCourses] = useState<string[]>([])
   const [hidden, setHidden] = useState<CalendarItemKind[]>([])
   const [pop, setPop] = useState<PopState | null>(null)
+  const [draft, setDraft] = useState<TaskDraft | null>(null)
+  const [added, setAdded] = useState<{ item: CalendarItem; clashes: number } | null>(null)
+  const coachBusy = useWS((s) => !!s.threads.academic_coach?.sending)
   const classes = useWS((s) => s.classes)
   const statusError = useWS((s) => s.statusError)
   const set = useWS((s) => s.set)
@@ -384,6 +423,18 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
       ? `${fmtDM(range.from)} – ${fmtDM(range.to)} ${range.to.getFullYear()}`
       : monthFirst.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
   const open = (item: CalendarItem, e: React.MouseEvent) => setPop({ item, x: e.clientX + 12, y: e.clientY - 20 })
+  const onAdded = (item: CalendarItem) => {
+    setDraft(null)
+    const s = parseISO(item.start).getTime()
+    const e = item.end ? parseISO(item.end).getTime() : s
+    const clashes = (entry?.items ?? []).filter(
+      (i) => (i.kind === 'study_block' || i.kind === 'action' || i.kind === 'prep') && i.end && parseISO(i.start).getTime() < e && parseISO(i.end).getTime() > s,
+    ).length
+    setAdded({ item, clashes })
+    useWS.setState((st) => ({ freshItems: { ...st.freshItems, [item.id]: Date.now() } }))
+    useWS.getState().bumpCalendar()
+    if (view === 'week') setAnchor(mondayOf(parseISO(item.start)))
+  }
   const toggleKinds = (kinds: CalendarItemKind[]) => setHidden((h) => (kinds.every((k) => h.includes(k)) ? h.filter((k) => !kinds.includes(k)) : [...h, ...kinds]))
 
   return (
@@ -406,7 +457,20 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
             <Spinner size={12} /> Loading calendar…
           </span>
         )}
-        <div className="ml-auto flex gap-0.5 rounded-md bg-mist p-0.5">
+        <button
+          type="button"
+          onClick={() => {
+            const now = new Date()
+            const h = Math.min(END_H - 1, Math.max(now.getHours() + 1, 18))
+            setDraft({ date: now.getHours() >= END_H - 1 ? addDays(startOfDay(now), 1) : now, time: `${pad(h)}:00` })
+          }}
+          data-tip="Add your own task (or click an empty slot in the week). Plan rebuilds keep it and fit study blocks around it."
+          className="ml-auto flex h-7 cursor-pointer items-center gap-1 rounded-md bg-ink px-2.5 text-xs font-bold text-white hover:bg-ink-7"
+        >
+          <Icon name="add" size={16} />
+          Add task
+        </button>
+        <div className="flex gap-0.5 rounded-md bg-mist p-0.5">
           {(['week', 'month'] as const).map((v) => (
             <button
               key={v}
@@ -472,12 +536,36 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
           </button>
         </div>
       )}
+      {added && (
+        <div className="flex flex-none flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[13px] text-ink">
+          <Icon name="task_alt" size={16} className="text-violet-500" />
+          <span className="min-w-0">
+            Added <b>{added.item.title}</b> ({fmtDayShort(added.item.start)}
+            {added.item.end ? ` · ${fmtHM(added.item.start)}–${fmtHM(added.item.end)}` : ' · all day'}).{' '}
+            {added.clashes
+              ? `It overlaps ${added.clashes} planned block${added.clashes > 1 ? 's' : ''}; a rebuild moves study blocks around it.`
+              : 'Your plan keeps it and fits study blocks around it on the next rebuild.'}
+          </span>
+          <button
+            type="button"
+            disabled={coachBusy}
+            onClick={() => (setAdded(null), askCoach('Rebuild my study plan around the tasks I added to my calendar'))}
+            className="flex cursor-pointer items-center gap-1 text-xs font-bold text-link disabled:cursor-wait disabled:opacity-60"
+          >
+            <Icon name="autorenew" size={14} /> Rebuild plan now
+          </button>
+          <button type="button" onClick={() => setAdded(null)} className="ml-auto cursor-pointer text-xs font-bold text-ink-5">
+            dismiss
+          </button>
+        </div>
+      )}
       {view === 'week' ? (
-        <WeekGrid monday={anchor} items={items} onOpen={open} />
+        <WeekGrid monday={anchor} items={items} onOpen={open} onAdd={setDraft} />
       ) : (
         <MonthGrid first={monthFirst} items={items} onPick={(d) => (setView('week'), setAnchor(mondayOf(startOfDay(d))))} />
       )}
       {pop && <ItemPopover pop={pop} onClose={() => setPop(null)} />}
+      {draft && <AddTaskDialog draft={draft} courseCode={courseCode} onClose={() => setDraft(null)} onAdded={onAdded} />}
     </div>
   )
 }
