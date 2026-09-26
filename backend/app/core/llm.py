@@ -4,6 +4,10 @@
     complete_json_text(system=..., prompt=...) -> raw JSON text
         (used only by the vendored-notes bridge, whose own parsers validate it)
 
+Both take optional ``temperature`` and ``seed``. A model that rejects ``temperature``
+(reasoning models accept only their default) is remembered, so later calls omit it
+instead of paying for a 400 first. ``seed`` goes to OpenAI-compatible APIs only.
+
 Env:
     LLM_PROVIDER   openai | anthropic   (openai also covers OpenAI-compatible APIs
                                           via LLM_BASE_URL: OpenRouter, Gemini, Groq ...)
@@ -32,6 +36,7 @@ M = TypeVar("M", bound=BaseModel)
 _DEFAULT_MODELS = {"openai": "gpt-4.1-mini", "anthropic": "claude-sonnet-5"}
 _client_lock = threading.Lock()
 _client: Any = None
+_no_temperature: set[str] = set()  # model ids that accept only their default temperature
 
 
 class LLMError(RuntimeError):
@@ -84,7 +89,8 @@ def _is_retryable(exc: Exception) -> bool:
     return any(k in name for k in ("Timeout", "Connection", "RateLimit", "Overloaded", "InternalServer"))
 
 
-def _openai_call(client: Any, system: str | None, prompt: str, max_tokens: int, temperature: float | None) -> str:
+def _openai_call(client: Any, system: str | None, prompt: str, max_tokens: int, temperature: float | None,
+                 seed: int | None) -> str:
     messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     kwargs: dict[str, Any] = {
         "model": model(),
@@ -94,6 +100,8 @@ def _openai_call(client: Any, system: str | None, prompt: str, max_tokens: int, 
     }
     if temperature is not None:
         kwargs["temperature"] = temperature
+    if seed is not None:
+        kwargs["seed"] = seed
     if env("LLM_REASONING_EFFORT"):
         kwargs["reasoning_effort"] = env("LLM_REASONING_EFFORT")
     resp = client.chat.completions.create(**kwargs)
@@ -103,7 +111,8 @@ def _openai_call(client: Any, system: str | None, prompt: str, max_tokens: int, 
     return choice.message.content or ""
 
 
-def _anthropic_call(client: Any, system: str | None, prompt: str, max_tokens: int, temperature: float | None) -> str:
+def _anthropic_call(client: Any, system: str | None, prompt: str, max_tokens: int, temperature: float | None,
+                    seed: int | None) -> str:  # the Messages API has no seed; it is ignored
     kwargs: dict[str, Any] = {
         "model": model(),
         "max_tokens": max_tokens,
@@ -120,14 +129,16 @@ def _anthropic_call(client: Any, system: str | None, prompt: str, max_tokens: in
 
 
 def complete_json_text(*, system: str | None, prompt: str, max_tokens: int = 4096,
-                       temperature: float | None = 0.2) -> str:
+                       temperature: float | None = 0.2, seed: int | None = None) -> str:
     client = _get_client()
     call = _anthropic_call if provider() == "anthropic" else _openai_call
+    if model() in _no_temperature:
+        temperature = None
     attempts = 3
     for attempt in range(attempts):
         started = time.perf_counter()
         try:
-            text = call(client, system, prompt, max_tokens, temperature)
+            text = call(client, system, prompt, max_tokens, temperature, seed)
             log.info("llm ok model=%s ms=%d", model(), (time.perf_counter() - started) * 1000)
             return text
         except LLMError:
@@ -135,7 +146,11 @@ def complete_json_text(*, system: str | None, prompt: str, max_tokens: int = 409
         except Exception as exc:  # provider SDK errors
             msg = str(exc)
             if temperature is not None and "temperature" in msg.lower():
-                temperature = None  # some reasoning models reject it; retry without
+                _no_temperature.add(model())  # some reasoning models reject it; retry without
+                temperature = None
+                continue
+            if seed is not None and "seed" in msg.lower():
+                seed = None  # not every OpenAI-compatible API takes one; retry without
                 continue
             if attempt < attempts - 1 and _is_retryable(exc):
                 time.sleep(1.5 * (attempt + 1))
@@ -162,7 +177,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def json(prompt: str, schema: type[M], *, system: str | None = None, max_tokens: int = 4096,
-         temperature: float | None = 0.2) -> M:
+         temperature: float | None = 0.2, seed: int | None = None) -> M:
     """One model call whose output must validate against ``schema``. One repair retry."""
     contract = (
         "Output strict JSON only: one object that validates against this JSON Schema. "
@@ -172,7 +187,8 @@ def json(prompt: str, schema: type[M], *, system: str | None = None, max_tokens:
     user = prompt
     last_error: Exception | None = None
     for _ in range(2):
-        text = complete_json_text(system=full_system, prompt=user, max_tokens=max_tokens, temperature=temperature)
+        text = complete_json_text(system=full_system, prompt=user, max_tokens=max_tokens, temperature=temperature,
+                                  seed=seed)
         try:
             return schema.model_validate(extract_json_object(text))
         except (ValueError, ValidationError) as exc:

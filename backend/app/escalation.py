@@ -25,7 +25,10 @@ def _utcnow() -> str:
 
 
 def _next_id() -> str:
-    return f"A-{101 + len(db.find('ticket'))}"
+    # max + 1, not count + 1: POST /demo/reset deletes one student's tickets, and a count would
+    # then hand out an id another student's ticket still holds (and db.put would overwrite it)
+    nums = [int(t["ticketId"][2:]) for t in db.find("ticket") if str(t.get("ticketId", ""))[2:].isdigit()]
+    return f"A-{max(nums, default=100) + 1}"
 
 
 def create_ticket(*, student_id: str, agent_id: str, question: str, agent_summary: str,
