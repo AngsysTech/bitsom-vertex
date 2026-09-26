@@ -1,0 +1,102 @@
+{
+  "connectorId": "lms_moodle",
+  "semester": 5,
+  "rows": [
+    {
+      "courseCode": "CS F212",
+      "day": "Monday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "A-201",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F351",
+      "day": "Monday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "A-202",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F372",
+      "day": "Tuesday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "B-105",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F303",
+      "day": "Tuesday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "B-202",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "MATH F241",
+      "day": "Wednesday",
+      "start": "10:00",
+      "end": "11:00",
+      "room": "C-301",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "HSS F235",
+      "day": "Thursday",
+      "start": "14:00",
+      "end": "15:00",
+      "room": "H-110",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F212",
+      "day": "Thursday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "A-201",
+      "kind": "lecture"
+    },
+    {
+      "courseCode": "CS F351",
+      "day": "Wednesday",
+      "start": "12:00",
+      "end": "13:00",
+      "room": "A-202",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "CS F372",
+      "day": "Friday",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "B-105",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "CS F303",
+      "day": "Friday",
+      "start": "11:00",
+      "end": "12:00",
+      "room": "B-202",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "MATH F241",
+      "day": "Monday",
+      "start": "15:00",
+      "end": "16:00",
+      "room": "C-301",
+      "kind": "tutorial"
+    },
+    {
+      "courseCode": "HSS F235",
+      "day": "Wednesday",
+      "start": "15:00",
+      "end": "16:00",
+      "room": "H-110",
+      "kind": "tutorial"
+    }
+  ]
+}

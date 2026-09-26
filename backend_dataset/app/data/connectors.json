@@ -1,0 +1,63 @@
+[
+  {
+    "id": "erp_core",
+    "kind": "erp",
+    "name": "Core ERP",
+    "status": "synthetic",
+    "provides": [
+      "transcript",
+      "registrations",
+      "handbook",
+      "catalog"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
+  },
+  {
+    "id": "lms_moodle",
+    "kind": "lms",
+    "name": "Moodle LMS",
+    "status": "synthetic",
+    "provides": [
+      "syllabus",
+      "internal_marks",
+      "lectures",
+      "timetable"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
+  },
+  {
+    "id": "academic_office",
+    "kind": "academic_office",
+    "name": "Academic Office",
+    "status": "synthetic",
+    "provides": [
+      "circulars",
+      "exam_calendar",
+      "past_papers"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
+  },
+  {
+    "id": "placement_cell",
+    "kind": "placement",
+    "name": "Placement Cell",
+    "status": "synthetic",
+    "provides": [
+      "role_profiles",
+      "opportunities"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
+  },
+  {
+    "id": "clubs_portal",
+    "kind": "clubs_portal",
+    "name": "Clubs Portal",
+    "status": "synthetic",
+    "provides": [
+      "clubs",
+      "club_feed",
+      "events"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
+  }
+]

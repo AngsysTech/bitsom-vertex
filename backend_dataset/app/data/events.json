@@ -1,0 +1,162 @@
+{
+  "connectorId": "clubs_portal",
+  "events": [
+    {
+      "title": "SQL for Analysts Workshop",
+      "date": "2026-09-28",
+      "time": "18:30",
+      "venue": "Data Science Lab",
+      "tags": [
+        "sql",
+        "analytics"
+      ],
+      "description": "Hands-on joins, window functions and query debugging.",
+      "clubSlug": "data-science",
+      "registrationDeadline": "2026-09-27"
+    },
+    {
+      "title": "Visualization That Tells the Truth",
+      "date": "2026-10-03",
+      "time": "11:00",
+      "venue": "Learning Commons",
+      "tags": [
+        "visualization",
+        "analytics"
+      ],
+      "description": "Workshop on chart choice, annotation and misleading encodings.",
+      "clubSlug": "data-science",
+      "registrationDeadline": "2026-10-01"
+    },
+    {
+      "title": "Campus Hackathon: Build for Students",
+      "date": "2026-10-10",
+      "time": "09:00",
+      "venue": "Innovation Hall",
+      "tags": [
+        "hackathon",
+        "coding",
+        "product"
+      ],
+      "description": "Twelve-hour build sprint around student-life problems.",
+      "clubSlug": "coding",
+      "registrationDeadline": "2026-10-06"
+    },
+    {
+      "title": "Backend Systems Clinic",
+      "date": "2026-10-17",
+      "time": "17:30",
+      "venue": "Computing Block",
+      "tags": [
+        "backend",
+        "distributed-systems"
+      ],
+      "description": "Practical session on API design, queues and observability.",
+      "clubSlug": "coding",
+      "registrationDeadline": "2026-10-15"
+    },
+    {
+      "title": "Recruiter Talk: Careers in Analytics",
+      "date": "2026-10-22",
+      "time": "18:00",
+      "venue": "Auditorium",
+      "tags": [
+        "careers",
+        "analytics"
+      ],
+      "description": "Northstar Metrics shares its synthetic hiring rubric and project examples.",
+      "organiser": "placement_cell",
+      "registrationDeadline": "2026-10-20"
+    },
+    {
+      "title": "Robotics Maze Challenge",
+      "date": "2026-10-31",
+      "time": "15:00",
+      "venue": "Workshop Bay",
+      "tags": [
+        "robotics",
+        "embedded"
+      ],
+      "description": "Team maze-navigation challenge with timed runs.",
+      "clubSlug": "robotics",
+      "registrationDeadline": "2026-10-26"
+    },
+    {
+      "title": "Open Mic Night",
+      "date": "2026-11-01",
+      "time": "19:00",
+      "venue": "Amphitheatre",
+      "tags": [
+        "music",
+        "social"
+      ],
+      "description": "Non-technical open-mic evening for students and staff.",
+      "clubSlug": "music"
+    },
+    {
+      "title": "Founder Story: From Campus to SaaS",
+      "date": "2026-11-05",
+      "time": "18:30",
+      "venue": "Innovation Hall",
+      "tags": [
+        "startup",
+        "product"
+      ],
+      "description": "Fictional founders discuss early customer discovery and pricing.",
+      "clubSlug": "e-cell",
+      "registrationDeadline": "2026-11-04"
+    },
+    {
+      "title": "Policy Debate: AI in Education",
+      "date": "2026-11-08",
+      "time": "17:00",
+      "venue": "Humanities Hall",
+      "tags": [
+        "debate",
+        "ai",
+        "ethics"
+      ],
+      "description": "Structured debate on assessment, access and academic integrity.",
+      "clubSlug": "debate",
+      "registrationDeadline": "2026-11-06"
+    },
+    {
+      "title": "Night Photography Walk",
+      "date": "2026-11-14",
+      "time": "18:45",
+      "venue": "Main Gate",
+      "tags": [
+        "photography",
+        "creative"
+      ],
+      "description": "Guided low-light photography walk across campus.",
+      "clubSlug": "photography",
+      "registrationDeadline": "2026-11-12"
+    },
+    {
+      "title": "General Quiz Championship",
+      "date": "2026-11-21",
+      "time": "16:00",
+      "venue": "Auditorium",
+      "tags": [
+        "quiz",
+        "social"
+      ],
+      "description": "Open team quiz with literature, sport, science and visual rounds.",
+      "clubSlug": "quiz",
+      "registrationDeadline": "2026-11-18"
+    },
+    {
+      "title": "ML Project Review Day",
+      "date": "2026-12-15",
+      "time": "14:00",
+      "venue": "Data Science Lab",
+      "tags": [
+        "ml",
+        "python"
+      ],
+      "description": "Peer review of semester machine-learning projects.",
+      "clubSlug": "data-science",
+      "registrationDeadline": "2026-12-12"
+    }
+  ]
+}

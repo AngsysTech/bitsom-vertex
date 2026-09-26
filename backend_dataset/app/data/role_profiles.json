@@ -1,0 +1,98 @@
+{
+  "connectorId": "placement_cell",
+  "roles": [
+    {
+      "role": "Data Analyst",
+      "requiredSkills": [
+        "sql",
+        "data-modeling",
+        "python",
+        "statistics",
+        "analytics",
+        "visualization",
+        "communication",
+        "research"
+      ],
+      "niceToHave": [
+        "ml",
+        "product-thinking"
+      ],
+      "typicalRecruiters": [
+        "Northstar Metrics",
+        "BluePebble Insights",
+        "Juniper Loop"
+      ],
+      "note": "Synthetic role profile for demo."
+    },
+    {
+      "role": "Backend Engineer",
+      "requiredSkills": [
+        "backend",
+        "software-design",
+        "testing",
+        "sql",
+        "data-modeling",
+        "distributed-systems",
+        "networking",
+        "cloud",
+        "systems"
+      ],
+      "niceToHave": [
+        "python",
+        "concurrency"
+      ],
+      "typicalRecruiters": [
+        "CedarStack",
+        "Orbital Ledger",
+        "Kiteframe Systems"
+      ],
+      "note": "Synthetic role profile for demo."
+    },
+    {
+      "role": "ML Engineer",
+      "requiredSkills": [
+        "python",
+        "ml",
+        "statistics",
+        "algorithms",
+        "data-modeling",
+        "nlp",
+        "systems",
+        "cloud"
+      ],
+      "niceToHave": [
+        "visualization",
+        "distributed-systems"
+      ],
+      "typicalRecruiters": [
+        "VectorNest AI",
+        "Lattice Harbor",
+        "Saffron Compute"
+      ],
+      "note": "Synthetic role profile for demo."
+    },
+    {
+      "role": "Product Analyst",
+      "requiredSkills": [
+        "analytics",
+        "sql",
+        "statistics",
+        "visualization",
+        "product-thinking",
+        "communication",
+        "research",
+        "data-modeling"
+      ],
+      "niceToHave": [
+        "python",
+        "ml"
+      ],
+      "typicalRecruiters": [
+        "MetricMint",
+        "HarborWorks",
+        "PaperPlane Labs"
+      ],
+      "note": "Synthetic role profile for demo."
+    }
+  ]
+}

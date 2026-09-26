@@ -6,15 +6,15 @@ Deadline: **5:30pm today (Sat 26 Sep 2026)**. 7-min demo + 3-min Q&A + one slide
 
 ---
 
-## 1. What we're building, in one paragraph
+## 1. What we're building, in one paragraph (refocused 1:15pm after mentor feedback: one feature, at depth)
 
-Students have seven recurring questions (which courses, how to plan learning, which resources, which opportunities, am I on track, is this relevant for a job, logistics) answered by six different offices, reactively, through PDFs, portals and emails. We're building a **Slack-style student workspace where every student DMs specialist AI agents** that sit on one grounded student layer: official documents plus the student's own records. Every answer is cited to official documents, agents refuse outside their scope, and when the docs run out the question escalates to a human advisor as a pre-cited ticket. We cover six of the seven questions; logistics is out.
+**A study planner that listens to your classes and adjusts every week.** Inside a Slack-style workspace the student DMs one agent, the Academic Coach. In class: the lecture is recorded, the student taps "I'm stuck" when lost, and the coach produces a handout checked against the syllabus (what was covered, what was skipped, what the lecturer promised, where you got lost). After class: those become actions with exam weight behind them, placed into a weekly plan and a merged calendar around classes and exams. Every week: a 1:1 lookback reviews what got done, asks about what didn't, and adjusts the plan. Any concept — a stuck section, a plan block, a weak topic — can be reframed through the student's own interest (Make it Relevant). Every claim is cited to syllabus, past papers or the lecture itself; when the docs run out, it escalates to a human advisor. This answers "how do I plan my learning" and "what should I do differently based on my performance" at depth, and "manage their time" directly.
 
-Vision (slide only, not built): sits on top of LMS/ERP/placement/club portals via connectors; more agents plug in; a memory layer so agents remember what the student explored and decided.
+Below the line (built only if the planner demos cleanly): course recommender, degree audit, clubs/social, buddy timer. Vision on the slide: more agents on the same grounded student layer, real LMS/ERP connectors, a memory layer, ink/Outlook export of markers and plans.
 
 ## 2. Rules we must not break (from the brief)
 
-- **No private pre-existing code.** Nothing from Enstine or any prior private repo is copied in. Patterns and ideas from our heads are fine; files are not. Do not open-source something today to route around this.
+- **No private pre-existing code, with one disclosed exception.** The jury explicitly approved (asked and confirmed ~12:30 today) reusing our prior **audio-to-notes pipeline** for the class companion. That code lives **only** in `backend/app/vendored/audio_notes/` with a `NOTICE.md` stating what was ported, that it predates the challenge, and that the jury approved it. It is named on the slide, in the README and in Q&A. Nothing else from Enstine or any prior private repo is copied, ported, paraphrased or "mimicked" in, by a human or a coding agent — the syllabus coverage step, the actions step, the audit, the planner, the UI and the shared layer are all clean-room, built today from this file and `contracts.ts`.
 - **Synthetic data only.** No real student data. Every dataset file is generated today and lives in `backend/app/data/`.
 - **No simulated intelligence.** Hardcoding is fine for setup, routing and supporting functions. It is not fine for any response content, recommendation, or reasoning that makes the AI look smarter than it is. If a feature can't be done for real, it goes on the "next" slide, never faked. This applies to club-agent chat especially.
 - **Assumptions stated.** Single program, English documents, synthetic connectors. Say it on the slide.
@@ -33,7 +33,7 @@ contracts.ts   shared types + endpoint list (copied to frontend/src/types.ts)
 
 | Piece | Responsibility |
 |---|---|
-| `core/parser.py` | Loads synthetic docs into `Document` with stable `DocumentSection.id`s (`handbook.4.2`) |
+| `core/parser.py` | Markdown headings → `DocumentSection`s with stable IDs (`handbook.4.2`); JSON files load as-is. **No PDF, no OCR, no document AI today** — connectors deliver structured content (markdown/JSON). Disclosed on the slide; PDF ingestion is a separate layer we'd add later |
 | `core/scope.py` | Per-agent allowed doc set. Enforced in code, not in the prompt. An agent physically never sees docs outside its scope |
 | `core/context.py` | Whole-scope context: the agent's allowed docs fit in context, so no embeddings, no vector DB. Docs are serialised with their section IDs so the model can cite |
 | `core/citations.py` | Closed-choice citations. Model emits `[C1]` + `{sectionId, quote}`; we verify the quote exists verbatim in that section. Unverifiable citation → drop it and flag in trace; never invent |
@@ -42,6 +42,7 @@ contracts.ts   shared types + endpoint list (copied to frontend/src/types.ts)
 | `core/llm.py` | One provider, env-configured, JSON-mode helper, retries, timing for `ToolTrace` |
 | `core/override.py` | Rule conflict resolution: later `effectiveDate` wins (circular overrides handbook). Output carries both citations and a `note` |
 | `escalation.py` | Tickets, advisor inbox, reply → appears in student thread |
+| `vendored/audio_notes/` | **Jury-approved prior code.** Audio → timestamped transcript → structured notes. Wrapped by `tools/companion.py`, which adapts its output into `Handout` (contracts §9b). The vendored schema never leaks into the API. Has its own `NOTICE.md` |
 
 **Rule of the shared layer:** LLM reads, code counts, LLM advises. Any arithmetic (credits, prereq satisfaction, exam weights, impact scores) is done in Python from LLM-extracted structured data, never by the model in prose.
 
@@ -57,22 +58,24 @@ All agents are thin: a system prompt + a scope + one to three tools + a card ren
 5. Returns a `ToolTrace` for every tool it called
 
 ### 4.1 Academic Coach (`academic_coach`) — P0, flagship
-Merges "am I on track", "how am I doing", "how do I plan my learning".
-Scope: handbook, circulars, catalog, syllabus, exam_calendar, past_papers.
+Merges "am I on track", "how am I doing", "how do I plan my learning". Story: **the coach follows you through the semester** — where am I (audit), what did I miss in today's class (companion), what do I study this week (plan).
+Scope: handbook, circulars, catalog, syllabus, exam_calendar, past_papers, lectures.
 Tools:
+- `class_companion` (P0, 12:20 decision) — audio (or text transcript fallback) → **transcription + handout** via the jury-approved vendored pipeline, adapted into `Handout` with `segmentIds` provenance (verified) → **Coverage** vs the syllabus unit (`covered / missed / emphasized`, quotes verified verbatim) → **Actions** (missed + emphasized × past-paper weights × exam calendar → `ActionItem`s; accepting one adds a `PlanBlock` to state). Types in `contracts.ts` §9b. Coverage and Actions are new code, built today; they are the part that makes this more than note-taking.
 - `run_degree_audit` — LLM extracts requirements/prereqs/buckets from handbook + circulars into JSON with citations → `core/override.py` resolves conflicts → code counts credits from transcript → LLM writes the explanation. Runs automatically on student load and is cached in `StudentState`. Output: `AuditCard`.
 - `diagnose_performance` — internal marks × past-paper topic weights → weak topics ranked by `impact`. Output: `WeakTopicsCard`.
 - `build_study_plan` — weekly blocks to the exam calendar, weighted by impact, citing syllabus sections. Output: `StudyPlanCard`.
-- `make_it_relevant` (P1) — reframes one concept through a student interest; facts unchanged, cited. Output: `RelevantCard`. Rebuilt fresh, prompt-level only.
+- `stuck_markers` (P0, 1:15 decision) — tap-to-flag during recording (timestamp + optional ≤60-char note, no extra audio; the mic is already on the lecture). Backend resolves each marker to a segment, a handout section and a canonical topic. Handout sections get `stuck`, Coverage gets `confusion`, Actions get `review` items with `provenance.markerId`, the lookback recap gets `flaggedTopics`. Markers can also be added on the handout timeline afterwards (demo safety). Types: `StuckMarker`, contracts §9b.
+- `make_it_relevant` (P0, 1:15 decision) — one LLM call: same facts through the student's interest, no new facts, citations from the source it's attached to (handout section, stuck section, plan block or weak topic). Output: `RelevantCard` with `source`. Offered automatically on stuck sections and on the top weak topic. Rebuilt fresh, prompt-level only.
 
-### 4.2 Course Planner (`course_planner`) — P0
+### 4.2 Course Planner (`course_planner`) — P1 (below the line since 1:15)
 "Which courses" + "is this relevant for a job".
 Scope: handbook, circulars, catalog, role_profiles.
 Tools:
 - `recommend_courses` — reads audit gaps from state; catalog quality blurbs, slot clashes, prereqs, career goal. Output: `CoursesCard`.
 - `skills_gap` — role skill profile vs skill tags on taken + recommended courses. Output: `SkillsGapCard`.
 
-### 4.3 Campus Guide (`campus_guide`) — P0-lite
+### 4.3 Campus Guide (`campus_guide`) — P2 (below the line since 1:15)
 "Which resources" + "which opportunities".
 Scope: resources, club_feed, events.
 Tools:
@@ -107,43 +110,46 @@ Every document and record carries a `connectorId`.
 
 ## 6. Priorities and cutoffs
 
-**P0 (must ship):** dataset · shared layer · Academic Coach (audit + diagnosis + plan) · Course Planner (recs + skills gap) · Campus Guide (resources + discover) · escalation + advisor view · Slack-style shell with right panel and student switcher · Files page with document reader (citation target)
+**P0 (must ship) — the study planner, three rungs, one agent:**
+1. **In class**: companion (record/upload → handout → coverage → commitments → actions) + stuck markers + MIR on stuck sections
+2. **After class**: diagnosis (marks × past papers) → weekly plan → merged calendar (classes, exams, study blocks, prep, deadlines) → accept actions into it
+3. **Every week**: lookback 1:1 (recap in code, questions and adjustments grounded in it) → adjusted plan
+Plus: escalation + advisor view, Slack-style shell with right panel, Canvas (handout, calendar, 1:1), student switcher.
 
-**P1 (only if P0 runs clean by ~3:00):** Make it Relevant · club agents · clickable citations scrolling to section · Agents & tools page with connectors · coming-soon channels · Study Buddy timer · Weekly 1:1
+**P1 (only if all three rungs demo twice by ~3:30):** degree audit (its citation plumbing is shared, so it's first back in) · course recommender + skills gap · clickable citations · Agents & tools page · coming-soon channels
 
-**P2 (only if everything above is done by ~4:00):** Activity feed · `#ask-anything` router · streaming
+**P2:** clubs/social · club agents · Study Buddy timer · Activity feed · `#ask-anything` router
 
-**Cut (not today):** logistics checklist · auth · real-time messaging · calls/huddles · mind maps · quizzes · vector DB · memory layer · real connector sync
-
-**Cutoffs:**
-- 12:15 — dataset done, shared layer scaffolded, UI shell up on mocks
-- 1:30 — audit end-to-end with the circular override; diagnosis working
-- 2:30 — study plan + Course Planner
-- 3:30 — Campus Guide + escalation round trip
-- 4:15 — P1 only if all P0 runs twice without a manual fix
+**Cutoffs (revised 1:15):**
+- 2:00 — companion `ready` on the real CS F212 transcript; markers resolve; MIR returns a card
+- 2:30 — diagnosis + plan + calendar on Meera; accepted action lands on the calendar
+- 3:00 — lookback round trip; escalation round trip
+- 3:30 — UI wired end to end on real data; **rehearse once**; P1 only after that
 - 4:30 — **feature freeze.** Slide, push, rehearse twice
 - 5:00 — code pushed
 
-**Kill rule:** if the audit is not demoing at 1:30, everything after it in P0 waits and both people work on the audit.
+**Kill rule:** if rung 1 isn't demoing at 2:00, both people on it. If rung 2 isn't demoing at 3:00, the lookback shrinks to "recap numbers only, no adjustments" and nothing in P1 is touched.
 
-## 7. Demo script (7 minutes)
+## 7. Demo script (7 minutes, revised 1:15)
 
-1. **Audit** — "Am I on track?" → override caught, both docs cited, progress bars in the right panel.
-2. **Plan next sem** — "What should I take next sem? I want data analyst roles." → Course Planner already knows the gap from state; clash handled; skills gap shown.
-3. **Study** — "I'm struggling in DBMS." → weak topics from marks × past papers; weekly plan; (P1) "explain B+ trees through cricket".
-4. **Campus** — "Who can help me with DBMS, and what's happening on campus?" → TA hours, one wildcard pick with an anecdote; (P1) club agent replies in-thread.
-5. **Escalate** — "Can I get a fee extension for a medical issue?" → out of scope, ticket opened; switch to Advisor view, reply, reply lands in DM.
-6. **Switch student** — same first question, different answer. Proves nothing is hardcoded.
-7. **Architecture, 30s** — connectors (synthetic, disclosed) → shared student layer → agents. Tool trace expanded once.
-8. **Next** — Study Buddy + Weekly 1:1, memory layer, real connectors, `#ask-anything`, more agents.
+1. **In class** (Meera) — start recording the 2-min DBMS clip in the Academic Coach DM; tap "I'm stuck" once at the 2PL-adjacent moment. Stop → Marker rows while it works → handout in Canvas with the stuck section flagged → Coverage card: skipped topic (planted), exam-hint quote with timestamp, confusion point → Actions card: study (skipped topic, past-paper marks in the `why`), review (the stuck part), prep (next lecture's promised topic, due before the next CS F212 session). Accept two.
+2. **Make it Relevant** — on the stuck section, one tap → the same concept through cricket, side by side, citations intact. 20 seconds, no more.
+3. **After class** — "What should I study this week?" → weak topics from marks × past papers → weekly plan → Canvas calendar: classes, exams, the two accepted actions and the plan blocks on the same days, no collisions. Point at one block's `why`.
+4. **Every week** — "Run my weekly review" (last week pre-marked, say so) → recap numbers → concern naming a missed topic and a flagged topic → answer one question → complete → the calendar re-flows; ticket appears in the advisor inbox because "share with advisor" was on.
+5. **Escalate** — "Can I get a fee extension for a medical issue?" → refuses, ticket; Advisor view → reply → lands in the DM.
+6. **Switch student** (Aarav) — same clip, different actions and plan. Nothing hardcoded.
+7. **Architecture, 30s** — connectors (synthetic, disclosed) → grounded student layer → agents; audio-to-notes core from before with jury approval, coverage/actions/plan/lookback built today. Expand one tool trace.
+8. **Next** — course recommender and degree audit as more tools on the same layer, clubs, buddy timer, memory, real connectors, ink/Outlook export.
 
-**Slide:** "7 recurring student questions, 6 offices, zero personalisation. A Slack-style workspace where every student has specialist agents over one grounded student layer. 6 of 7 questions covered, every answer cited to official documents, humans in the loop when the docs run out. Assumptions: single program, English docs, synthetic connectors."
+**Slide:** "Students sit in class, get lost, forget what the lecturer promised, and plan their week from memory. We built a study planner that listens to your classes and adjusts every week: handout checked against the syllabus, 'I'm stuck' markers, actions with exam weight behind them, a calendar around your classes, and a weekly 1:1 that re-plans. Every claim cited to syllabus, past papers or the lecture; a human when the docs run out. Assumptions: single program, English docs, synthetic connectors. Disclosed: audio-to-notes core reused with jury approval; documents are structured markdown/JSON, no PDF ingestion today; everything else built today."
 
 **Q&A prep:**
 - *Why not ChatGPT with PDFs?* Personal records + deterministic audit + rule-conflict resolution + verified citations + refusal/escalation.
 - *What if extraction is wrong?* Every rule is cited; an advisor reviews extracted rules once per semester, not per student.
 - *How does it scale?* Rules extracted once per program; audit is cheap code; per-agent scope keeps context small; retrieval becomes hybrid at university scale.
 - *Isn't this a chatbot?* Agents write to shared state and read each other's results; the right panel is structured output, not prose.
+- *Was any of this built before today?* Yes, one part: the audio-to-notes core, disclosed to and approved by the jury before we used it; it sits in `vendored/audio_notes/` with a NOTICE. Everything else — coverage, actions, audit, planner, UI, shared layer — was built today. Offer to show the commit log.
+- *Why not Otter / Notion for the lecture notes?* The handout is checked against the syllabus (what was skipped), exam hints are quoted with timestamps, gaps become tasks weighted by past-paper marks, and they land in the same plan the audit feeds. Notes are the byproduct; the actions are the product.
 
 ## 8. Conventions for anyone (human or AI) coding in this repo
 
@@ -155,6 +161,7 @@ Every document and record carries a `connectorId`.
 - Scope is a code boundary. Do not pass out-of-scope docs to a model "just for context".
 - The audit is idempotent and cached per student; re-run only on records change or explicit request.
 - Keep prompts in `backend/app/prompts/<agent>.md`, one file per agent, versioned in git.
+- `vendored/audio_notes/` is read-only today except for import fixes. New logic goes in `tools/companion.py`, never inside the vendored folder, so the "built before / built today" line stays visible in the diff.
 
 **Frontend**
 - Types come from `contracts.ts`. Don't add fields the backend doesn't return.

@@ -1,0 +1,97 @@
+{
+  "connectorId": "clubs_portal",
+  "clubs": [
+    {
+      "slug": "data-science",
+      "name": "Data Science Club",
+      "tagline": "Projects, analytics and ML in practice",
+      "tags": [
+        "data",
+        "ml",
+        "analytics"
+      ],
+      "meets": "Wednesday 18:30",
+      "contact": "ds.club@bits-campus.example"
+    },
+    {
+      "slug": "robotics",
+      "name": "Robotics Club",
+      "tagline": "Build robots that survive the demo",
+      "tags": [
+        "robotics",
+        "embedded",
+        "hardware"
+      ],
+      "meets": "Tuesday 19:00",
+      "contact": "robotics@bits-campus.example"
+    },
+    {
+      "slug": "coding",
+      "name": "Coding Club",
+      "tagline": "Competitive coding and software builds",
+      "tags": [
+        "coding",
+        "algorithms",
+        "software"
+      ],
+      "meets": "Friday 18:00",
+      "contact": "coding@bits-campus.example"
+    },
+    {
+      "slug": "debate",
+      "name": "Debate Society",
+      "tagline": "Argue clearly, listen closely",
+      "tags": [
+        "debate",
+        "communication"
+      ],
+      "meets": "Thursday 18:30",
+      "contact": "debate@bits-campus.example"
+    },
+    {
+      "slug": "music",
+      "name": "Music Collective",
+      "tagline": "Jam, compose and perform",
+      "tags": [
+        "music",
+        "performance"
+      ],
+      "meets": "Saturday 17:00",
+      "contact": "music@bits-campus.example"
+    },
+    {
+      "slug": "e-cell",
+      "name": "Entrepreneurship Cell",
+      "tagline": "Build and test student ventures",
+      "tags": [
+        "startup",
+        "product",
+        "business"
+      ],
+      "meets": "Monday 18:30",
+      "contact": "ecell@bits-campus.example"
+    },
+    {
+      "slug": "photography",
+      "name": "Photography Club",
+      "tagline": "Frames, stories and field walks",
+      "tags": [
+        "photography",
+        "creative"
+      ],
+      "meets": "Sunday 07:00",
+      "contact": "photo@bits-campus.example"
+    },
+    {
+      "slug": "quiz",
+      "name": "Quiz Club",
+      "tagline": "Weekly quizzes across everything",
+      "tags": [
+        "quiz",
+        "general-knowledge"
+      ],
+      "meets": "Wednesday 20:00",
+      "contact": "quiz@bits-campus.example"
+    }
+  ]
+}

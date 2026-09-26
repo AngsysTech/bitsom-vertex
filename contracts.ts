@@ -1,5 +1,5 @@
 // =====================================================================
-// STUDENT-FACING CONTRACT — buildathon  (v2)
+// STUDENT-FACING CONTRACT — buildathon  (v3.5)
 // Frontend mocks against these shapes; backend returns exactly these.
 // Backend is FastAPI returning plain JSON. No streaming, no auth.
 //
@@ -7,6 +7,15 @@
 // (LMS/ERP/etc. — all "synthetic" for the demo, no real integration),
 // student records, Files (documents + generated canvases), Weekly 1:1,
 // Activity feed.
+// v3 changes: Class Companion (audio → handout → coverage → actions) as P0;
+// CoverageCard + ActionsCard in the Card union.
+// v3.5: class channels (ClassChannel, Channel.kind "class", per-course threads, chat courseCode scope),
+// calendar courseCode filter, GET /classes.
+// v3.4: StuckMarker (tap-to-flag in class), confusion in Coverage, MIR sources.
+// v3.3: ToolTrace.error/dropped; POST /demo/simulate-week.
+// v3.2: units replaces credits everywhere (dataset truth); calendar item status.
+// v3.1: LectureCommitment (next-lecture prep, assignments, deadlines), prep/deadline
+// action kinds, CalendarItem + GET /calendar merging timetable, exams, plan, actions.
 // =====================================================================
 
 // ---------------------------------------------------------------------
@@ -21,11 +30,31 @@ export type WorkspaceSection =
   | "agents_tools"; // agent directory + connectors (the platform page)
 
 export interface Channel {
-  id: string;                 // "announcements", "dbms-sem5"
-  name: string;
-  kind: "live" | "coming_soon";
+  id: string;                 // "announcements", "class:CS F212"
+  name: string;               // "announcements", "cs-f212-dbms"
+  kind: "live" | "coming_soon" | "class";
   description: string;
   // "live" channels are read-only feeds in the demo (e.g. circulars land in #announcements)
+  // "class" channels: one per enrolled course; the Academic Coach inside is scoped to that course
+  courseCode?: string;        // kind === "class"
+}
+
+// Sidebar "Classes" group — one per registered course. The coach in a class
+// channel reads only that course's syllabus, lectures, past papers and exam dates.
+export interface ClassChannel {
+  channelId: string;          // "class:CS F212"
+  courseCode: string;
+  title: string;              // "Database Systems"
+  faculty: string;
+  slot: string;               // "T1"
+  nextSessionAt?: string;     // ISO, from timetable
+  nextSessionRoom?: string;
+  examAt?: string;            // next exam (quiz/mid/end) ISO
+  examKind?: "quiz" | "mid_sem" | "end_sem";
+  pendingActions: number;     // proposed, not yet accepted/dismissed
+  prepDue: number;            // accepted prep items due before nextSessionAt
+  latestLecture?: { lectureId: string; date: string; status: LectureStatus };
+  weakTopicCount: number;     // topics for this course with impact ≥ 50
 }
 
 // ---------------------------------------------------------------------
@@ -80,7 +109,7 @@ export interface Student {
 export type StudentRecordKind = "transcript" | "internal_marks" | "registrations";
 
 export interface TranscriptRow {
-  courseCode: string; title: string; credits: number; grade: string; semester: number;
+  courseCode: string; title: string; units: number; grade: string; semester: number;
   bucket?: string;            // "Core" | "Data electives" — resolved by audit
 }
 export interface InternalMarkRow {
@@ -146,8 +175,10 @@ export interface Citation {
 
 export interface ToolTrace {
   tool: string;               // "run_degree_audit"
-  summary: string;            // "Read handbook §4 + circular 2026-03, counted 14/18 elective credits"
+  summary: string;            // "Read handbook §4 + circular 2026-03, counted 14/18 elective units"
   durationMs: number;
+  error?: string;             // set when the step failed; the message then carries a system line
+  dropped?: string[];         // citation/segment ids that failed verification (never silently kept)
 }
 
 export interface Message {
@@ -165,9 +196,10 @@ export interface Message {
 }
 
 export interface Thread {
-  id: string;                 // `${studentId}:${agentId}`
+  id: string;                 // `${studentId}:${agentId}` for DMs; `${studentId}:class:${courseCode}` for class channels
   studentId: StudentId;
   agentId: AgentId;
+  courseCode?: string;        // set for class-channel threads: scope is that course only
   messages: Message[];
 }
 
@@ -178,7 +210,7 @@ export interface Thread {
 export type Card =
   | AuditCard | WeakTopicsCard | StudyPlanCard | RelevantCard
   | CoursesCard | SkillsGapCard | PicksCard | ResourcesCard
-  | OneOnOneCard;
+  | OneOnOneCard | CoverageCard | ActionsCard;
 
 // ---- Academic Coach --------------------------------------------------
 
@@ -214,16 +246,23 @@ export interface PlanBlock {
 export interface PlanWeek { label: string; examNote?: string; blocks: PlanBlock[]; }
 export interface StudyPlanCard { type: "study_plan"; weeks: PlanWeek[]; }
 
+// Make it Relevant — same facts, reframed through the student's interest.
+// Attaches to a handout section (esp. a stuck one), a plan block, or a weak topic.
 export interface RelevantCard {
   type: "relevant";
   concept: string; course: string; interest: string;
-  standard: string; reframed: string; citationIds: string[];
+  standard: string;           // grounded explanation, cites syllabus/handout section
+  reframed: string;           // same facts through the interest; no new facts
+  citationIds: string[];
+  source?: { type: "handout_section"; lectureId: string; sectionId: string; markerId?: string }
+         | { type: "plan_block"; planBlockId: string }
+         | { type: "weak_topic"; course: string; topic: string };
 }
 
 // ---- Course Planner --------------------------------------------------
 
 export interface CourseRec {
-  code: string; title: string; credits: number; slot: string; faculty: string;
+  code: string; title: string; units: number; slot: string; faculty: string;
   fillsBucket: string; why: string; clashesWith?: string; citationIds: string[];
 }
 export interface CoursesCard { type: "courses"; forSemester: number; items: CourseRec[]; }
@@ -327,6 +366,7 @@ export interface OneOnOne {
     blocksPlanned: number; blocksDone: number;
     completedTopics: string[]; skippedTopics: string[];
     weakTopicMovement: { topic: string; from: number; to: number }[]; // impact score
+    flaggedTopics: { topic: string; times: number }[];               // stuck markers this week, by topic
     streakDays: number;
   };
   wins: string[];                           // grounded in sessions ("3 sessions on Normalization")
@@ -364,11 +404,158 @@ export interface ActivityItem {
 }
 
 // ---------------------------------------------------------------------
+// 9b. Class Companion — audio → handout → coverage → actions  (P0)
+//     Transcription + handout structuring: prior audio-to-notes pipeline,
+//     reused with explicit jury approval, vendored under
+//     backend/app/vendored/audio_notes/ (see its NOTICE.md). An adapter
+//     maps its output into Handout below; the vendored schema never
+//     leaks into this API. Coverage + Actions: new, built today.
+//     Runs inside the Academic Coach DM: upload/record in the composer,
+//     Marker rows while processing, agent message + Canvas handout + two
+//     right-panel cards when ready.
+// ---------------------------------------------------------------------
+
+export type LectureStatus =
+  | "uploaded" | "transcribing" | "transcribed" | "processing" | "ready" | "failed";
+
+export interface Lecture {
+  id: string;
+  studentId: StudentId;
+  courseCode: string;
+  date: string;               // ISO
+  title?: string;
+  source: "upload" | "recording" | "transcript"; // "transcript" = text fallback path
+  audioUrl?: string;
+  durationSec?: number;
+  status: LectureStatus;
+  error?: string;
+  connectorId: ConnectorId;   // lms_moodle in the demo
+}
+
+export interface TranscriptSegment {
+  id: string;                 // "s12"
+  startSec: number;
+  endSec: number;
+  text: string;
+}
+
+export interface Transcript {
+  lectureId: string;
+  segments: TranscriptSegment[];
+}
+
+// "I'm stuck here" — a tap during class (or a click on the handout timeline
+// afterwards). Timestamp + optional five-word note. No audio of its own.
+export interface StuckMarker {
+  id: string;
+  lectureId: string;
+  atSec: number;              // elapsed seconds into the lecture
+  note?: string;              // "lost at 2PL diagram" — optional, ≤ 60 chars
+  createdAt: string;
+  segmentId?: string;         // resolved by backend: the segment covering atSec
+  handoutSectionId?: string;  // resolved after the handout is built
+  topic?: string;             // resolved: canonical syllabus topic of that section
+}
+
+export interface HandoutSection {
+  id: string;
+  heading: string;
+  keyPoints: string[];
+  definitions: { term: string; definition: string }[];
+  examples: string[];
+  examHints: string[];        // "this will be on the end-sem" — verified quotes
+  segmentIds: string[];       // provenance into the transcript; every id must exist
+  syllabusTopic?: string;     // canonical topic string from the syllabus
+  syllabusSectionId?: string; // citation into the syllabus document
+  stuck?: { markerIds: string[]; atSec: number[] }; // student flagged this part in class
+}
+
+export interface Handout {
+  id: string;
+  lectureId: string;
+  courseCode: string;
+  title: string;
+  summary: string;            // 3–4 sentences
+  sections: HandoutSection[];
+  createdAt: string;
+}
+
+// What the lecture covered vs what the syllabus unit says it should have
+export interface CoverageCard {
+  type: "coverage";
+  lectureId: string;
+  courseCode: string;
+  unit: string;
+  covered:    { topic: string; handoutSectionIds: string[] }[];
+  missed:     { topic: string; syllabusSectionId: string; why: string }[];
+  emphasized: { topic: string; segmentId: string; quote: string }[]; // quote verified verbatim
+  confusion:  { topic: string; markerId: string; atSec: number; handoutSectionId: string; note?: string }[]; // from StuckMarkers
+}
+
+export interface ActionItem {
+  id: string;
+  lectureId: string;
+  kind: "study" | "review" | "ask" | "resource" | "prep" | "deadline";
+  //   prep     = prerequisite for the next lecture ("we'll do deadlocks next week")
+  //   deadline = assignment/submission the lecturer mentioned
+  title: string;              // "Self-study: Two-phase locking (skipped in lecture)"
+  course: string;
+  topic: string;
+  minutes?: number;
+  dueBy?: string;             // ISO, derived from exam calendar
+  why: string;                // "Skipped in class; carried 14–18 marks in last 3 end-sems"
+  provenance: { segmentId?: string; syllabusSectionId?: string; pastPapersCitationId?: string; commitmentId?: string; markerId?: string };
+  status: "proposed" | "accepted" | "dismissed" | "done";
+  planBlockId?: string;       // set when accepted → PlanBlock added to StudentState.plan
+  calendarItemId?: string;    // set when accepted → CalendarItem created
+}
+
+// Things the lecturer said that bind the future: verified quotes with timestamps
+export interface LectureCommitment {
+  id: string;
+  lectureId: string;
+  kind: "next_lecture_topic" | "assignment" | "reading" | "deadline" | "exam_hint";
+  text: string;               // normalised: "Deadlocks will be covered next lecture"
+  dueBy?: string;             // ISO, resolved from timetable/exam calendar when the lecturer says "next week"/"Friday"
+  segmentId: string;
+  quote: string;              // verbatim from the segment; verified
+}
+
+export interface ActionsCard {
+  type: "actions";
+  lectureId: string;
+  commitments: LectureCommitment[];
+  items: ActionItem[];        // derived from missed + emphasized + commitments
+}
+
+// ---- Calendar: one merged view of classes, exams, study blocks, actions ----
+
+export type CalendarItemKind = "class" | "exam" | "quiz" | "study_block" | "action" | "prep" | "deadline";
+
+export interface CalendarItem {
+  id: string;
+  studentId: StudentId;
+  kind: CalendarItemKind;
+  title: string;
+  courseCode?: string;
+  start: string;              // ISO datetime
+  end?: string;               // ISO datetime; omit for all-day deadlines
+  allDay?: boolean;
+  source:                     // where it came from — never invented
+    | { type: "timetable" }
+    | { type: "exam_calendar"; examId: string }
+    | { type: "plan_block"; planBlockId: string }
+    | { type: "action"; actionId: string; lectureId: string };
+  status?: "planned" | "done" | "missed";
+}
+
+// ---------------------------------------------------------------------
 // 10. Endpoints
 // ---------------------------------------------------------------------
 //
 // Workspace
-//   GET  /workspace/:studentId             -> { channels: Channel[], agents: Agent[], connectors: Connector[] }
+//   GET  /workspace/:studentId             -> { channels: Channel[], classes: ClassChannel[], agents: Agent[], connectors: Connector[] }
+//   GET  /classes/:studentId               -> ClassChannel[]   (sidebar group + Today block; recomputed on every call)
 //   GET  /connectors                        -> Connector[]   (Agents & tools page — all "synthetic")
 //
 // Students / records / docs
@@ -380,11 +567,15 @@ export interface ActivityItem {
 //   GET  /documents/:docId/sections/:secId  -> DocumentSection (citation viewer)
 //
 // Chat
-//   GET  /threads/:studentId/:agentId       -> Thread
-//   POST /chat  {studentId, agentId, text}  -> Message[]   (1 normally; 2 when a club agent replies)
+//   GET  /threads/:studentId/:agentId       -> Thread                  (DM)
+//   GET  /threads/:studentId/class/:courseCode -> Thread               (class channel; lecture events + scoped coach)
+//   POST /chat  {studentId, agentId, text, courseCode?} -> Message[]   (courseCode ⇒ scope = that course only;
+//                                                                       out-of-course questions get "ask me in my DM")
 //
-// Make it Relevant (P1)
-//   POST /relevant {studentId, course, concept, interest?} -> RelevantCard
+// Make it Relevant (P0 — on handout sections, stuck sections, plan blocks, weak topics)
+//   POST /relevant {studentId, interest?, source: RelevantCard["source"]} -> RelevantCard
+//        (concept + course + citations resolve from the source; interest defaults to the student's first)
+//   GET  /relevant/:studentId               -> RelevantCard[]  (history, for the Canvas)
 //
 // Advisor
 //   GET  /advisor/inbox                     -> Ticket[]
@@ -399,6 +590,31 @@ export interface ActivityItem {
 //   POST /one-on-one/:id/answer {questionId, answer} -> OneOnOne
 //   POST /one-on-one/:id/complete {shareWithAdvisor} -> OneOnOne (status "done", adjustedPlan set,
 //                                                      StudentState.plan updated, Ticket if shared)
+//
+// Class Companion (P0)
+//   POST /lectures                          multipart {studentId, courseCode, date, audio}
+//                                           or JSON {studentId, courseCode, date, transcriptText}
+//                                           -> Lecture
+//   POST /lectures/:id/process              -> Lecture (status "transcribing"|"processing"; poll GET /lectures/:id every 2s)
+//   GET  /lectures/:id                      -> Lecture
+//   GET  /lectures/:id/transcript           -> Transcript
+//   GET  /lectures/:id/handout              -> Handout       (404 until status "ready")
+//   GET  /lectures/:id/cards                -> { coverage: CoverageCard; actions: ActionsCard }
+//   POST /lectures/:id/markers {atSec, note?} -> StuckMarker   (works while recording, before processing, or after)
+//   GET  /lectures/:id/markers              -> StuckMarker[]
+//   (markers added after the handout exists are resolved immediately; the coverage/actions
+//    cards are recomputed and a short agent Message is appended noting the new review item)
+//   POST /actions/:id  {status}             -> ActionItem    ("accepted" adds a PlanBlock to StudentState.plan
+//                                                             AND creates a CalendarItem; returns both ids)
+//   GET  /calendar/:studentId?from=&to=&courseCode= -> CalendarItem[] (timetable + exams + plan blocks + accepted actions,
+//                                                       merged; courseCode filters to one class's Schedule tab)
+//   POST /calendar/items/:id/status {status: "done"|"missed"|"planned"} -> CalendarItem  (feeds the weekly lookback)
+//   GET  /students/:id/lectures             -> Lecture[]
+//   (when a lecture reaches "ready", the backend also appends an agent Message to the
+//    academic_coach thread with the handout summary, coverage + actions cards, and trace)
+//
+// Demo setup (disclosed on stage; touches statuses only, never text)
+//   POST /demo/simulate-week/:studentId     -> { updated: number }   (marks last week's plan blocks done/missed)
 //
 // Activity (P2)
 //   GET  /activity/:studentId               -> ActivityItem[]

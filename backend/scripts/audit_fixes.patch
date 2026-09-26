@@ -1,0 +1,2948 @@
+diff -ruN orig/backend/app/data/README.md new/backend/app/data/README.md
+--- orig/backend/app/data/README.md	2026-09-26 12:39:02
++++ new/backend/app/data/README.md	2026-09-26 13:15:52
+@@ -37,9 +37,9 @@
+    - “I always ask one question on the three-way handshake.”
+ 
+ ## Students
+-- **Aarav Mehta:** on track, 96 earned units, target role Data Analyst; strong current marks with a softer CS F303 area; the circular means he still needs three more discipline electives after his two completed discipline electives.
+-- **Meera Nair:** at risk, 78 earned units and two backlog attempts; target role Backend Engineer; weak on high-impact DBMS and OS topics.
+-- **Rohan Sen:** 92 earned units, target role ML Engineer; missing CS F351 before planned CS F342 and planning both CS F415 and CS F407 despite the Semester 6 T2 clash.
++- **Aarav Mehta:** on track, 72 earned units, target role Data Analyst; strong current marks with a softer CS F303 area; the circular means he still needs three more discipline electives after his two completed discipline electives.
++- **Meera Nair:** at risk, 61 earned units and two backlogs (MATH F221, CS F222); target role Backend Engineer; weak on high-impact DBMS and OS topics.
++- **Rohan Sen:** 72 earned units, target role ML Engineer; has not taken and is not registered for CS F351, yet plans CS F342 and planning both CS F415 and CS F407 despite the Semester 6 T2 clash.
+ 
+ ## Contract note
+ The source dataset uses the academic term `units` exactly as the build brief requires. The API layer should map source `units` to contract response fields named `credits` where `TranscriptRow` or `CourseRec` requires that property. Record collections retain their `connectorId` envelopes so the adapter can emit `StudentRecords` directly.
+diff -ruN orig/backend/app/data/catalog.json new/backend/app/data/catalog.json
+--- orig/backend/app/data/catalog.json	2026-09-26 12:39:02
++++ new/backend/app/data/catalog.json	2026-09-26 13:15:52
+@@ -65,6 +65,59 @@
+       "description": "A structured course in mathematics i with applied exercises and assessed problem solving."
+     },
+     {
++      "code": "PHY F111",
++      "title": "Mechanics, Oscillations and Waves",
++      "units": 4,
++      "bucket": "core",
++      "offeredIn": [
++        1
++      ],
++      "slot": "T3",
++      "faculty": "Dr. Meghna Pai",
++      "prereqs": [],
++      "skills": [
++        "problem-solving"
++      ],
++      "feedback": [
++        {
++          "rating": 4,
++          "blurb": "Tutorials make the problem sets manageable."
++        },
++        {
++          "rating": 3,
++          "blurb": "Fast pace in the first month."
++        }
++      ],
++      "description": "Newtonian mechanics, oscillations, waves and an introduction to special relativity."
++    },
++    {
++      "code": "EEE F111",
++      "title": "Electrical Sciences",
++      "units": 4,
++      "bucket": "core",
++      "offeredIn": [
++        1
++      ],
++      "slot": "T4",
++      "faculty": "Dr. Sameer Joshi",
++      "prereqs": [],
++      "skills": [
++        "systems",
++        "problem-solving"
++      ],
++      "feedback": [
++        {
++          "rating": 4,
++          "blurb": "Lab sessions make circuit analysis concrete."
++        },
++        {
++          "rating": 4,
++          "blurb": "Steady workload with weekly quizzes."
++        }
++      ],
++      "description": "Circuit laws, network theorems, transient analysis and an introduction to electronic devices."
++    },
++    {
+       "code": "MATH F213",
+       "title": "Discrete Mathematics",
+       "units": 4,
+@@ -549,18 +602,18 @@
+       "feedback": [
+         {
+           "rating": 4,
+-          "blurb": "Clear structure and useful examples in Compiler Construction."
++          "blurb": "The parser project is the hardest assignment of the semester and the most rewarding."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "blurb": "LR parsing lectures move fast; the tutorial sheets help."
+         },
+         {
+           "rating": 5,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "You finish with a working compiler for a small language."
+         }
+       ],
+-      "description": "A structured course in compiler construction with applied exercises and assessed problem solving."
++      "description": "Lexical analysis, LL and LR parsing, syntax-directed translation, intermediate code and basic optimisation."
+     },
+     {
+       "code": "CS F363",
+@@ -568,7 +621,7 @@
+       "units": 4,
+       "bucket": "discipline_elective",
+       "offeredIn": [
+-        6
++        7
+       ],
+       "slot": "L1",
+       "faculty": "Dr. Kabir Shah",
+@@ -582,19 +635,19 @@
+       ],
+       "feedback": [
+         {
+-          "rating": 5,
+-          "blurb": "Clear structure and useful examples in Compiler Design Lab."
++          "rating": 4,
++          "blurb": "Weekly lab deliverables keep you on schedule."
+         },
+         {
+-          "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "rating": 3,
++          "blurb": "Tooling setup ate the first two weeks."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "Good hands-on follow-up to Compiler Construction."
+         }
+       ],
+-      "description": "A structured course in compiler design lab with applied exercises and assessed problem solving."
++      "description": "Hands-on construction of a compiler front end and code generator with lexer and parser generators."
+     },
+     {
+       "code": "CS F407",
+@@ -617,19 +670,19 @@
+       ],
+       "feedback": [
+         {
+-          "rating": 4,
+-          "blurb": "Clear structure and useful examples in Artificial Intelligence."
++          "rating": 5,
++          "blurb": "Search and planning assignments are well designed."
+         },
+         {
+-          "rating": 3,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "rating": 4,
++          "blurb": "The second half is probability-heavy; revise Probability and Statistics first."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "The final project can double as a portfolio piece."
+         }
+       ],
+-      "description": "A structured course in artificial intelligence with applied exercises and assessed problem solving."
++      "description": "Search, constraint satisfaction, knowledge representation, probabilistic reasoning and planning."
+     },
+     {
+       "code": "CS F415",
+@@ -639,7 +692,7 @@
+       "offeredIn": [
+         6
+       ],
+-      "slot": "T4",
++      "slot": "T2",
+       "faculty": "Dr. Zoya Mir",
+       "prereqs": [
+         "CS F212",
+@@ -654,18 +707,18 @@
+       "feedback": [
+         {
+           "rating": 5,
+-          "blurb": "Clear structure and useful examples in Data Mining."
++          "blurb": "Real datasets every week, messy on purpose."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "blurb": "The clustering and association-rule labs are the highlights."
+         },
+         {
+-          "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "rating": 3,
++          "blurb": "Workload spikes around the project milestone."
+         }
+       ],
+-      "description": "A structured course in data mining with applied exercises and assessed problem solving."
++      "description": "Data preprocessing, association rules, classification, clustering and evaluation on real datasets."
+     },
+     {
+       "code": "CS F429",
+@@ -688,18 +741,18 @@
+       "feedback": [
+         {
+           "rating": 4,
+-          "blurb": "Clear structure and useful examples in Natural Language Processing."
++          "blurb": "Good balance of classical methods and transformers."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "blurb": "Assignments need GPU time; book cluster slots early."
+         },
+         {
+           "rating": 5,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "The paper-reading sessions are excellent."
+         }
+       ],
+-      "description": "A structured course in natural language processing with applied exercises and assessed problem solving."
++      "description": "Language models, text classification, sequence labelling, embeddings and transformer-based methods."
+     },
+     {
+       "code": "CS F432",
+@@ -723,18 +776,18 @@
+       "feedback": [
+         {
+           "rating": 5,
+-          "blurb": "Clear structure and useful examples in Data Visualization."
++          "blurb": "Critique sessions sharpen how you read charts."
+         },
+         {
+-          "rating": 3,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "rating": 4,
++          "blurb": "Light on maths, heavy on iteration."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "The dashboard project is directly useful for analyst interviews."
+         }
+       ],
+-      "description": "A structured course in data visualization with applied exercises and assessed problem solving."
++      "description": "Perception, chart design, interaction and dashboard building with real datasets."
+     },
+     {
+       "code": "CS F441",
+@@ -758,18 +811,18 @@
+       "feedback": [
+         {
+           "rating": 4,
+-          "blurb": "Clear structure and useful examples in Selected Topics: Cloud Computing."
++          "blurb": "Hands-on with containers and managed services."
+         },
+         {
+-          "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "rating": 3,
++          "blurb": "Some teams ran out of cloud credits; start early."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "Ties operating systems and networking together well."
+         }
+       ],
+-      "description": "A structured course in selected topics: cloud computing with applied exercises and assessed problem solving."
++      "description": "Virtualisation, containers, distributed storage, autoscaling and cloud service models."
+     },
+     {
+       "code": "CS F464",
+@@ -793,18 +846,18 @@
+       "feedback": [
+         {
+           "rating": 5,
+-          "blurb": "Clear structure and useful examples in Machine Learning."
++          "blurb": "Rigorous but fair; the derivations pay off."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Workload is steady; weekly practice matters."
++          "blurb": "Weekly problem sets take longer than expected."
+         },
+         {
+           "rating": 4,
+-          "blurb": "Assignments connect well to the course outcomes."
++          "blurb": "The Kaggle-style project is a highlight."
+         }
+       ],
+-      "description": "A structured course in machine learning with applied exercises and assessed problem solving."
++      "description": "Supervised and unsupervised learning, model selection, regularisation and evaluation."
+     },
+     {
+       "code": "BIO F201",
+@@ -913,7 +966,7 @@
+         6,
+         7
+       ],
+-      "slot": "M2",
++      "slot": "M3",
+       "faculty": "Dr. Nikhil Paul",
+       "prereqs": [
+         "CS F241"
+@@ -1009,7 +1062,7 @@
+       "slot": "T5",
+       "faculty": "Dr. Varun Pillai",
+       "prereqs": [
+-        "CS F241"
++        "CS F111"
+       ],
+       "skills": [
+         "systems",
+diff -ruN orig/backend/app/data/circulars/2026-03-revised-discipline-elective-minimum.md new/backend/app/data/circulars/2026-03-revised-discipline-elective-minimum.md
+--- orig/backend/app/data/circulars/2026-03-revised-discipline-elective-minimum.md	2026-09-26 12:39:02
++++ new/backend/app/data/circulars/2026-03-revised-discipline-elective-minimum.md	2026-09-26 13:15:52
+@@ -12,4 +12,4 @@
+ The Discipline Electives requirement is a minimum of 5 courses totaling at least 20 units for every student graduating from May 2028 onward.
+ 
+ ## 3 Transition
+-This rule replaces the Discipline Electives sentence in Academic Handbook 2026–27 Section 3.2 for the population stated above. All other graduation buckets remain unchanged unless amended by a later circular.
++This rule replaces the Discipline Electives sentence in Academic Handbook 2025–26 Section 3.2 for the population stated above. All other graduation buckets remain unchanged unless amended by a later circular.
+diff -ruN orig/backend/app/data/club_feed.md new/backend/app/data/club_feed.md
+--- orig/backend/app/data/club_feed.md	2026-09-26 12:39:02
++++ new/backend/app/data/club_feed.md	2026-09-26 13:15:52
+@@ -32,7 +32,7 @@
+ 
+ ## Entrepreneurship Cell
+ - 2026-08-11 — Customer discovery sprint; 12 teams completed five interviews each.
+-- 2026-08-25 — Pricing teardown with founders from fictional startup HarborWorks.
++- 2026-08-25 — Pricing teardown with founders from HarborWorks.
+ - 2026-09-15 — Pitch clinic helped four teams simplify their problem statements.
+ 
+ ## Photography Club
+diff -ruN orig/backend/app/data/connectors.json new/backend/app/data/connectors.json
+--- orig/backend/app/data/connectors.json	2026-09-26 12:39:02
++++ new/backend/app/data/connectors.json	2026-09-26 13:15:52
+@@ -20,6 +20,7 @@
+     "provides": [
+       "syllabus",
+       "internal_marks",
++      "resources",
+       "lectures",
+       "timetable"
+     ],
+@@ -31,7 +32,7 @@
+     "name": "Academic Office",
+     "status": "synthetic",
+     "provides": [
+-      "circulars",
++      "circular",
+       "exam_calendar",
+       "past_papers"
+     ],
+@@ -43,8 +44,7 @@
+     "name": "Placement Cell",
+     "status": "synthetic",
+     "provides": [
+-      "role_profiles",
+-      "opportunities"
++      "role_profiles"
+     ],
+     "note": "Synthetic data for demo — real sync not built."
+   },
+@@ -54,7 +54,6 @@
+     "name": "Clubs Portal",
+     "status": "synthetic",
+     "provides": [
+-      "clubs",
+       "club_feed",
+       "events"
+     ],
+diff -ruN orig/backend/app/data/events.json new/backend/app/data/events.json
+--- orig/backend/app/data/events.json	2026-09-26 12:39:02
++++ new/backend/app/data/events.json	2026-09-26 13:15:52
+@@ -63,7 +63,7 @@
+         "careers",
+         "analytics"
+       ],
+-      "description": "Northstar Metrics shares its synthetic hiring rubric and project examples.",
++      "description": "Northstar Metrics shares its hiring rubric and project examples.",
+       "organiser": "placement_cell",
+       "registrationDeadline": "2026-10-20"
+     },
+@@ -101,7 +101,7 @@
+         "startup",
+         "product"
+       ],
+-      "description": "Fictional founders discuss early customer discovery and pricing.",
++      "description": "Founders discuss early customer discovery and pricing.",
+       "clubSlug": "e-cell",
+       "registrationDeadline": "2026-11-04"
+     },
+diff -ruN orig/backend/app/data/exam_calendar.json new/backend/app/data/exam_calendar.json
+--- orig/backend/app/data/exam_calendar.json	2026-09-26 12:39:02
++++ new/backend/app/data/exam_calendar.json	2026-09-26 13:15:52
+@@ -47,7 +47,7 @@
+     {
+       "courseCode": "CS F303",
+       "midSemDate": "2026-09-11",
+-      "endSemDate": "2026-12-06",
++      "endSemDate": "2026-12-07",
+       "quizDates": [
+         "2026-08-27",
+         "2026-10-15"
+@@ -74,7 +74,7 @@
+     },
+     {
+       "courseCode": "HSS F235",
+-      "midSemDate": "2026-09-13",
++      "midSemDate": "2026-09-14",
+       "endSemDate": "2026-12-10",
+       "quizDates": [
+         "2026-08-29",
+diff -ruN orig/backend/app/data/handbook.md new/backend/app/data/handbook.md
+--- orig/backend/app/data/handbook.md	2026-09-26 12:39:02
++++ new/backend/app/data/handbook.md	2026-09-26 13:15:52
+@@ -1,13 +1,13 @@
+ ---
+-title: Academic Handbook 2026–27
++title: Academic Handbook 2025–26
+ connectorId: erp_core
+-effectiveDate: 2026-07-01
++effectiveDate: 2025-07-01
+ ---
+ 
+-# Academic Handbook 2026–27
++# Academic Handbook 2025–26
+ 
+ ## 1 Program structure
+-The B.E. Computer Science program is an eight-semester undergraduate program. A normal academic load is 18–22 units in a semester. Students are expected to complete foundational mathematics, computing core courses, electives, humanities work, and a culminating Practice School or Thesis requirement. The program is designed so that prerequisites form a progression rather than a menu; students should therefore review prerequisite chains before planning later semesters. A student may complete an approved course outside the nominal semester, but all graduation rules still apply.
++The B.E. Computer Science program is an eight-semester undergraduate program. A normal academic load is 16–23 units in a semester. Students are expected to complete foundational mathematics, computing core courses, electives, humanities work, and a culminating Practice School or Thesis requirement. The program is designed so that prerequisites form a progression rather than a menu; students should therefore review prerequisite chains before planning later semesters. A student may complete an approved course outside the nominal semester, but all graduation rules still apply.
+ 
+ The academic year is divided into two regular semesters. Registration is the student's responsibility, but the Academic Office publishes the controlling rules and later circulars may amend this handbook. Where a later circular explicitly changes a requirement, the later effective rule applies from the population and date stated in that circular.
+ 
+@@ -34,24 +34,22 @@
+ ## 4.3 Prerequisites
+ Prerequisites must be completed before registration unless a written waiver is issued by the Academic Office. Planned or currently registered courses do not satisfy a prerequisite that must already be completed.
+ 
+-| Course | Prerequisite(s) |
+-|---|---|
+-| CS F211 Data Structures | CS F111 |
+-| CS F301 Principles of Programming Languages | CS F211; CS F213 |
+-| CS F342 Compiler Construction | CS F351 Theory of Computation |
+-| CS F363 Compiler Design Lab | CS F342 Compiler Construction |
+-| CS F407 Artificial Intelligence | CS F211; MATH F241 |
+-| CS F415 Data Mining | CS F212; MATH F241 |
+-| CS F429 Natural Language Processing | CS F407 |
+-| CS F441 Selected Topics: Cloud Computing | CS F303; CS F372 |
+-| CS F464 Machine Learning | MATH F241; CS F211 |
++- CS F211 Data Structures requires CS F111 Computer Programming.
++- CS F301 Principles of Programming Languages requires CS F211 Data Structures and CS F213 Object Oriented Programming.
++- CS F342 Compiler Construction requires CS F351 Theory of Computation.
++- CS F363 Compiler Design Lab requires CS F342 Compiler Construction.
++- CS F407 Artificial Intelligence requires CS F211 Data Structures and MATH F241 Probability and Statistics.
++- CS F415 Data Mining requires CS F212 Database Systems and MATH F241 Probability and Statistics.
++- CS F429 Natural Language Processing requires CS F407 Artificial Intelligence.
++- CS F441 Selected Topics: Cloud Computing requires CS F303 Computer Networks and CS F372 Operating Systems.
++- CS F464 Machine Learning requires MATH F241 Probability and Statistics and CS F211 Data Structures.
+ 
+ Students should check both the prerequisite table and the current catalog before registration. A course being visible in registration does not itself prove prerequisite eligibility.
+ 
+ ## 5.2 Grading and CGPA
+ Letter grades are converted to grade points as follows: A = 10, A- = 9, B = 8, B- = 7, C = 6, C- = 5, D = 4, E = 2, F = 0. A passing grade for unit credit is D or higher. CGPA is the unit-weighted average of grade points over completed graded courses. An F earns no units and remains relevant to academic standing until the course is cleared according to Academic Office rules.
+ 
+-Internal assessments and end-semester examinations contribute to the final course grade according to the announced course scheme. The September 2026 end-semester circular standardizes the current semester's end-semester examination weight at 40 percent in every course.
++Internal assessments and end-semester examinations contribute to the final course grade according to the announced course scheme. Circulars may fix the component weights for a particular semester.
+ 
+ ## 5.4 Unit overload
+ Registering above 25 units in a semester requires Associate Dean approval and a CGPA of at least 8.0. Meeting the CGPA threshold does not create an automatic entitlement to overload; the Associate Dean considers prerequisite readiness, timetable feasibility, and prior academic performance. A student without approval should plan at or below 25 units.
+diff -ruN orig/backend/app/data/past_papers.json new/backend/app/data/past_papers.json
+--- orig/backend/app/data/past_papers.json	2026-09-26 12:39:02
++++ new/backend/app/data/past_papers.json	2026-09-26 13:15:52
+@@ -6,44 +6,56 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+-            "Normalization": 20,
+-            "B+ trees": 18,
+-            "Transactions and concurrency": 16,
+-            "Relational model": 12,
+-            "Relational algebra": 10,
++            "Normalization": 18,
++            "B+ trees": 16,
++            "Two-phase locking": 14,
++            "Serializability": 12,
++            "Transactions and concurrency": 6,
++            "Relational model": 8,
++            "Relational algebra": 8,
+             "Functional dependencies": 8,
+-            "File organization": 6,
+-            "Hash indexing": 5,
+-            "ACID properties": 5
++            "File organization": 4,
++            "Hash indexing": 3,
++            "ACID properties": 3
+           }
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+-            "Normalization": 18,
+-            "B+ trees": 20,
+-            "Transactions and concurrency": 18,
+-            "Relational model": 12,
+-            "Relational algebra": 10,
+-            "Functional dependencies": 10,
+-            "File organization": 6,
+-            "Hash indexing": 4,
+-            "ACID properties": 5
++            "Normalization": 16,
++            "B+ trees": 18,
++            "Two-phase locking": 18,
++            "Serializability": 10,
++            "Transactions and concurrency": 6,
++            "Relational model": 8,
++            "Relational algebra": 6,
++            "Functional dependencies": 8,
++            "File organization": 4,
++            "Hash indexing": 3,
++            "ACID properties": 3
+           }
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+-            "Normalization": 22,
+-            "B+ trees": 18,
+-            "Transactions and concurrency": 16,
+-            "Relational model": 10,
+-            "Relational algebra": 12,
+-            "Functional dependencies": 8,
+-            "File organization": 6,
+-            "Hash indexing": 5,
+-            "ACID properties": 5
++            "Normalization": 20,
++            "B+ trees": 16,
++            "Two-phase locking": 16,
++            "Serializability": 14,
++            "Transactions and concurrency": 4,
++            "Relational model": 6,
++            "Relational algebra": 8,
++            "Functional dependencies": 6,
++            "File organization": 4,
++            "Hash indexing": 3,
++            "ACID properties": 3
+           }
+         }
+       ]
+@@ -53,13 +65,15 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "CPU scheduling": 18,
+             "FCFS scheduling": 8,
+             "Shortest Job First": 8,
+             "Round Robin": 14,
+-            "Multilevel feedback queues": 12,
+-            "Synchronization": 12,
++            "Multilevel feedback queues": 14,
++            "Synchronization": 10,
+             "Race conditions": 8,
+             "Paging": 10,
+             "Virtual memory": 10
+@@ -67,13 +81,15 @@
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "CPU scheduling": 20,
+             "FCFS scheduling": 8,
+             "Shortest Job First": 7,
+             "Round Robin": 16,
+-            "Multilevel feedback queues": 14,
+-            "Synchronization": 11,
++            "Multilevel feedback queues": 16,
++            "Synchronization": 9,
+             "Race conditions": 7,
+             "Paging": 9,
+             "Virtual memory": 8
+@@ -81,13 +97,15 @@
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "CPU scheduling": 19,
+             "FCFS scheduling": 7,
+             "Shortest Job First": 8,
+             "Round Robin": 15,
+-            "Multilevel feedback queues": 12,
+-            "Synchronization": 12,
++            "Multilevel feedback queues": 14,
++            "Synchronization": 10,
+             "Race conditions": 8,
+             "Paging": 10,
+             "Virtual memory": 9
+@@ -100,6 +118,8 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "TCP three-way handshake": 16,
+             "Flow control": 14,
+@@ -113,6 +133,8 @@
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "TCP three-way handshake": 18,
+             "Flow control": 15,
+@@ -126,6 +148,8 @@
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "TCP three-way handshake": 17,
+             "Flow control": 14,
+@@ -144,6 +168,8 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Deterministic finite automata": 14,
+             "Nondeterministic finite automata": 10,
+@@ -157,6 +183,8 @@
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Deterministic finite automata": 12,
+             "Nondeterministic finite automata": 12,
+@@ -170,6 +198,8 @@
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Deterministic finite automata": 13,
+             "Nondeterministic finite automata": 10,
+@@ -188,6 +218,8 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Conditional probability": 14,
+             "Bayes theorem": 12,
+@@ -201,6 +233,8 @@
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Conditional probability": 15,
+             "Bayes theorem": 12,
+@@ -214,6 +248,8 @@
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Conditional probability": 14,
+             "Bayes theorem": 14,
+@@ -232,6 +268,8 @@
+       "papers": [
+         {
+           "year": 2023,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Technology adoption": 12,
+             "Institutions and incentives": 12,
+@@ -245,6 +283,8 @@
+         },
+         {
+           "year": 2024,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Technology adoption": 12,
+             "Institutions and incentives": 10,
+@@ -258,6 +298,8 @@
+         },
+         {
+           "year": 2025,
++          "exam": "End-sem",
++          "totalMarks": 100,
+           "topicMarks": {
+             "Technology adoption": 10,
+             "Institutions and incentives": 12,
+diff -ruN orig/backend/app/data/students/aarav.json new/backend/app/data/students/aarav.json
+--- orig/backend/app/data/students/aarav.json	2026-09-26 12:39:02
++++ new/backend/app/data/students/aarav.json	2026-09-26 13:15:52
+@@ -3,6 +3,7 @@
+   "name": "Aarav Mehta",
+   "program": "B.E. Computer Science",
+   "semester": 5,
++  "expectedGraduation": "2028-05",
+   "careerGoal": "Data Analyst",
+   "interests": [
+     "cricket",
+@@ -24,35 +25,35 @@
+         "courseCode": "MATH F211",
+         "title": "Mathematics I",
+         "units": 4,
+-        "grade": "A",
+-        "semester": 2
++        "grade": "A-",
++        "semester": 1
+       },
+       {
+-        "courseCode": "MATH F213",
+-        "title": "Discrete Mathematics",
++        "courseCode": "PHY F111",
++        "title": "Mechanics, Oscillations and Waves",
+         "units": 4,
+-        "grade": "A",
+-        "semester": 3
++        "grade": "B",
++        "semester": 1
+       },
+       {
+-        "courseCode": "ECON F211",
+-        "title": "Principles of Economics",
+-        "units": 3,
+-        "grade": "A",
+-        "semester": 4
++        "courseCode": "EEE F111",
++        "title": "Electrical Sciences",
++        "units": 4,
++        "grade": "A-",
++        "semester": 1
+       },
+       {
+-        "courseCode": "HSS F221",
+-        "title": "Critical Writing",
+-        "units": 3,
+-        "grade": "A",
+-        "semester": 1
++        "courseCode": "MATH F213",
++        "title": "Discrete Mathematics",
++        "units": 4,
++        "grade": "A-",
++        "semester": 2
+       },
+       {
+         "courseCode": "CS F211",
+         "title": "Data Structures",
+         "units": 4,
+-        "grade": "B",
++        "grade": "A",
+         "semester": 2
+       },
+       {
+@@ -60,112 +61,91 @@
+         "title": "Object Oriented Programming",
+         "units": 4,
+         "grade": "B",
+-        "semester": 3
+-      },
+-      {
+-        "courseCode": "CS F214",
+-        "title": "Logic in Computer Science",
+-        "units": 4,
+-        "grade": "B",
+-        "semester": 4
+-      },
+-      {
+-        "courseCode": "CS F241",
+-        "title": "Microprocessors",
+-        "units": 4,
+-        "grade": "B",
+-        "semester": 1
+-      },
+-      {
+-        "courseCode": "CS F301",
+-        "title": "Principles of Programming Languages",
+-        "units": 4,
+-        "grade": "B",
+         "semester": 2
+       },
+       {
+-        "courseCode": "BIO F201",
+-        "title": "Computational Biology",
++        "courseCode": "MATH F221",
++        "title": "Linear Algebra",
+         "units": 3,
+-        "grade": "B",
+-        "semester": 3
++        "grade": "A-",
++        "semester": 2
+       },
+       {
+-        "courseCode": "DES F210",
+-        "title": "Design Thinking",
++        "courseCode": "HSS F221",
++        "title": "Critical Writing",
+         "units": 3,
+         "grade": "B",
+-        "semester": 4
++        "semester": 2
+       },
+       {
+-        "courseCode": "MGTS F231",
+-        "title": "Product Management Fundamentals",
++        "courseCode": "ECON F211",
++        "title": "Principles of Economics",
+         "units": 3,
+-        "grade": "B",
+-        "semester": 1
++        "grade": "A",
++        "semester": 2
+       },
+       {
+-        "courseCode": "EEE F245",
+-        "title": "Internet of Things",
+-        "units": 3,
++        "courseCode": "CS F214",
++        "title": "Logic in Computer Science",
++        "units": 4,
+         "grade": "B",
+-        "semester": 2
++        "semester": 3
+       },
+       {
+-        "courseCode": "PS F401",
+-        "title": "Practice School / Thesis",
+-        "units": 20,
+-        "grade": "B",
++        "courseCode": "CS F241",
++        "title": "Microprocessors",
++        "units": 4,
++        "grade": "B-",
+         "semester": 3
+       },
+       {
+         "courseCode": "CS F221",
+         "title": "Algorithms",
+         "units": 4,
+-        "grade": "B",
+-        "semester": 4
++        "grade": "A-",
++        "semester": 3
+       },
+       {
+         "courseCode": "CS F222",
+         "title": "Computer Architecture",
+         "units": 4,
+         "grade": "B",
+-        "semester": 1
++        "semester": 3
+       },
+       {
++        "courseCode": "CS F301",
++        "title": "Principles of Programming Languages",
++        "units": 4,
++        "grade": "A-",
++        "semester": 4
++      },
++      {
+         "courseCode": "CS F225",
+         "title": "Software Engineering",
+         "units": 4,
+         "grade": "B",
+-        "semester": 2
++        "semester": 4
+       },
+       {
+-        "courseCode": "MATH F221",
+-        "title": "Linear Algebra",
+-        "units": 3,
+-        "grade": "B",
+-        "semester": 3
+-      },
+-      {
+         "courseCode": "ECON F212",
+         "title": "Data and Markets",
+         "units": 3,
+-        "grade": "B",
++        "grade": "A",
+         "semester": 4
+       },
+       {
+         "courseCode": "CS F320",
+         "title": "Human-Centred Computing",
+         "units": 4,
+-        "grade": "B",
+-        "semester": 1
++        "grade": "A-",
++        "semester": 4
+       },
+       {
+         "courseCode": "CS F330",
+         "title": "Information Retrieval",
+         "units": 4,
+-        "grade": "B",
+-        "semester": 2
++        "grade": "A",
++        "semester": 4
+       }
+     ]
+   },
+@@ -211,9 +191,9 @@
+         "courseCode": "CS F212",
+         "component": "Quiz 1",
+         "topic": "Relational model",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -221,15 +201,15 @@
+         "topic": "Relational algebra",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Quiz 1",
+         "topic": "Functional dependencies",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -237,15 +217,15 @@
+         "topic": "Relational model",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Mid-sem",
+         "topic": "Relational algebra",
+-        "scored": 5,
++        "scored": 6,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -253,39 +233,31 @@
+         "topic": "Functional dependencies",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational model",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Normalization",
++        "scored": 10,
++        "max": 12,
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational algebra",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "B+ trees",
++        "scored": 8,
++        "max": 10,
++        "date": "2026-09-08"
+       },
+       {
+-        "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Functional dependencies",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F351",
+         "component": "Quiz 1",
+         "topic": "Deterministic finite automata",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+@@ -293,15 +265,15 @@
+         "topic": "Nondeterministic finite automata",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Quiz 1",
+         "topic": "Regular expressions",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+@@ -309,15 +281,15 @@
+         "topic": "Deterministic finite automata",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Mid-sem",
+         "topic": "Nondeterministic finite automata",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+         "courseCode": "CS F351",
+@@ -325,47 +297,23 @@
+         "topic": "Regular expressions",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Deterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Nondeterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Regular expressions",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Process states",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Threads",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+@@ -373,13 +321,13 @@
+         "topic": "Context switching",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+         "component": "Mid-sem",
+         "topic": "Process states",
+-        "scored": 5,
++        "scored": 6,
+         "max": 6,
+         "date": "2026-09-10"
+       },
+@@ -401,43 +349,27 @@
+       },
+       {
+         "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Process states",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "CPU scheduling",
++        "scored": 11,
++        "max": 14,
++        "date": "2026-09-10"
+       },
+       {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Threads",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Context switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Layered architecture",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Packet switching",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -445,7 +377,7 @@
+         "topic": "Delay and throughput",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -453,7 +385,7 @@
+         "topic": "Layered architecture",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -461,45 +393,29 @@
+         "topic": "Packet switching",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Mid-sem",
+         "topic": "Delay and throughput",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Layered architecture",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Flow control",
++        "scored": 6,
++        "max": 12,
++        "date": "2026-09-11"
+       },
+       {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Packet switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Delay and throughput",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "MATH F241",
+         "component": "Quiz 1",
+         "topic": "Conditional probability",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+         "date": "2026-08-28"
+       },
+@@ -525,7 +441,7 @@
+         "topic": "Conditional probability",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+@@ -533,63 +449,39 @@
+         "topic": "Bayes theorem",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+         "component": "Mid-sem",
+         "topic": "Random variables",
+-        "scored": 5,
++        "scored": 6,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Conditional probability",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Bayes theorem",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Random variables",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Technology adoption",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Institutions and incentives",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Public infrastructure",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -597,15 +489,15 @@
+         "topic": "Technology adoption",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Institutions and incentives",
+-        "scored": 5,
++        "scored": 6,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -613,39 +505,7 @@
+         "topic": "Public infrastructure",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Technology adoption",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Institutions and incentives",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Public infrastructure",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F303",
+-        "component": "Mid-sem topic total",
+-        "topic": "Flow control",
+-        "scored": 6,
+-        "max": 12,
+-        "date": "2026-09-11"
++        "date": "2026-09-14"
+       }
+     ]
+   }
+diff -ruN orig/backend/app/data/students/meera.json new/backend/app/data/students/meera.json
+--- orig/backend/app/data/students/meera.json	2026-09-26 12:39:02
++++ new/backend/app/data/students/meera.json	2026-09-26 13:15:52
+@@ -3,6 +3,7 @@
+   "name": "Meera Nair",
+   "program": "B.E. Computer Science",
+   "semester": 5,
++  "expectedGraduation": "2028-05",
+   "careerGoal": "Backend Engineer",
+   "interests": [
+     "badminton",
+@@ -17,36 +18,36 @@
+         "courseCode": "CS F111",
+         "title": "Computer Programming",
+         "units": 4,
+-        "grade": "A",
++        "grade": "B-",
+         "semester": 1
+       },
+       {
+         "courseCode": "MATH F211",
+         "title": "Mathematics I",
+         "units": 4,
+-        "grade": "A",
+-        "semester": 2
++        "grade": "C",
++        "semester": 1
+       },
+       {
+-        "courseCode": "MATH F213",
+-        "title": "Discrete Mathematics",
++        "courseCode": "PHY F111",
++        "title": "Mechanics, Oscillations and Waves",
+         "units": 4,
+-        "grade": "A",
+-        "semester": 3
++        "grade": "C-",
++        "semester": 1
+       },
+       {
+-        "courseCode": "ECON F211",
+-        "title": "Principles of Economics",
+-        "units": 3,
+-        "grade": "A-",
+-        "semester": 4
++        "courseCode": "EEE F111",
++        "title": "Electrical Sciences",
++        "units": 4,
++        "grade": "B-",
++        "semester": 1
+       },
+       {
+-        "courseCode": "HSS F221",
+-        "title": "Critical Writing",
+-        "units": 3,
+-        "grade": "C",
+-        "semester": 1
++        "courseCode": "MATH F213",
++        "title": "Discrete Mathematics",
++        "units": 4,
++        "grade": "C-",
++        "semester": 2
+       },
+       {
+         "courseCode": "CS F211",
+@@ -59,119 +60,84 @@
+         "courseCode": "CS F213",
+         "title": "Object Oriented Programming",
+         "units": 4,
+-        "grade": "C",
+-        "semester": 3
++        "grade": "B-",
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F214",
+-        "title": "Logic in Computer Science",
+-        "units": 4,
+-        "grade": "C",
+-        "semester": 4
++        "courseCode": "MATH F221",
++        "title": "Linear Algebra",
++        "units": 3,
++        "grade": "F",
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F241",
+-        "title": "Microprocessors",
+-        "units": 4,
+-        "grade": "C",
+-        "semester": 1
++        "courseCode": "HSS F221",
++        "title": "Critical Writing",
++        "units": 3,
++        "grade": "B",
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F301",
+-        "title": "Principles of Programming Languages",
+-        "units": 4,
++        "courseCode": "ECON F211",
++        "title": "Principles of Economics",
++        "units": 3,
+         "grade": "C",
+         "semester": 2
+       },
+       {
+-        "courseCode": "CS F342",
+-        "title": "Compiler Construction",
++        "courseCode": "CS F214",
++        "title": "Logic in Computer Science",
+         "units": 4,
+-        "grade": "C",
++        "grade": "D",
+         "semester": 3
+       },
+       {
+-        "courseCode": "CS F363",
+-        "title": "Compiler Design Lab",
++        "courseCode": "CS F241",
++        "title": "Microprocessors",
+         "units": 4,
+         "grade": "C",
+-        "semester": 4
++        "semester": 3
+       },
+       {
+-        "courseCode": "CS F407",
+-        "title": "Artificial Intelligence",
++        "courseCode": "CS F221",
++        "title": "Algorithms",
+         "units": 4,
+-        "grade": "C",
+-        "semester": 1
++        "grade": "C-",
++        "semester": 3
+       },
+       {
+-        "courseCode": "CS F415",
+-        "title": "Data Mining",
++        "courseCode": "CS F222",
++        "title": "Computer Architecture",
+         "units": 4,
+-        "grade": "C",
+-        "semester": 2
+-      },
+-      {
+-        "courseCode": "CS F429",
+-        "title": "Natural Language Processing",
+-        "units": 4,
+-        "grade": "C",
++        "grade": "F",
+         "semester": 3
+       },
+       {
+-        "courseCode": "CS F432",
+-        "title": "Data Visualization",
++        "courseCode": "CS F301",
++        "title": "Principles of Programming Languages",
+         "units": 4,
+         "grade": "C",
+         "semester": 4
+       },
+       {
+-        "courseCode": "CS F441",
+-        "title": "Selected Topics: Cloud Computing",
++        "courseCode": "CS F225",
++        "title": "Software Engineering",
+         "units": 4,
+-        "grade": "C",
+-        "semester": 1
++        "grade": "C-",
++        "semester": 4
+       },
+       {
+-        "courseCode": "BIO F201",
+-        "title": "Computational Biology",
++        "courseCode": "ECON F212",
++        "title": "Data and Markets",
+         "units": 3,
+         "grade": "C",
+-        "semester": 2
+-      },
+-      {
+-        "courseCode": "DES F210",
+-        "title": "Design Thinking",
+-        "units": 3,
+-        "grade": "C",
+-        "semester": 3
+-      },
+-      {
+-        "courseCode": "MGTS F231",
+-        "title": "Product Management Fundamentals",
+-        "units": 3,
+-        "grade": "C",
+         "semester": 4
+       },
+       {
+-        "courseCode": "EEE F245",
+-        "title": "Internet of Things",
+-        "units": 3,
+-        "grade": "C",
+-        "semester": 1
+-      },
+-      {
+-        "courseCode": "CS F214",
+-        "title": "Logic in Computer Science",
++        "courseCode": "CS F330",
++        "title": "Information Retrieval",
+         "units": 4,
+-        "grade": "F",
+-        "semester": 3
+-      },
+-      {
+-        "courseCode": "CS F241",
+-        "title": "Microprocessors",
+-        "units": 4,
+-        "grade": "F",
++        "grade": "C-",
+         "semester": 4
+       }
+     ]
+@@ -220,15 +186,15 @@
+         "topic": "Relational model",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Quiz 1",
+         "topic": "Relational algebra",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -236,63 +202,55 @@
+         "topic": "Functional dependencies",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Mid-sem",
+         "topic": "Relational model",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Mid-sem",
+         "topic": "Relational algebra",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Mid-sem",
+         "topic": "Functional dependencies",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational model",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Normalization",
++        "scored": 4,
++        "max": 12,
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational algebra",
++        "component": "Mid-sem",
++        "topic": "B+ trees",
+         "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "max": 10,
++        "date": "2026-09-08"
+       },
+       {
+-        "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Functional dependencies",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F351",
+         "component": "Quiz 1",
+         "topic": "Deterministic finite automata",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+@@ -300,93 +258,69 @@
+         "topic": "Nondeterministic finite automata",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Quiz 1",
+         "topic": "Regular expressions",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-25"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Mid-sem",
+         "topic": "Deterministic finite automata",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Mid-sem",
+         "topic": "Nondeterministic finite automata",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+         "courseCode": "CS F351",
+         "component": "Mid-sem",
+         "topic": "Regular expressions",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-09"
+       },
+       {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Deterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Nondeterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Regular expressions",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Process states",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Threads",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Context switching",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+         "component": "Mid-sem",
+         "topic": "Process states",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+         "date": "2026-09-10"
+       },
+@@ -394,7 +328,7 @@
+         "courseCode": "CS F372",
+         "component": "Mid-sem",
+         "topic": "Threads",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+         "date": "2026-09-10"
+       },
+@@ -402,41 +336,25 @@
+         "courseCode": "CS F372",
+         "component": "Mid-sem",
+         "topic": "Context switching",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+         "date": "2026-09-10"
+       },
+       {
+         "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Process states",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "CPU scheduling",
++        "scored": 5,
++        "max": 14,
++        "date": "2026-09-10"
+       },
+       {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Threads",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Context switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Layered architecture",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -444,69 +362,53 @@
+         "topic": "Packet switching",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Delay and throughput",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Mid-sem",
+         "topic": "Layered architecture",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Mid-sem",
+         "topic": "Packet switching",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Mid-sem",
+         "topic": "Delay and throughput",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Layered architecture",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Flow control",
++        "scored": 8,
++        "max": 12,
++        "date": "2026-09-11"
+       },
+       {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Packet switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Delay and throughput",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "MATH F241",
+         "component": "Quiz 1",
+         "topic": "Conditional probability",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+         "date": "2026-08-28"
+       },
+@@ -530,57 +432,33 @@
+         "courseCode": "MATH F241",
+         "component": "Mid-sem",
+         "topic": "Conditional probability",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+         "component": "Mid-sem",
+         "topic": "Bayes theorem",
+-        "scored": 5,
++        "scored": 3,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+         "component": "Mid-sem",
+         "topic": "Random variables",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Conditional probability",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Bayes theorem",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Random variables",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Technology adoption",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -588,15 +466,15 @@
+         "topic": "Institutions and incentives",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Public infrastructure",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -604,71 +482,23 @@
+         "topic": "Technology adoption",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Institutions and incentives",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Public infrastructure",
+-        "scored": 5,
+-        "max": 6,
+-        "date": "2026-09-10"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Technology adoption",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Institutions and incentives",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Public infrastructure",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F212",
+-        "component": "Mid-sem topic total",
+-        "topic": "Normalization",
+         "scored": 4,
+-        "max": 12,
+-        "date": "2026-09-08"
+-      },
+-      {
+-        "courseCode": "CS F212",
+-        "component": "Mid-sem topic total",
+-        "topic": "B+ trees",
+-        "scored": 3,
+-        "max": 10,
+-        "date": "2026-09-08"
+-      },
+-      {
+-        "courseCode": "CS F372",
+-        "component": "Mid-sem topic total",
+-        "topic": "CPU scheduling",
+-        "scored": 5,
+-        "max": 14,
+-        "date": "2026-09-10"
++        "max": 6,
++        "date": "2026-09-14"
+       }
+     ]
+   }
+diff -ruN orig/backend/app/data/students/rohan.json new/backend/app/data/students/rohan.json
+--- orig/backend/app/data/students/rohan.json	2026-09-26 12:39:02
++++ new/backend/app/data/students/rohan.json	2026-09-26 13:15:52
+@@ -3,6 +3,7 @@
+   "name": "Rohan Sen",
+   "program": "B.E. Computer Science",
+   "semester": 5,
++  "expectedGraduation": "2028-05",
+   "careerGoal": "ML Engineer",
+   "interests": [
+     "football",
+@@ -17,42 +18,42 @@
+         "courseCode": "CS F111",
+         "title": "Computer Programming",
+         "units": 4,
+-        "grade": "C-",
++        "grade": "B",
+         "semester": 1
+       },
+       {
+         "courseCode": "MATH F211",
+         "title": "Mathematics I",
+         "units": 4,
+-        "grade": "C-",
+-        "semester": 2
++        "grade": "B",
++        "semester": 1
+       },
+       {
+-        "courseCode": "MATH F213",
+-        "title": "Discrete Mathematics",
++        "courseCode": "PHY F111",
++        "title": "Mechanics, Oscillations and Waves",
+         "units": 4,
+-        "grade": "C-",
+-        "semester": 3
++        "grade": "C",
++        "semester": 1
+       },
+       {
+-        "courseCode": "ECON F211",
+-        "title": "Principles of Economics",
+-        "units": 3,
+-        "grade": "B",
+-        "semester": 4
++        "courseCode": "EEE F111",
++        "title": "Electrical Sciences",
++        "units": 4,
++        "grade": "B-",
++        "semester": 1
+       },
+       {
+-        "courseCode": "HSS F221",
+-        "title": "Critical Writing",
+-        "units": 3,
+-        "grade": "B",
+-        "semester": 1
++        "courseCode": "MATH F213",
++        "title": "Discrete Mathematics",
++        "units": 4,
++        "grade": "B-",
++        "semester": 2
+       },
+       {
+         "courseCode": "CS F211",
+         "title": "Data Structures",
+         "units": 4,
+-        "grade": "B",
++        "grade": "A-",
+         "semester": 2
+       },
+       {
+@@ -60,97 +61,90 @@
+         "title": "Object Oriented Programming",
+         "units": 4,
+         "grade": "B",
+-        "semester": 3
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F214",
+-        "title": "Logic in Computer Science",
+-        "units": 4,
+-        "grade": "B",
+-        "semester": 4
++        "courseCode": "MATH F221",
++        "title": "Linear Algebra",
++        "units": 3,
++        "grade": "A-",
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F241",
+-        "title": "Microprocessors",
+-        "units": 4,
+-        "grade": "B",
+-        "semester": 1
++        "courseCode": "HSS F221",
++        "title": "Critical Writing",
++        "units": 3,
++        "grade": "C",
++        "semester": 2
+       },
+       {
+-        "courseCode": "CS F301",
+-        "title": "Principles of Programming Languages",
+-        "units": 4,
++        "courseCode": "ECON F211",
++        "title": "Principles of Economics",
++        "units": 3,
+         "grade": "B",
+         "semester": 2
+       },
+       {
+-        "courseCode": "CS F363",
+-        "title": "Compiler Design Lab",
++        "courseCode": "CS F214",
++        "title": "Logic in Computer Science",
+         "units": 4,
+-        "grade": "B",
++        "grade": "C-",
+         "semester": 3
+       },
+       {
+-        "courseCode": "CS F429",
+-        "title": "Natural Language Processing",
++        "courseCode": "CS F241",
++        "title": "Microprocessors",
+         "units": 4,
+         "grade": "B",
+-        "semester": 4
++        "semester": 3
+       },
+       {
+-        "courseCode": "CS F432",
+-        "title": "Data Visualization",
++        "courseCode": "CS F221",
++        "title": "Algorithms",
+         "units": 4,
+-        "grade": "B",
+-        "semester": 1
++        "grade": "A-",
++        "semester": 3
+       },
+       {
+-        "courseCode": "CS F441",
+-        "title": "Selected Topics: Cloud Computing",
++        "courseCode": "CS F222",
++        "title": "Computer Architecture",
+         "units": 4,
+-        "grade": "B",
+-        "semester": 2
+-      },
+-      {
+-        "courseCode": "BIO F201",
+-        "title": "Computational Biology",
+-        "units": 3,
+-        "grade": "B",
++        "grade": "B-",
+         "semester": 3
+       },
+       {
+-        "courseCode": "DES F210",
+-        "title": "Design Thinking",
+-        "units": 3,
++        "courseCode": "CS F301",
++        "title": "Principles of Programming Languages",
++        "units": 4,
+         "grade": "B",
+         "semester": 4
+       },
+       {
+-        "courseCode": "PS F401",
+-        "title": "Practice School / Thesis",
+-        "units": 20,
+-        "grade": "B",
+-        "semester": 1
++        "courseCode": "CS F225",
++        "title": "Software Engineering",
++        "units": 4,
++        "grade": "B-",
++        "semester": 4
+       },
+       {
+-        "courseCode": "CS F221",
+-        "title": "Algorithms",
+-        "units": 4,
++        "courseCode": "ECON F212",
++        "title": "Data and Markets",
++        "units": 3,
+         "grade": "B",
+-        "semester": 2
++        "semester": 4
+       },
+       {
+-        "courseCode": "CS F222",
+-        "title": "Computer Architecture",
++        "courseCode": "CS F320",
++        "title": "Human-Centred Computing",
+         "units": 4,
+         "grade": "B",
+-        "semester": 3
++        "semester": 4
+       },
+       {
+-        "courseCode": "CS F225",
+-        "title": "Software Engineering",
++        "courseCode": "CS F330",
++        "title": "Information Retrieval",
+         "units": 4,
+-        "grade": "B",
++        "grade": "A-",
+         "semester": 4
+       }
+     ]
+@@ -164,11 +158,6 @@
+         "status": "registered"
+       },
+       {
+-        "courseCode": "CS F351",
+-        "semester": 5,
+-        "status": "registered"
+-      },
+-      {
+         "courseCode": "CS F372",
+         "semester": 5,
+         "status": "registered"
+@@ -199,7 +188,7 @@
+         "topic": "Relational model",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -207,15 +196,15 @@
+         "topic": "Relational algebra",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Quiz 1",
+         "topic": "Functional dependencies",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-24"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -223,15 +212,15 @@
+         "topic": "Relational model",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+         "component": "Mid-sem",
+         "topic": "Relational algebra",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+@@ -239,111 +228,31 @@
+         "topic": "Functional dependencies",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational model",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Normalization",
++        "scored": 9,
++        "max": 12,
++        "date": "2026-09-08"
+       },
+       {
+         "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Relational algebra",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F212",
+-        "component": "Quiz 2",
+-        "topic": "Functional dependencies",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 1",
+-        "topic": "Deterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-08-28"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 1",
+-        "topic": "Nondeterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-08-28"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 1",
+-        "topic": "Regular expressions",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-08-28"
+-      },
+-      {
+-        "courseCode": "CS F351",
+         "component": "Mid-sem",
+-        "topic": "Deterministic finite automata",
+-        "scored": 5,
+-        "max": 6,
+-        "date": "2026-09-10"
++        "topic": "B+ trees",
++        "scored": 7,
++        "max": 10,
++        "date": "2026-09-08"
+       },
+       {
+-        "courseCode": "CS F351",
+-        "component": "Mid-sem",
+-        "topic": "Nondeterministic finite automata",
+-        "scored": 5,
+-        "max": 6,
+-        "date": "2026-09-10"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Mid-sem",
+-        "topic": "Regular expressions",
+-        "scored": 5,
+-        "max": 6,
+-        "date": "2026-09-10"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Deterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Nondeterministic finite automata",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F351",
+-        "component": "Quiz 2",
+-        "topic": "Regular expressions",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F372",
+         "component": "Quiz 1",
+         "topic": "Process states",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+@@ -351,7 +260,7 @@
+         "topic": "Threads",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+@@ -359,7 +268,7 @@
+         "topic": "Context switching",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-26"
+       },
+       {
+         "courseCode": "CS F372",
+@@ -373,7 +282,7 @@
+         "courseCode": "CS F372",
+         "component": "Mid-sem",
+         "topic": "Threads",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+         "date": "2026-09-10"
+       },
+@@ -387,51 +296,35 @@
+       },
+       {
+         "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Process states",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "CPU scheduling",
++        "scored": 10,
++        "max": 14,
++        "date": "2026-09-10"
+       },
+       {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Threads",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F372",
+-        "component": "Quiz 2",
+-        "topic": "Context switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Layered architecture",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Packet switching",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+         "component": "Quiz 1",
+         "topic": "Delay and throughput",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-27"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -439,7 +332,7 @@
+         "topic": "Layered architecture",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -447,7 +340,7 @@
+         "topic": "Packet switching",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+@@ -455,33 +348,17 @@
+         "topic": "Delay and throughput",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-11"
+       },
+       {
+         "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Layered architecture",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "component": "Mid-sem",
++        "topic": "Flow control",
++        "scored": 9,
++        "max": 12,
++        "date": "2026-09-11"
+       },
+       {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Packet switching",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "CS F303",
+-        "component": "Quiz 2",
+-        "topic": "Delay and throughput",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "MATH F241",
+         "component": "Quiz 1",
+         "topic": "Conditional probability",
+@@ -493,7 +370,7 @@
+         "courseCode": "MATH F241",
+         "component": "Quiz 1",
+         "topic": "Bayes theorem",
+-        "scored": 3,
++        "scored": 1,
+         "max": 4,
+         "date": "2026-08-28"
+       },
+@@ -501,7 +378,7 @@
+         "courseCode": "MATH F241",
+         "component": "Quiz 1",
+         "topic": "Random variables",
+-        "scored": 3,
++        "scored": 4,
+         "max": 4,
+         "date": "2026-08-28"
+       },
+@@ -511,15 +388,15 @@
+         "topic": "Conditional probability",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+         "component": "Mid-sem",
+         "topic": "Bayes theorem",
+-        "scored": 5,
++        "scored": 2,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+         "courseCode": "MATH F241",
+@@ -527,39 +404,15 @@
+         "topic": "Random variables",
+         "scored": 5,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-12"
+       },
+       {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Conditional probability",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Bayes theorem",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "MATH F241",
+-        "component": "Quiz 2",
+-        "topic": "Random variables",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+         "courseCode": "HSS F235",
+         "component": "Quiz 1",
+         "topic": "Technology adoption",
+-        "scored": 3,
++        "scored": 2,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -567,7 +420,7 @@
+         "topic": "Institutions and incentives",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+@@ -575,55 +428,31 @@
+         "topic": "Public infrastructure",
+         "scored": 3,
+         "max": 4,
+-        "date": "2026-08-28"
++        "date": "2026-08-29"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Technology adoption",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Institutions and incentives",
+-        "scored": 5,
++        "scored": 4,
+         "max": 6,
+-        "date": "2026-09-10"
++        "date": "2026-09-14"
+       },
+       {
+         "courseCode": "HSS F235",
+         "component": "Mid-sem",
+         "topic": "Public infrastructure",
+-        "scored": 5,
+-        "max": 6,
+-        "date": "2026-09-10"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Technology adoption",
+         "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Institutions and incentives",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
+-      },
+-      {
+-        "courseCode": "HSS F235",
+-        "component": "Quiz 2",
+-        "topic": "Public infrastructure",
+-        "scored": 3,
+-        "max": 4,
+-        "date": "2026-09-24"
++        "max": 6,
++        "date": "2026-09-14"
+       }
+     ]
+   },
+diff -ruN orig/backend/app/data/syllabus/cs-f212.md new/backend/app/data/syllabus/cs-f212.md
+--- orig/backend/app/data/syllabus/cs-f212.md	2026-09-26 12:39:02
++++ new/backend/app/data/syllabus/cs-f212.md	2026-09-26 13:15:52
+@@ -7,52 +7,52 @@
+ 
+ ## Unit 1: Relational foundations
+ ### Relational model
+-Relational model is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Relations, tuples, attributes and domains; candidate, primary and foreign keys; integrity constraints.
+ 
+ ### Relational algebra
+-Relational algebra is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Selection, projection, joins, set operations and division, and translating queries into algebra.
+ 
+ ### Functional dependencies
+-Functional dependencies is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Armstrong's axioms, attribute closure, deriving candidate keys and computing minimal covers.
+ 
+ ### Normalization
+-Normalization is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++1NF through BCNF, lossless-join and dependency-preserving decomposition, and when to stop normalising.
+ 
+ ## Unit 2: Storage and indexing
+ ### File organization
+-File organization is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Heap, sorted and clustered files, page and record layout, and the I/O cost model.
+ 
+ ### B+ trees
+-B+ trees is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Search, insertion and deletion with node splits and merges; clustered and unclustered indexes.
+ 
+ ### Hash indexing
+-Hash indexing is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Static, extendible and linear hashing, and choosing between hash and tree indexes for a workload.
+ 
+ ## Unit 3: Transactions and concurrency
+ ### Transactions and concurrency
+-Transactions and concurrency is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Transactions as units of work, schedules, and why interleaving improves throughput.
+ 
+ ### ACID properties
+-ACID properties is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Atomicity, consistency, isolation and durability, and the anomalies each property prevents.
+ 
+ ### Serializability
+-Serializability is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Conflict serializability, precedence graphs and testing a schedule for an equivalent serial order.
+ 
+ ### Locking basics
+-Locking basics is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Shared and exclusive locks, lock compatibility and the role of the lock manager.
+ 
+ ### Two-phase locking
+-Two-phase locking is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Growing and shrinking phases, strict two-phase locking, and why the protocol guarantees conflict serializability.
+ 
+ ### Deadlocks
+-Deadlocks is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Wait-for graphs, detection, prevention with wait-die and wound-wait, and timeouts.
+ 
+ ## Unit 4: Recovery
+ ### Write-ahead logging
+-Write-ahead logging is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Log records, the write-ahead rule and forcing the log before data pages reach disk.
+ 
+ ### Checkpointing
+-Checkpointing is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++Consistent and fuzzy checkpoints and how they bound recovery time.
+ 
+ ### Crash recovery
+-Crash recovery is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
++The analysis, redo and undo passes of ARIES-style recovery after a failure.
+diff -ruN orig/backend/app/data/timetable.json new/backend/app/data/timetable.json
+--- orig/backend/app/data/timetable.json	2026-09-26 12:39:02
++++ new/backend/app/data/timetable.json	2026-09-26 13:15:52
+@@ -1,12 +1,16 @@
+ {
+   "connectorId": "lms_moodle",
+   "semester": 5,
++  "term": {
++    "start": "2026-08-03",
++    "end": "2026-11-27"
++  },
+   "rows": [
+     {
+       "courseCode": "CS F212",
+-      "day": "Monday",
+-      "start": "09:00",
+-      "end": "10:00",
++      "day": "Tuesday",
++      "start": "10:00",
++      "end": "11:00",
+       "room": "A-201",
+       "kind": "lecture"
+     },
+@@ -20,7 +24,7 @@
+     },
+     {
+       "courseCode": "CS F372",
+-      "day": "Tuesday",
++      "day": "Wednesday",
+       "start": "09:00",
+       "end": "10:00",
+       "room": "B-105",
+@@ -28,7 +32,7 @@
+     },
+     {
+       "courseCode": "CS F303",
+-      "day": "Tuesday",
++      "day": "Thursday",
+       "start": "11:00",
+       "end": "12:00",
+       "room": "B-202",

@@ -1,0 +1,275 @@
+{
+  "connectorId": "academic_office",
+  "courses": [
+    {
+      "courseCode": "CS F212",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "Normalization": 20,
+            "B+ trees": 18,
+            "Transactions and concurrency": 16,
+            "Relational model": 12,
+            "Relational algebra": 10,
+            "Functional dependencies": 8,
+            "File organization": 6,
+            "Hash indexing": 5,
+            "ACID properties": 5
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "Normalization": 18,
+            "B+ trees": 20,
+            "Transactions and concurrency": 18,
+            "Relational model": 12,
+            "Relational algebra": 10,
+            "Functional dependencies": 10,
+            "File organization": 6,
+            "Hash indexing": 4,
+            "ACID properties": 5
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "Normalization": 22,
+            "B+ trees": 18,
+            "Transactions and concurrency": 16,
+            "Relational model": 10,
+            "Relational algebra": 12,
+            "Functional dependencies": 8,
+            "File organization": 6,
+            "Hash indexing": 5,
+            "ACID properties": 5
+          }
+        }
+      ]
+    },
+    {
+      "courseCode": "CS F372",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "CPU scheduling": 18,
+            "FCFS scheduling": 8,
+            "Shortest Job First": 8,
+            "Round Robin": 14,
+            "Multilevel feedback queues": 12,
+            "Synchronization": 12,
+            "Race conditions": 8,
+            "Paging": 10,
+            "Virtual memory": 10
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "CPU scheduling": 20,
+            "FCFS scheduling": 8,
+            "Shortest Job First": 7,
+            "Round Robin": 16,
+            "Multilevel feedback queues": 14,
+            "Synchronization": 11,
+            "Race conditions": 7,
+            "Paging": 9,
+            "Virtual memory": 8
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "CPU scheduling": 19,
+            "FCFS scheduling": 7,
+            "Shortest Job First": 8,
+            "Round Robin": 15,
+            "Multilevel feedback queues": 12,
+            "Synchronization": 12,
+            "Race conditions": 8,
+            "Paging": 10,
+            "Virtual memory": 9
+          }
+        }
+      ]
+    },
+    {
+      "courseCode": "CS F303",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "TCP three-way handshake": 16,
+            "Flow control": 14,
+            "Congestion control": 18,
+            "IP addressing": 12,
+            "Routing algorithms": 14,
+            "DNS": 8,
+            "HTTP": 8,
+            "Layered architecture": 10
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "TCP three-way handshake": 18,
+            "Flow control": 15,
+            "Congestion control": 20,
+            "IP addressing": 12,
+            "Routing algorithms": 13,
+            "DNS": 7,
+            "HTTP": 8,
+            "Layered architecture": 7
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "TCP three-way handshake": 17,
+            "Flow control": 14,
+            "Congestion control": 18,
+            "IP addressing": 13,
+            "Routing algorithms": 14,
+            "DNS": 8,
+            "HTTP": 8,
+            "Layered architecture": 8
+          }
+        }
+      ]
+    },
+    {
+      "courseCode": "CS F351",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "Deterministic finite automata": 14,
+            "Nondeterministic finite automata": 10,
+            "Context-free grammars": 16,
+            "Pushdown automata": 14,
+            "Turing machines": 16,
+            "Decidability": 14,
+            "P and NP": 8,
+            "NP-completeness": 8
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "Deterministic finite automata": 12,
+            "Nondeterministic finite automata": 12,
+            "Context-free grammars": 18,
+            "Pushdown automata": 14,
+            "Turing machines": 16,
+            "Decidability": 12,
+            "P and NP": 8,
+            "NP-completeness": 8
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "Deterministic finite automata": 13,
+            "Nondeterministic finite automata": 10,
+            "Context-free grammars": 16,
+            "Pushdown automata": 15,
+            "Turing machines": 18,
+            "Decidability": 14,
+            "P and NP": 7,
+            "NP-completeness": 7
+          }
+        }
+      ]
+    },
+    {
+      "courseCode": "MATH F241",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "Conditional probability": 14,
+            "Bayes theorem": 12,
+            "Random variables": 16,
+            "Discrete distributions": 12,
+            "Continuous distributions": 10,
+            "Hypothesis testing": 16,
+            "Simple linear regression": 12,
+            "Correlation": 8
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "Conditional probability": 15,
+            "Bayes theorem": 12,
+            "Random variables": 15,
+            "Discrete distributions": 12,
+            "Continuous distributions": 11,
+            "Hypothesis testing": 16,
+            "Simple linear regression": 12,
+            "Correlation": 7
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "Conditional probability": 14,
+            "Bayes theorem": 14,
+            "Random variables": 16,
+            "Discrete distributions": 11,
+            "Continuous distributions": 10,
+            "Hypothesis testing": 18,
+            "Simple linear regression": 11,
+            "Correlation": 6
+          }
+        }
+      ]
+    },
+    {
+      "courseCode": "HSS F235",
+      "papers": [
+        {
+          "year": 2023,
+          "topicMarks": {
+            "Technology adoption": 12,
+            "Institutions and incentives": 12,
+            "Privacy": 14,
+            "Algorithmic bias": 16,
+            "Professional responsibility": 10,
+            "Platform governance": 14,
+            "Evidence-based argument": 12,
+            "Source evaluation": 10
+          }
+        },
+        {
+          "year": 2024,
+          "topicMarks": {
+            "Technology adoption": 12,
+            "Institutions and incentives": 10,
+            "Privacy": 16,
+            "Algorithmic bias": 16,
+            "Professional responsibility": 10,
+            "Platform governance": 14,
+            "Evidence-based argument": 12,
+            "Source evaluation": 10
+          }
+        },
+        {
+          "year": 2025,
+          "topicMarks": {
+            "Technology adoption": 10,
+            "Institutions and incentives": 12,
+            "Privacy": 14,
+            "Algorithmic bias": 18,
+            "Professional responsibility": 10,
+            "Platform governance": 14,
+            "Evidence-based argument": 12,
+            "Source evaluation": 10
+          }
+        }
+      ]
+    }
+  ]
+}
