@@ -233,7 +233,8 @@ class Ctx:
     actions: list[ActionItem] = field(default_factory=list)
     soft_error: str | None = None  # step finished but could not do all of its job
     section_topics: dict[str, list[str]] = field(default_factory=dict)  # handout section → syllabus topic ids
-    deferred_topics: set[str] = field(default_factory=set)  # missed, but the lecturer said it comes later
+    # missed, but the lecturer said it comes later: topic title → (segment id, verified quote)
+    deferred_topics: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     @property
     def seg(self) -> dict[str, TranscriptSegment]:
@@ -598,12 +599,12 @@ def step_coverage(ctx: Ctx) -> str:
     # and no handout section may map to the topic.
     why = {m.topicId: normalize_ws(m.why) for m in res.missed if m.topicId in unit_ids and m.why.strip()}
     order = {s.id: i for i, s in enumerate(handout.sections)}
-    deferred: dict[str, str] = {}
+    deferred: dict[str, tuple[str, str]] = {}
     for m in res.missed:
         exact = find_verbatim(m.deferredQuote, ctx.seg[m.deferredSegmentId].text) \
             if m.deferredQuote and m.deferredSegmentId in ctx.seg else None
         if exact:
-            deferred[m.topicId] = exact
+            deferred[m.topicId] = (m.deferredSegmentId, exact)
     unclassified = []
     for t in unit.topics:
         if t.id in covered:
@@ -611,8 +612,8 @@ def step_coverage(ctx: Ctx) -> str:
         elif t.id in why:
             reason = why[t.id]
             if t.id in deferred:
-                ctx.deferred_topics.add(t.title)
-                reason = f'{reason.rstrip(".")}. The lecturer deferred it: "{deferred[t.id]}".'
+                ctx.deferred_topics[t.title] = deferred[t.id]
+                reason = f'{reason.rstrip(".")}. The lecturer deferred it: "{deferred[t.id][1]}".'
             card.missed.append(CoverageMissed(topic=t.title, syllabusSectionId=t.id, why=reason))
         else:
             unclassified.append(t.title)
