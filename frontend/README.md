@@ -4,15 +4,17 @@ Vite + React 19 + TypeScript + Tailwind v4 (shadcn-ready). React port of the ori
 (`../Student Workspace.dc.html`): Slack-style shell with rail · sidebar · pane · right panel.
 
 ```bash
-npm install
 npm run dev        # http://localhost:5173 — mock data by default
 npm run build      # type-check + production build to dist/
 ```
 
+No separate install step: `dev` and `build` run `scripts/ensure-deps.mjs` first, which reinstalls (`npm ci`) whenever
+`node_modules` wasn't installed from the current `package-lock.json` with the current Node version. After a `git pull`
+that changes dependencies, just run `npm run dev` again.
+
 Needs Node 20+ (tested on 22.11 and 22.22). The toolchain is pinned to Vite 6 on purpose: Vite 7/8 need Node
-≥ 22.12, and on older Node npm silently skips their native binding ("Cannot find native binding"). If you ever see
-that error, run `rm -rf node_modules && npm install` — don't delete `package-lock.json`, and don't bump Vite past 6 or
-oxlint past 1.16 unless everyone on the team is on Node ≥ 22.12.
+≥ 22.12, and on older Node npm silently skips their native binding ("Cannot find native binding"). Don't delete
+`package-lock.json`, and don't bump Vite past 6 or oxlint past 1.16 unless everyone on the team is on Node ≥ 22.12.
 
 ## Mock vs real backend
 

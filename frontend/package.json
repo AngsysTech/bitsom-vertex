@@ -8,11 +8,12 @@
   },
   "scripts": {
     "sync-types": "node -e \"require('fs').copyFileSync('../contracts.ts','src/types.ts')\"",
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/ensure-deps.mjs && vite",
+    "build": "node scripts/ensure-deps.mjs && tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/ensure-deps.mjs --stamp"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
