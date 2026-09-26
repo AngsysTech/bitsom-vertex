@@ -81,6 +81,7 @@ For each candidate you keep, write:
 
 Rules:
 - Keep every study, prep and deadline candidate, and every review candidate whose context starts with "Smart Exam".
-- Title a "Smart Exam" review "Revisit <its topic> before <the topic that builds on it>", or "Revisit your <topic> gap before the next class" when the lecture taught that same topic. Its why says in plain words which mistake to fix first.
+- Title a candidate whose context starts with "Smart Exam" "Revisit <its topic> before <the topic that builds on it>", or "Revisit your <topic> gap before the next class" when the lecture taught that same topic. Its why says in plain words which mistake to fix first.
+- Only those candidates are due at the next class. Never write "before the next class" in any other review or study title: those are due at the next assessment.
 - Two candidates can be the same task, for example a reading assigned for the next lecture and the prep for that lecture. Keep one, and list the other candidate ids in mergedIds.
 - You may add at most 2 asks: a question worth taking to the TA or lecturer. Tie each ask to a candidate id and ground it in that candidate's facts.
