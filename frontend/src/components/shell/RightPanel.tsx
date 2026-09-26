@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { ContextCards } from '@/components/cards/ContextCards'
+import { ClassContext } from '@/components/class/ClassContext'
 import { Icon } from '@/components/Icon'
 import { Highlighted } from '@/components/views/Highlighted'
-import { freshestAudit, latestCards, orderedCards, stateCard } from '@/lib/cards'
+import { freshestAudit, latestCards, stateCard, type PlacedCard } from '@/lib/cards'
 import { CARD_AGENT } from '@/lib/labels'
 import { navigate } from '@/lib/route'
 import { useWS } from '@/store/workspace'
@@ -21,21 +22,26 @@ function Skeleton() {
   )
 }
 
-function useContextCards() {
+/**
+ * Coach DM: study plan + weak topics (StudentState is freshest: accepts and the 1:1 write to it), the audit
+ * only if one exists, lecture cards if this thread carries any, and the latest Make-it-Relevant card.
+ */
+function useDmCards(): PlacedCard[] {
   const route = useWS((s) => s.route)
   const state = useWS((s) => s.studentState)
   const coachMsgs = useWS((s) => s.threads[CARD_AGENT.audit]?.messages)
   const msgs = useWS((s) => (s.route.view === 'dm' ? s.threads[s.route.id]?.messages : undefined))
+  const history = useWS((s) => s.relevantHistory)
   return useMemo(() => {
-    // The audit runs on student load and is cached in StudentState; the coach's thread copy carries citations.
-    const audit = freshestAudit(latestCards(coachMsgs).audit, stateCard(state, 'audit'))
-    if (route.view === 'channel') return audit ? [audit] : []
     const latest = latestCards(msgs)
-    const isCoach = route.view === 'dm' && route.id === CARD_AGENT.audit
-    // Coach DM always shows the current audit; other DMs fall back to it until they produce cards.
-    if (audit && (isCoach || !Object.keys(latest).length)) latest.audit = audit
-    return orderedCards(latest)
-  }, [route, state, coachMsgs, msgs])
+    const audit = freshestAudit(latestCards(coachMsgs).audit, stateCard(state, 'audit'))
+    const plan = stateCard(state, 'study_plan') ?? latest.study_plan
+    const weak = stateCard(state, 'weak_topics') ?? latest.weak_topics
+    const rel = history.at(-1)
+    const relevant: PlacedCard | undefined = rel ? { key: `rel:${history.length}`, card: rel, citations: [], at: '' } : latest.relevant
+    if (route.view === 'channel') return audit ? [audit] : []
+    return [plan, weak, audit, latest.coverage, latest.actions, relevant].filter((x): x is PlacedCard => !!x)
+  }, [route, state, coachMsgs, msgs, history])
 }
 
 function CitationView() {
@@ -91,11 +97,11 @@ export function RightPanel() {
   const loading = useWS((s) => s.loadingStudent)
   const agentName = useWS((s) => (s.route.view === 'dm' ? s.agents.find((a) => a.id === (s.route as { id: string }).id)?.name : undefined))
   const set = useWS((s) => s.set)
-  const cards = useContextCards()
+  const cards = useDmCards()
 
-  if (!open || (route.view !== 'dm' && route.view !== 'channel')) return null
+  if (!open || (route.view !== 'dm' && route.view !== 'channel' && route.view !== 'class')) return null
   const citation = mode === 'citation'
-  const title = citation ? 'Citation' : route.view === 'channel' ? 'Your audit' : (agentName ?? '')
+  const title = citation ? 'Citation' : route.view === 'class' ? route.id : route.view === 'channel' ? 'Your audit' : (agentName ?? '')
 
   return (
     <div className="flex min-h-0 w-[380px] flex-none flex-col border-l border-line bg-white">
@@ -118,7 +124,15 @@ export function RightPanel() {
         </button>
       </div>
       <div data-panel-body className="relative flex-1 overflow-y-auto p-4">
-        {loading ? <Skeleton /> : citation ? <CitationView /> : <ContextCards cards={cards} />}
+        {loading ? (
+          <Skeleton />
+        ) : citation ? (
+          <CitationView />
+        ) : route.view === 'class' ? (
+          <ClassContext courseCode={route.id} />
+        ) : (
+          <ContextCards cards={cards} emptyText={route.view === 'channel' ? 'Circulars from the Academic Office. Nothing here has changed your plan.' : undefined} />
+        )}
       </div>
     </div>
   )

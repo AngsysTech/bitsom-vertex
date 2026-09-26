@@ -6,16 +6,18 @@ import { useWS, type RailId } from '@/store/workspace'
 const ITEMS: [RailId, string, string][] = [
   ['home', 'home', 'Home'],
   ['dms', 'chat_bubble', 'DMs'],
+  ['calendar', 'calendar_month', 'Calendar'],
   ['files', 'description', 'Files'],
   ['agents', 'apps', 'Agents & tools'],
 ]
 
 function railClick(id: RailId) {
+  if (id === 'calendar') return navigate('/calendar')
   if (id === 'files') return navigate('/files')
   if (id === 'agents') return navigate('/agents')
   const s = useWS.getState()
   s.set({ rail: id })
-  if (s.route.view !== 'dm' && s.route.view !== 'channel') navigate(`/dm/${s.lastDm}`)
+  if (s.route.view !== 'dm' && s.route.view !== 'channel' && s.route.view !== 'class') navigate(`/dm/${s.lastDm}`)
 }
 
 export function Rail() {

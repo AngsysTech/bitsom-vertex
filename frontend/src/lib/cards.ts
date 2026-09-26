@@ -50,6 +50,8 @@ export function findCard(threads: Message[][], state: StudentState | null, type:
     if (p && (!best || Date.parse(p.at) > Date.parse(best.at))) best = p
   }
   if (type === 'audit') return freshestAudit(best, stateCard(state, type))
+  // The plan and weak topics in StudentState are the live copies (accepts and the 1:1 write there).
+  if (type === 'study_plan' || type === 'weak_topics') return stateCard(state, type) ?? best
   return best ?? stateCard(state, type)
 }
 

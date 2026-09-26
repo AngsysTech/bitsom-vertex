@@ -15,3 +15,6 @@ export const POLL_MS = 3000
 export const ADVISOR_NAME = 'Dr. Kavita Rao'
 
 export const DEFAULT_AGENT = 'academic_coach'
+
+/** Coach DM starters (UI brief v2 §4). */
+export const COACH_STARTERS = ['What should I study this week?', 'Run my weekly review', 'Am I on track?']

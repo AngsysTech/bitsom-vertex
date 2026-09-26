@@ -1,8 +1,9 @@
 import { Icon } from '@/components/Icon'
 import { Markdown } from '@/components/Markdown'
-import { ADVISOR_NAME } from '@/lib/config'
+import { ADVISOR_NAME, DEFAULT_AGENT } from '@/lib/config'
 import { fmtTime, initials } from '@/lib/format'
 import { isClubAgent } from '@/lib/labels'
+import { navigate } from '@/lib/route'
 import { cn } from '@/lib/utils'
 import { useWS } from '@/store/workspace'
 import type { Agent, Message } from '@/types'
@@ -29,16 +30,17 @@ function Trace({ m }: { m: Message }) {
   const expanded = useWS((s) => !!s.traceOpen[m.id])
   const set = useWS((s) => s.set)
   const total = m.trace.reduce((n, t) => n + (t.durationMs || 0), 0)
+  const failed = m.trace.some((t) => t.error)
   return (
     <>
       <button
         type="button"
         onClick={() => set((s) => ({ traceOpen: { ...s.traceOpen, [m.id]: !expanded } }))}
-        className="-ml-1.5 mt-[3px] mb-1 flex cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-1.5 py-[3px] text-[13px] text-ink-5 hover:border-line hover:bg-white"
+        className="-ml-1.5 mt-[3px] mb-1 flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-1.5 py-[3px] text-[13px] text-ink-5 hover:border-line hover:bg-white"
       >
-        <Icon name="bolt" size={16} className="text-link" />
-        <b className="text-link">Worked for {(total / 1000).toFixed(1)}s</b>
-        <span className="truncate">· {m.trace.map((t) => t.tool).join(', ')}</span>
+        <Icon name={failed ? 'error' : 'bolt'} size={16} className={failed ? 'text-bad' : 'text-link'} />
+        <b className={cn('flex-none whitespace-nowrap', failed ? 'text-bad' : 'text-link')}>Worked for {(total / 1000).toFixed(1)}s</b>
+        <span className="min-w-0 truncate">· {m.trace.map((t) => t.tool).join(', ')}</span>
         <Icon name={expanded ? 'expand_less' : 'expand_more'} size={16} />
       </button>
       {expanded && (
@@ -47,6 +49,8 @@ function Trace({ m }: { m: Message }) {
             <div key={i} className="text-[13px] leading-[19px]">
               <b className="font-mono text-xs">{t.tool}</b> <span className="text-ink-5">— {t.summary}</span>{' '}
               {t.durationMs > 0 && <span className="text-xs text-ink-4">{(t.durationMs / 1000).toFixed(1)}s</span>}
+              {t.error && <div className="text-xs text-bad">error: {t.error}</div>}
+              {!!t.dropped?.length && <div className="text-xs text-warn-ink">dropped (failed verification): {t.dropped.join(', ')}</div>}
             </div>
           ))}
         </div>
@@ -55,19 +59,73 @@ function Trace({ m }: { m: Message }) {
   )
 }
 
-/** One chat line. `dmAgent` is the agent whose DM this is (fallback when a message has no agentId). */
-export function MessageRow({ m, dmAgent }: { m: Message; dmAgent: Agent }) {
+/** Small chips for the cards a message carried (the cards themselves render in the panel / canvas). */
+function CardChips({ m }: { m: Message }) {
+  const set = useWS((s) => s.set)
+  const chips = m.cards.flatMap((c) => {
+    if (c.type === 'coverage') return [{ key: 'coverage', icon: 'fact_check', label: `Coverage · ${c.missed.length} skipped${c.confusion?.length ? ` · ${c.confusion.length} flagged` : ''}`, go: () => set({ panelOpen: true, panelMode: 'context' }) }]
+    if (c.type === 'actions') return [{ key: 'actions', icon: 'checklist', label: `${c.items.length} actions`, go: () => set({ panelOpen: true, panelMode: 'context' }) }]
+    if (c.type === 'one_on_one')
+      return [
+        {
+          key: 'one_on_one',
+          icon: 'event_repeat',
+          label: `Open Weekly 1:1 · ${c.oneOnOne.weekLabel}`,
+          go: () => {
+            set({ tab: 'canvas', canvas: 'one_on_one', oneOnOne: { status: 'ready', value: c.oneOnOne } })
+            navigate(`/dm/${DEFAULT_AGENT}`)
+          },
+        },
+      ]
+    if (c.type === 'study_plan') return [{ key: 'plan', icon: 'calendar_month', label: 'See it on the calendar', go: () => (set({ tab: 'canvas', canvas: 'calendar' }), navigate(`/dm/${DEFAULT_AGENT}`)) }]
+    return []
+  })
+  if (!chips.length) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {chips.map((c) => (
+        <button key={c.key} type="button" onClick={c.go} className="flex h-6 cursor-pointer items-center gap-1 rounded-full border border-line bg-white px-2.5 text-xs font-bold text-ink hover:border-ink-5">
+          <Icon name={c.icon} size={14} className="text-ink-5" />
+          {c.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Lecture events in a class channel ("Lecture recorded · 22 Sep · 48 min", "Handout ready") render as markers. */
+function systemIcon(text: string) {
+  if (/^(Lecture recorded|Audio uploaded|Transcript added)/.test(text)) return 'mic'
+  if (/^Handout ready/.test(text)) return 'description'
+  if (/stopped at|failed|couldn/i.test(text)) return 'error'
+  return 'info'
+}
+
+/** Replies that send the student to the DM ("ask me in my DM") get an Open DM chip. */
+const pointsToDm = (text: string) => /\b(my|the) DM\b|direct message/i.test(text)
+
+/** One chat line. `dmAgent` is the agent whose thread this is (fallback when a message has no agentId). */
+export function MessageRow({ m, dmAgent, inClass, highlight }: { m: Message; dmAgent: Agent; inClass?: string; highlight?: boolean }) {
   const agents = useWS((s) => s.agents)
   const studentName = useWS((s) => s.students.find((x) => x.id === s.studentId)?.name ?? 'You')
   const openCitation = useWS((s) => s.openCitation)
 
-  if (m.role === 'system')
+  if (m.role === 'system') {
+    const icon = systemIcon(m.text)
     return (
-      <div className="flex items-start gap-2 py-2 pr-5 pl-[66px] text-[13px] text-ink-5">
-        <Icon name="info" size={16} className="mt-0.5 text-ink-4" />
-        <Markdown text={m.text} citations={m.citations} />
+      <div data-msg-id={m.id} className={cn('flex items-start gap-2 py-1.5 pr-5 pl-[66px] text-[13px] text-ink-5', highlight && 'animate-flash')}>
+        <Icon name={icon} size={16} className={cn('mt-0.5', icon === 'error' ? 'text-bad' : icon === 'info' ? 'text-ink-4' : 'text-ink')} />
+        <div className="min-w-0 flex-1">
+          <Markdown text={m.text} citations={m.citations} />
+          {(() => {
+            const err = m.trace.find((t) => t.error)?.error
+            return err && !m.text.includes(err) ? <span className="text-xs text-bad">{err}</span> : null
+          })()}
+        </div>
+        <span className="flex-none text-[11px] text-ink-4">{fmtTime(m.createdAt)}</span>
       </div>
     )
+  }
 
   const agent = m.role === 'agent' ? (agents.find((a) => a.id === m.agentId) ?? dmAgent) : undefined
   const club = !!agent && isClubAgent(agent.id)
@@ -79,7 +137,8 @@ export function MessageRow({ m, dmAgent }: { m: Message; dmAgent: Agent }) {
   return (
     <>
       <div
-        className={cn('flex gap-2.5 py-2 pr-5 hover:bg-soft', reply ? 'pl-[66px]' : 'pl-5')}
+        data-msg-id={m.id}
+        className={cn('flex gap-2.5 py-2 pr-5 hover:bg-soft', reply ? 'pl-[66px]' : 'pl-5', highlight && 'animate-flash')}
         style={m.role === 'agent' && !reply ? { boxShadow: 'inset 3px 0 0 #E2E8F0' } : undefined}
       >
         <Avatar m={m} agent={agent} small={reply} />
@@ -87,6 +146,7 @@ export function MessageRow({ m, dmAgent }: { m: Message; dmAgent: Agent }) {
           <div className="flex items-baseline gap-2">
             <b className="text-[15px]">{name}</b>
             {badge && <span className="rounded-[3px] bg-mist px-1 py-px text-[10px] font-bold tracking-[.04em] text-ink-5">{badge}</span>}
+            {inClass && m.role === 'agent' && <span className="rounded-[3px] border border-line px-1 py-px text-[10px] font-bold text-ink-5">in {inClass}</span>}
             <span className="text-xs text-ink-5">{fmtTime(m.createdAt)}</span>
           </div>
           {reply && (
@@ -97,6 +157,17 @@ export function MessageRow({ m, dmAgent }: { m: Message; dmAgent: Agent }) {
           )}
           {m.trace.length > 0 && <Trace m={m} />}
           <Markdown text={m.text} citations={m.citations} className="text-[15px] leading-[22px] text-pretty text-ink" />
+          {inClass && m.role === 'agent' && pointsToDm(m.text) && (
+            <button
+              type="button"
+              onClick={() => navigate(`/dm/${DEFAULT_AGENT}`)}
+              className="mt-1.5 flex h-6 cursor-pointer items-center gap-1 rounded-full border border-ink bg-white px-2.5 text-xs font-bold text-ink hover:bg-soft"
+            >
+              <Icon name="chat_bubble" size={13} />
+              Open DM
+            </button>
+          )}
+          <CardChips m={m} />
           {m.citations.length > 0 && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-5">
               <span className="flex items-center gap-1 font-bold">
@@ -119,12 +190,7 @@ export function MessageRow({ m, dmAgent }: { m: Message; dmAgent: Agent }) {
             <span>
               Escalated to <b className="text-ink">Human Advisor</b> · Ticket #{esc.ticketId} ·
             </span>
-            <span
-              className={cn(
-                'rounded-full border px-2 py-px text-[11px] font-bold text-ink',
-                esc.status === 'open' ? 'border-warn bg-warn-soft' : 'border-ok bg-ok-soft',
-              )}
-            >
+            <span className={cn('rounded-full border px-2 py-px text-[11px] font-bold text-ink', esc.status === 'open' ? 'border-warn bg-warn-soft' : 'border-ok bg-ok-soft')}>
               {esc.status === 'open' ? 'Open' : 'Answered'}
             </span>
           </div>

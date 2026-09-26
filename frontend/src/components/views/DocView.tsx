@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { ContextCards } from '@/components/cards/ContextCards'
+import { OneOnOneCanvas } from '@/components/cards/OneOnOneCanvas'
 import { Icon } from '@/components/Icon'
 import { SyntheticBadge } from '@/components/SyntheticBadge'
 import { useFileSource } from '@/hooks/useFileSource'
@@ -13,6 +14,16 @@ import type { WorkspaceFile } from '@/types'
 import { Highlighted } from './Highlighted'
 
 function Canvas({ file }: { file: Extract<WorkspaceFile, { kind: 'canvas' }> }) {
+  if (file.cardType === 'one_on_one')
+    return (
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <OneOnOneCanvas />
+      </div>
+    )
+  return <CardCanvas file={file} />
+}
+
+function CardCanvas({ file }: { file: Extract<WorkspaceFile, { kind: 'canvas' }> }) {
   const threads = useWS((s) => s.threads)
   const state = useWS((s) => s.studentState)
   const agentName = useWS((s) => s.agents.find((a) => a.id === CARD_AGENT[file.cardType])?.name ?? 'the agent')

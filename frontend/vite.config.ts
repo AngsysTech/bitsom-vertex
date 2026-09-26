@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,6 +10,8 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
+    // The mock (MOCK=true) reads the synthetic dataset straight from ../backend/app/data.
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), fileURLToPath(new URL('../backend/app/data', import.meta.url))] },
     // Real mode (VITE_MOCK=false) calls /api/*, proxied to the FastAPI backend.
     proxy: {
       '/api': {
