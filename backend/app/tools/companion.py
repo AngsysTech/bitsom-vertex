@@ -31,7 +31,7 @@ from typing import Any, BinaryIO, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from app.core import academics, db, llm, media, records, stt
+from app.core import academics, db, exam_evidence, llm, media, records, stt
 from app.core.academics import (Exam, TopicWeight, due_iso, iso, lecture_start, next_exam, next_session,
                                 norm_topic, resolve_when, topic_weight)
 from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
@@ -763,6 +763,7 @@ class _Cand:
     provenance: dict[str, str]
     due: str | None
     canonical: bool = False  # topic is a syllabus topic fixed by code; the model's topicId can't change it
+    revisit: str | None = None  # Smart Exam gap: the topic taught (or promised) that builds on this one
 
 
 @dataclass
@@ -822,6 +823,10 @@ def _facts_for(ctx: Ctx, topic: str, exam: Exam | None) -> tuple[list[str], dict
     sf, _ = _student_fact(ctx.lecture.studentId, course, topic)
     if sf:
         facts.append(sf)
+    gaps = exam_evidence.weak_gaps(ctx.lecture.studentId, course, topic)
+    if gaps:  # the Smart Exam's rubric: which questions lost concept marks, and on what
+        facts += [g.fact for g in gaps[:2]]
+        prov["gapTags"] = [g.tag for g in gaps]
     if exam:
         facts.append(f"next {course} assessment: {exam.title} on {exam.start:%a %d %b}")
     return facts, prov
@@ -878,6 +883,39 @@ def _named_session(ctx: Ctx, seg_id: str, quote: str) -> tuple[str | None, str |
     s = next_session(lec.courseCode, lecture_at)
     return (iso(s.start), cm_id, "no session named, so the next one") if s else \
         (None, cm_id, "the timetable has no later session")
+
+
+def _revisit_targets(ctx: Ctx) -> dict[str, tuple[str, str, str | None]]:
+    """Topics with a Smart Exam concept gap that this lecture taught again, or that a topic it
+    taught (or promised for the next lecture) builds on, per the syllabus's "Builds on" lines.
+    Returns target → (context for the model, the topic that builds on it, segmentId)."""
+    syl, cov, lec = ctx.syllabus, ctx.coverage, ctx.lecture
+    if not syl:
+        return {}
+    taught: dict[str, tuple[str, str | None]] = {}  # topic → (how, segment where it came up)
+    for s in ctx.handout.sections if ctx.handout else []:
+        if s.syllabusTopic:
+            taught.setdefault(s.syllabusTopic, ("taught in this lecture", s.segmentIds[0] if s.segmentIds else None))
+    for c in cov.covered if cov else []:
+        taught.setdefault(c.topic, ("taught in this lecture", None))
+    for cm in ctx.commitments:
+        topic = _commitment_topic(ctx, cm) if cm.kind == "next_lecture_topic" else None
+        if topic:
+            taught.setdefault(topic, ("promised for the next lecture", cm.segmentId))
+    out: dict[str, tuple[str, str, str | None]] = {}
+    for topic, (how, seg) in taught.items():
+        t = syl.by_title(topic)
+        for base in ([t.title] + t.builds_on) if t else []:
+            if base in out or not exam_evidence.weak_gaps(lec.studentId, lec.courseCode, base):
+                continue
+            if base == t.title:
+                why = (f"Smart Exam shows a concept gap in {base}, which was {how}: "
+                       f"revisit that gap before the next class builds on it")
+            else:
+                why = (f"Smart Exam shows a concept gap in {base}; {t.title} ({how}) builds on it "
+                       f"per the syllabus: revisit {base} before learning {t.title}")
+            out[base] = (why, t.title, seg)
+    return out
 
 
 def _missed_needs(ctx: Ctx, exam: Exam | None, now: datetime) -> dict[str, _Need]:
@@ -938,6 +976,18 @@ def _candidates(ctx: Ctx, needs: dict[str, _Need], exam: Exam | None,
                            {"segmentId": e.segmentId, **({"syllabusSectionId": sec_id} if sec_id else {}), **prov},
                            exam_due, canonical=True))
         topics_seen.add(e.topic)
+    # Smart Exam evidence: a concept gap this lecture re-taught or builds on → revisit it before the next class
+    ahead = next_session(course, max(lecture_at, now))
+    for base, (context, builds, seg) in _revisit_targets(ctx).items():
+        if base in topics_seen or base not in by_title:
+            continue
+        facts, prov = facts_for(base)
+        if ahead:
+            facts.append(f"next {course} class: {ahead.start:%a %d %b, %H:%M}")
+        cands.append(_Cand(f"c{len(cands) + 1}", "review", base, context, facts,
+                           {"syllabusSectionId": by_title[base].id, **({"segmentId": seg} if seg else {}), **prov},
+                           iso(ahead.start) if ahead else exam_due, canonical=True, revisit=builds))
+        topics_seen.add(base)
     # the student's own weak spots among what this lecture covered
     for c in cov.covered if cov else []:
         if c.topic in topics_seen:
@@ -998,11 +1048,24 @@ def _candidates(ctx: Ctx, needs: dict[str, _Need], exam: Exam | None,
     return cands, notes
 
 
-def _why_clause(text: str, kind: str) -> str:
+_NUMBER = re.compile(r"(?<![A-Za-z])\d+(?![A-Za-z])")  # a figure; "3NF", "2PL" and "Q4b" are names, not figures
+
+
+def _why_clause(text: str, kind: str, fallback: str | None = None) -> str:
     clause = normalize_ws(text).rstrip(".;")
-    if re.search(r"\d", clause):  # numbers must come from code, never the model
-        clause = ", ".join(p for p in re.split(r",|;", clause) if not re.search(r"\d", p)).strip()
-    return clause or _KIND_FACT[kind]
+    if _NUMBER.search(clause):  # numbers must come from code, never the model
+        clause = ", ".join(p for p in re.split(r",|;", clause) if not _NUMBER.search(p)).strip()
+    return clause or fallback or _KIND_FACT[kind]
+
+
+def _fallback_clause(cand: "_Cand") -> str | None:
+    """What an emptied clause falls back to when the kind's default would misstate the reason."""
+    if cand.revisit:
+        return f"{cand.revisit} builds on it" if norm_topic(cand.revisit) != norm_topic(cand.topic) \
+            else "Your Smart Exam gap is in what this lecture taught"
+    if cand.kind == "review" and cand.context.startswith(("Weak in", "Covered in this lecture; the student is weak")):
+        return "You are weak on it in your internal marks"
+    return None
 
 
 def _dedupe(items: list[ActionItem], order: dict[str, int]) -> tuple[list[ActionItem], list[str]]:
@@ -1063,6 +1126,25 @@ def _guarantee(ctx: Ctx, items: list[ActionItem], needs: dict[str, _Need], exam:
     return made, fixed
 
 
+def _guarantee_revisits(ctx: Ctx, items: list[ActionItem], cands: list[_Cand]) -> list[str]:
+    """Every Smart Exam revisit candidate ends up as a review action, even when the model left it out.
+    The template's clause has no numbers; every figure after it is a computed fact."""
+    made: list[str] = []
+    lec = ctx.lecture
+    for c in cands:
+        if not c.revisit or any(a.kind == "review" and norm_topic(a.topic) == norm_topic(c.topic) for a in items):
+            continue
+        same = norm_topic(c.revisit) == norm_topic(c.topic)
+        title = f"Revisit your {c.topic} gap before the next class" if same else f"Revisit {c.topic} before {c.revisit}"
+        lead = "Your Smart Exam gap is in what this lecture taught" if same else f"{c.revisit} builds on it"
+        action = ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind="review", title=title,
+                            course=lec.courseCode, topic=c.topic, minutes=30, dueBy=c.due,
+                            why="; ".join([lead] + c.facts), provenance=ActionProvenance(**c.provenance))
+        items.append(action)
+        made.append(f"review '{c.topic}' {action.id} (Smart Exam gap; {c.revisit} builds on it)")
+    return made
+
+
 def step_actions(ctx: Ctx) -> str:
     lec = ctx.lecture
     now = datetime.now(TZ)
@@ -1113,7 +1195,7 @@ def step_actions(ctx: Ctx) -> str:
         item = ActionItem(id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind=kind,
                           title=normalize_ws(title)[:120], course=lec.courseCode, topic=topic_of(cand, topic_id),
                           minutes=max(10, min(int(minutes or 45), 180)), dueBy=due,
-                          why="; ".join([_why_clause(why, kind)] + cand.facts),
+                          why="; ".join([_why_clause(why, kind, _fallback_clause(cand))] + cand.facts),
                           provenance=ActionProvenance(**cand.provenance))
         order[item.id] = int(cand.id[1:])
         return item
@@ -1133,6 +1215,7 @@ def step_actions(ctx: Ctx) -> str:
             items.append(make(cand, "ask", ask.title, ask.why, ask.minutes, None))
     items, duplicates = _dedupe(items, order)
     guaranteed, fixed = _guarantee(ctx, items, needs, exam, now)
+    guaranteed += _guarantee_revisits(ctx, items, cands)
     if not cands and not items:
         ctx.actions = []
         return "no gaps, emphasis or commitments, so no actions" + (f"; {'; '.join(notes)}" if notes else "")
@@ -1160,7 +1243,11 @@ def step_actions(ctx: Ctx) -> str:
     parts += fixed
     if guaranteed:
         parts.append(f"origin: guaranteed (the model gave no action for these missed topics): {'; '.join(guaranteed)}")
-    parts.append("marks and dates computed from past_papers.json, exam_calendar.json, timetable.json")
+    revisits = [f"{c.topic} (← {c.revisit})" for c in cands if c.revisit]
+    if revisits:
+        parts.append(f"Smart Exam gaps this lecture builds on: {', '.join(revisits)}")
+    parts.append("marks and dates computed from past_papers.json, exam_calendar.json, timetable.json, "
+                 "graded_answers/ (Smart Exam)")
     return "; ".join(parts + notes)
 
 
@@ -1197,6 +1284,12 @@ def step_notify(ctx: Ctx) -> str:
         s3 = f"I've proposed {len(ctx.actions)} actions; the first, “{first.title}”, is due {_fmt_due(first.dueBy)}."
     else:
         s3 = "Nothing in this lecture needs a follow-up action."
+    targets = {norm_topic(t) for t in _revisit_targets(ctx)}
+    gap_items = [a for a in ctx.actions if a.kind == "review" and norm_topic(a.topic) in targets and a.dueBy]
+    if gap_items:
+        names = ", ".join(f"**{a.topic}**" for a in gap_items)
+        s3 += (f" Your Smart Exam shows gaps in {names}, which this lecture covers or builds on, so each has a "
+               f"revisit item due before the next class ({_fmt_due(gap_items[0].dueBy)}).")
     if cov and cov.confusion:
         flagged = list(dict.fromkeys(c.topic for c in cov.confusion))
         s3 += f" You flagged {len(cov.confusion)} moment(s) as confusing ({', '.join(flagged)}); each has a review item."

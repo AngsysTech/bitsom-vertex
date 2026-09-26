@@ -10,6 +10,7 @@ Expected shape (front matter optional):
     ---
     ## Unit 4: Transactions and Concurrency Control
     - 4.1 ACID properties            (or "### 4.1 ACID properties")
+    Builds on: Serializability.      (optional: earlier topics this one needs)
 
 A topic's section id is ``<docId>.<unit>.<n>`` (``syllabus.cs-f212.4.4``), stable across
 runs. Topics are the closed list every model call picks from; a model never names
@@ -31,6 +32,7 @@ class Topic:
     line: str          # the syllabus line as written (citation quote)
     unit_id: str
     unit_title: str
+    builds_on: list[str] = field(default_factory=list)  # canonical titles from its "Builds on:" line
 
 
 @dataclass
@@ -59,6 +61,10 @@ class Syllabus:
     def unit(self, unit_id: str | None) -> Unit | None:
         return next((u for u in self.units if u.id == unit_id), None)
 
+    def by_title(self, title: str | None) -> Topic | None:
+        key = (title or "").casefold().strip()
+        return next((t for t in self.topics if t.title.casefold() == key), None)
+
 
 def course_slug(course_code: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", course_code.lower()).strip("-")
@@ -77,6 +83,7 @@ def _front_matter(text: str) -> tuple[dict[str, str], str]:
 
 
 _NUM = re.compile(r"^(\d+(?:\.\d+)*)[.)]?\s+")
+_BUILDS_ON = re.compile(r"^builds on:\s*(.+?)\.?$", re.I)
 
 
 def _parse(text: str, fallback_code: str, slug: str) -> Syllabus:
@@ -98,6 +105,10 @@ def _parse(text: str, fallback_code: str, slug: str) -> Syllabus:
             current = Unit(id=f"{doc_id}.{number}", number=number, title=heading)
             units.append(current)
             continue
+        dep = _BUILDS_ON.match(line)
+        if dep and current is not None and current.topics:
+            current.topics[-1].builds_on += [d.strip() for d in dep.group(1).split(",") if d.strip()]
+            continue
         item = re.match(r"^(?:###\s+|[-*]\s+)(.*)$", line)
         if item and current is not None:
             text_line = item.group(1).strip()
@@ -111,10 +122,13 @@ def _parse(text: str, fallback_code: str, slug: str) -> Syllabus:
                 sec = f"{current.number}.{len(current.topics) + 1}"
             current.topics.append(Topic(id=f"{doc_id}.{sec}", title=topic_title, line=text_line,
                                         unit_id=current.id, unit_title=current.title))
-    return Syllabus(doc_id=doc_id, course_code=meta.get("courseCode") or fallback_code,
-                    title=title or f"{fallback_code} syllabus",
-                    connector_id=meta.get("connectorId") or "lms_moodle",
-                    units=[u for u in units if u.topics])
+    syl = Syllabus(doc_id=doc_id, course_code=meta.get("courseCode") or fallback_code,
+                   title=title or f"{fallback_code} syllabus",
+                   connector_id=meta.get("connectorId") or "lms_moodle",
+                   units=[u for u in units if u.topics])
+    for t in syl.topics:  # keep only prerequisites that are topics of this same syllabus
+        t.builds_on = [p.title for p in map(syl.by_title, t.builds_on) if p and p.title != t.title]
+    return syl
 
 
 @lru_cache(maxsize=32)

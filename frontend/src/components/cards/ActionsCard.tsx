@@ -37,11 +37,21 @@ function ActionRow({ a, flagAt }: { a: ActionItem; flagAt?: number }) {
     <div className={cn('flex flex-col gap-1 border-t border-line py-2 text-[13px] leading-[18px]', dismissed && 'opacity-55')}>
       <div className="flex items-start justify-between gap-2">
         <b className={cn('min-w-0', dismissed && 'line-through')}>{a.title}</b>
-        {a.kind === 'review' && flagAt != null && (
-          <span className="flex flex-none items-center gap-0.5 rounded-full border border-bad bg-bad-soft px-1.5 font-mono text-[10px] font-bold" data-tip="You flagged this in class">
-            🚩 {mmss(flagAt)}
-          </span>
-        )}
+        <span className="flex flex-none items-center gap-1">
+          {!!a.provenance.gapTags?.length && (
+            <span
+              className="flex items-center gap-0.5 rounded-full border border-warn bg-warn-soft px-1.5 text-[10px] font-bold text-warn-ink"
+              data-tip="Weak in your graded mid-sem (Smart Exam): the questions and marks are in the reason below"
+            >
+              <Icon name="warning" size={12} /> Smart Exam gap
+            </span>
+          )}
+          {a.kind === 'review' && flagAt != null && (
+            <span className="flex items-center gap-0.5 rounded-full border border-bad bg-bad-soft px-1.5 font-mono text-[10px] font-bold" data-tip="You flagged this in class">
+              🚩 {mmss(flagAt)}
+            </span>
+          )}
+        </span>
       </div>
       <span className="text-xs text-ink-5">
         {[a.minutes && `${a.minutes} min`, a.dueBy && `due ${due(a.dueBy)}`].filter(Boolean).join(' · ')}

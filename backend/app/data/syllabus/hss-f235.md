@@ -21,6 +21,7 @@ Privacy is treated as a named assessable topic in this unit, with definitions, w
 
 ### Algorithmic bias
 Algorithmic bias is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
+Builds on: Privacy.
 
 ### Professional responsibility
 Professional responsibility is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
@@ -31,6 +32,7 @@ Digital labor is treated as a named assessable topic in this unit, with definiti
 
 ### Platform governance
 Platform governance is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
+Builds on: Institutions and incentives.
 
 ### Access and inequality
 Access and inequality is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
@@ -41,6 +43,8 @@ Evidence-based argument is treated as a named assessable topic in this unit, wit
 
 ### Policy memo writing
 Policy memo writing is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
+Builds on: Evidence-based argument.
 
 ### Source evaluation
 Source evaluation is treated as a named assessable topic in this unit, with definitions, worked examples, and problem-solving practice.
+Builds on: Evidence-based argument.

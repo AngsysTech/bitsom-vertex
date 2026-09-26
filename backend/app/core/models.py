@@ -196,6 +196,7 @@ class ActionProvenance(Model):
     pastPapersCitationId: Optional[str] = None
     commitmentId: Optional[str] = None
     markerId: Optional[str] = None
+    gapTags: Optional[list[str]] = None  # Smart Exam concept gaps (graded_answers) behind this action
 
 
 ActionKind = Literal["study", "review", "ask", "resource", "prep", "deadline"]

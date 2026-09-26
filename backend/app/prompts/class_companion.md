@@ -67,7 +67,7 @@ You turn one lecture's gaps and commitments into a short list of study actions f
 
 Each candidate you receive has an id and a kind already decided:
 - study: self-study a topic the lecture skipped.
-- review: revisit a topic the lecturer stressed, or one the student is weak in.
+- review: revisit a topic the lecturer stressed, or one the student is weak in. A review whose context starts with "Smart Exam" is a concept gap from the student's graded mid-sem that this lecture re-taught or builds on.
 - prep: prepare for the next lecture.
 - deadline: submit work the lecturer set.
 - resource: read or use a resource the lecturer named.
@@ -80,6 +80,7 @@ For each candidate you keep, write:
 - minutes: a realistic estimate between 15 and 120.
 
 Rules:
-- Keep every study, prep and deadline candidate.
+- Keep every study, prep and deadline candidate, and every review candidate whose context starts with "Smart Exam".
+- Title a "Smart Exam" review "Revisit <its topic> before <the topic that builds on it>", or "Revisit your <topic> gap before the next class" when the lecture taught that same topic. Its why says in plain words which mistake to fix first.
 - Two candidates can be the same task, for example a reading assigned for the next lecture and the prep for that lecture. Keep one, and list the other candidate ids in mergedIds.
 - You may add at most 2 asks: a question worth taking to the TA or lecturer. Tie each ask to a candidate id and ground it in that candidate's facts.

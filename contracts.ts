@@ -13,6 +13,7 @@
 // v3.8: OneOnOne recap fields as built (blocksMissed, prepMet/Missed, movementNote, window); direct
 // /diagnose and /plan tool endpoints; simulate-week semantics as built (moves the student's clock).
 // v3.7: GradedAnswerRow (exam-system feedback, synthetic), WeakTopic.gaps, MIR source "gap".
+// v3.10: ActionItem.provenance.gapTags — a lecture action backed by a Smart Exam gap ("revisit X before Y").
 // v3.6: campus discovery as a calendar source (Pick.status/suggestedCalendarItem, CalendarItem source "event", /discover, /picks).
 // v3.5: class channels (ClassChannel, Channel.kind "class", per-course threads, chat courseCode scope),
 // calendar courseCode filter, GET /classes.
@@ -545,7 +546,8 @@ export interface ActionItem {
   minutes?: number;
   dueBy?: string;             // ISO, derived from exam calendar
   why: string;                // "Skipped in class; carried 14–18 marks in last 3 end-sems"
-  provenance: { segmentId?: string; syllabusSectionId?: string; pastPapersCitationId?: string; commitmentId?: string; markerId?: string };
+  provenance: { segmentId?: string; syllabusSectionId?: string; pastPapersCitationId?: string; commitmentId?: string; markerId?: string;
+                gapTags?: string[] };     // v3.10: Smart Exam concept gaps (graded answers) behind a review/study action
   status: "proposed" | "accepted" | "dismissed" | "done";
   planBlockId?: string;       // set when accepted → PlanBlock added to StudentState.plan
   calendarItemId?: string;    // set when accepted → CalendarItem created
