@@ -52,6 +52,7 @@ class Thread(Model):
     id: str
     studentId: str
     agentId: str
+    courseCode: Optional[str] = None  # class-channel threads: `${studentId}:class:${courseCode}`
     messages: list[Message]
 
 
@@ -123,6 +124,24 @@ class HandoutSection(Model):
     segmentIds: list[str] = Field(default_factory=list)
     syllabusTopic: Optional[str] = None
     syllabusSectionId: Optional[str] = None
+    stuck: Optional["StuckFlag"] = None  # student flagged this part in class
+
+
+class StuckFlag(Model):
+    markerIds: list[str] = Field(default_factory=list)
+    atSec: list[float] = Field(default_factory=list)
+
+
+class StuckMarker(Model):
+    """"I'm stuck here": a tap during class (or a click on the handout timeline afterwards)."""
+    id: str
+    lectureId: str
+    atSec: float
+    note: Optional[str] = None
+    createdAt: str
+    segmentId: Optional[str] = None
+    handoutSectionId: Optional[str] = None
+    topic: Optional[str] = None
 
 
 class Handout(Model):
@@ -160,6 +179,15 @@ class CoverageCard(Model):
     covered: list[CoverageCovered] = Field(default_factory=list)
     missed: list[CoverageMissed] = Field(default_factory=list)
     emphasized: list[CoverageEmphasized] = Field(default_factory=list)
+    confusion: list["CoverageConfusion"] = Field(default_factory=list)  # from StuckMarkers
+
+
+class CoverageConfusion(Model):
+    topic: str
+    markerId: str
+    atSec: float
+    handoutSectionId: str
+    note: Optional[str] = None
 
 
 class ActionProvenance(Model):
@@ -167,6 +195,7 @@ class ActionProvenance(Model):
     syllabusSectionId: Optional[str] = None
     pastPapersCitationId: Optional[str] = None
     commitmentId: Optional[str] = None
+    markerId: Optional[str] = None
 
 
 ActionKind = Literal["study", "review", "ask", "resource", "prep", "deadline"]
@@ -264,8 +293,6 @@ class WeakTopicsCard(Model):
 
 class TopicMovement(Model):
     topic: str
-    # not in contracts.ts: which course the topic belongs to
-    course: Optional[str] = None
     from_: int = Field(alias="from")
     to: int
 
@@ -273,6 +300,18 @@ class TopicMovement(Model):
 
     def dump(self) -> dict[str, Any]:
         return self.model_dump(mode="json", exclude_none=True, by_alias=True)
+
+
+class RecapWindow(Model):
+    from_: str = Field(alias="from")
+    to: str
+
+    model_config = {"populate_by_name": True}
+
+
+class FlaggedTopic(Model):
+    topic: str
+    times: int
 
 
 class OneOnOneRecap(Model):
@@ -283,15 +322,13 @@ class OneOnOneRecap(Model):
     completedTopics: list[str] = Field(default_factory=list)
     skippedTopics: list[str] = Field(default_factory=list)
     weakTopicMovement: list[TopicMovement] = Field(default_factory=list)
-    streakDays: int = 0
-    # not in contracts.ts (additive): missed blocks, prep/deadline items met or missed,
-    # and a note when impact could not move because no new marks arrived
+    movementNote: Optional[str] = None
+    flaggedTopics: list[FlaggedTopic] = Field(default_factory=list)
     blocksMissed: int = 0
     prepMet: int = 0
     prepMissed: int = 0
-    movementNote: Optional[str] = None
-    windowStart: Optional[str] = None
-    windowEnd: Optional[str] = None
+    window: Optional[RecapWindow] = None     # always set when built; optional only for older stored 1:1s
+    streakDays: int = 0
 
     def dump(self) -> dict[str, Any]:
         return self.model_dump(mode="json", exclude_none=True, by_alias=True)
@@ -348,3 +385,7 @@ class Ticket(Model):
     status: Literal["open", "answered"] = "open"
     reply: Optional[TicketReply] = None
     createdAt: str
+
+
+HandoutSection.model_rebuild()
+CoverageCard.model_rebuild()

@@ -24,7 +24,8 @@ from app import escalation
 from app.core import clock, db, llm
 from app.core.academics import exams, iso
 from app.core.config import PROMPTS_DIR, TZ
-from app.core.models import OneOnOne, OneOnOneAdjustment, OneOnOneQuestion, OneOnOneRecap, TopicMovement
+from app.core.models import (FlaggedTopic, OneOnOne, OneOnOneAdjustment, OneOnOneQuestion, OneOnOneRecap,
+                             RecapWindow, TopicMovement)
 from app.core.parser import fmt_day
 from app.core.records import load_records, load_student, registered_courses
 from app.core.state import get_state
@@ -90,6 +91,21 @@ def _item_topic(student_id: str, item: dict[str, Any]) -> tuple[str, str]:
 # recap (code)
 # ---------------------------------------------------------------------------------
 
+def flagged_topics(student_id: str, until: datetime) -> list[FlaggedTopic]:
+    """Stuck markers ("I'm stuck here" taps, stored by the class companion) by topic, flagged since the
+    previous 1:1's window closed and before ``until``. A weekly review covers everything since the last
+    review; a strict 7-day cut would drop flags made in class just before a simulated week."""
+    since = max((o["recap"].get("window", {}).get("to", "") for o in db.find("one_on_one", student_id=student_id)
+                 if o.get("recap", {}).get("window", {}).get("to", "") < iso(until)), default="")
+    counts: dict[str, int] = {}
+    for m in sorted(db.find("marker", student_id=student_id), key=lambda m: m.get("createdAt", "")):
+        at = _parse(m.get("createdAt"))
+        if not m.get("topic") or at is None or at >= until or (since and at < _parse(since)):
+            continue
+        counts[m["topic"]] = counts.get(m["topic"], 0) + 1
+    return [FlaggedTopic(topic=t, times=n) for t, n in sorted(counts.items(), key=lambda kv: -kv[1])]
+
+
 def recap(student_id: str, start: datetime, end: datetime) -> tuple[OneOnOneRecap, dict[str, Any]]:
     items = cal.build_calendar(student_id, start, end)
     mine = [i for i in items if (i.get("source") or {}).get("type") in ("plan_block", "action")]
@@ -127,8 +143,8 @@ def recap(student_id: str, start: datetime, end: datetime) -> tuple[OneOnOneReca
     after = {(course_slug(s.course), s.topic): s for s in stats}
     focus = list(dict.fromkeys([(course_slug(r["course"]), r["topic"]) for r in rows] +
                                [(course_slug(s.course), s.topic) for s in stats[:3]]))
-    movement = [TopicMovement.model_validate({"topic": k[1], "course": before[k]["course"],
-                                              "from": before[k]["impact"], "to": after[k].impact if k in after else 0})
+    movement = [TopicMovement.model_validate({"topic": k[1], "from": before[k]["impact"],
+                                              "to": after[k].impact if k in after else 0})
                 for k in focus if k in before]
     note = None
     if movement and all(m.from_ == m.to for m in movement):
@@ -144,7 +160,8 @@ def recap(student_id: str, start: datetime, end: datetime) -> tuple[OneOnOneReca
         completedTopics=completed, skippedTopics=skipped, weakTopicMovement=movement, streakDays=streak,
         prepMet=sum(1 for i in prep if i.get("status") == "done"),
         prepMissed=sum(1 for i in prep if i.get("status") == "missed"),
-        movementNote=note, windowStart=iso(start), windowEnd=iso(end))
+        movementNote=note, flaggedTopics=flagged_topics(student_id, end),
+        window=RecapWindow.model_validate({"from": iso(start), "to": iso(end)}))
     return rec, {"rows": rows, "after": after}
 
 
@@ -155,8 +172,8 @@ def recap(student_id: str, start: datetime, end: datetime) -> tuple[OneOnOneReca
 def _facts(student: dict[str, Any], rec: OneOnOneRecap, details: dict[str, Any], now: datetime) -> tuple[str, list[str]]:
     rows = details["rows"]
     after = details["after"]
-    lines = [f"Student: {student.get('name')}. Review window: {fmt_day(_parse(rec.windowStart).date())} – "
-             f"{fmt_day((_parse(rec.windowEnd) - timedelta(seconds=1)).date())}.",
+    lines = [f"Student: {student.get('name')}. Review window: {fmt_day(_parse(rec.window.from_).date())} – "
+             f"{fmt_day((_parse(rec.window.to) - timedelta(seconds=1)).date())}.",
              f"RECAP: planned {rec.plannedMinutes} min in {rec.blocksPlanned} blocks; done {rec.doneMinutes} min in "
              f"{rec.blocksDone} blocks; missed {rec.blocksMissed} blocks; prep items met {rec.prepMet}, missed "
              f"{rec.prepMissed}; streak {rec.streakDays} days."]
@@ -182,6 +199,10 @@ def _facts(student: dict[str, Any], rec: OneOnOneRecap, details: dict[str, Any],
         topics += [m.topic for m in rec.weakTopicMovement]
     if rec.movementNote:
         lines.append(f"NOTE: {rec.movementNote}")
+    if rec.flaggedTopics:
+        lines.append("FLAGGED IN CLASS (\"I'm stuck\" taps since the last 1:1): " + "; ".join(
+            f"{f.topic} ×{f.times}" for f in rec.flaggedTopics))
+        topics += [f.topic for f in rec.flaggedTopics]
     courses = registered_courses(student["id"])
     soon = [e for e in exams() if (courses is None or course_slug(e.course_code) in courses)
             and now.date() <= e.start.date() <= now.date() + timedelta(days=21)]
@@ -268,6 +289,9 @@ def _load(one_id: str) -> dict[str, Any]:
 
 
 def _public(body: dict[str, Any]) -> dict[str, Any]:
+    rec = body.get("recap") or {}
+    if "window" not in rec and rec.get("windowStart") and rec.get("windowEnd"):  # 1:1s stored before v3.8
+        rec["window"] = {"from": rec["windowStart"], "to": rec["windowEnd"]}
     return OneOnOne.model_validate({k: v for k, v in body.items() if not k.startswith("_")}).dump()
 
 
@@ -415,9 +439,10 @@ def simulate_week(student_id: str) -> dict[str, Any]:
         cal.set_item_status(item["id"], status, student_id)
         marked.append({"id": item["id"], "start": item["start"], "status": status})
     new_now = clock.advance(student_id, 7)
-    return {"studentId": student_id, "from": iso(now), "to": iso(now + timedelta(days=7)), "marked": marked,
+    return {"updated": len(marked), "clockNow": iso(new_now), "studentId": student_id, "from": iso(now),
+            "to": iso(now + timedelta(days=7)), "marked": marked,
             "done": sum(1 for m in marked if m["status"] == "done"),
-            "missed": sum(1 for m in marked if m["status"] == "missed"), "clockNow": iso(new_now)}
+            "missed": sum(1 for m in marked if m["status"] == "missed")}
 
 
 def as_tool(student_id: str) -> ToolResult:

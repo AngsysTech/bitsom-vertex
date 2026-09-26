@@ -17,7 +17,6 @@ from app.tools import calendar as cal
 from app.tools import diagnose as dx
 from app.tools import lookback
 from app.tools import plan as planner
-from app.tools.base import ToolResult
 
 router = APIRouter()
 
@@ -46,11 +45,6 @@ async def _body(request: Request) -> dict[str, Any]:
     return body
 
 
-def _tool(result: ToolResult) -> dict[str, Any]:
-    return {"card": result.card, "cards": result.cards, "citations": [c.dump() for c in result.citations],
-            "trace": [t.dump() for t in result.trace], **({"error": result.error} if result.error else {})}
-
-
 # ---- chat ----------------------------------------------------------------------------
 
 @router.post("/chat")
@@ -63,12 +57,12 @@ async def chat(request: Request) -> list[dict[str, Any]]:
         return academic_coach.handle(str(body.get("studentId") or ""), str(body.get("text") or ""))
 
 
-# ---- tools (not in contracts §10; used by the smoke test and a "rebuild plan" button) -----
+# ---- coach tools, callable directly (contracts v3.8: return the bare card) ---------------
 
 @router.post("/students/{student_id}/diagnose")
 def diagnose(student_id: str) -> dict[str, Any]:
     with _errors():
-        return _tool(dx.diagnose(student_id))
+        return dx.diagnose(student_id).card  # contracts v3.8: -> WeakTopicsCard
 
 
 @router.post("/students/{student_id}/plan")
@@ -77,7 +71,7 @@ def build_plan(student_id: str) -> dict[str, Any]:
         result = planner.build_plan(student_id)
     if result.error:
         raise HTTPException(502, result.error)
-    return _tool(result)
+    return result.card  # contracts v3.8: -> StudyPlanCard
 
 
 # ---- calendar status -------------------------------------------------------------------

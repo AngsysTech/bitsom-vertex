@@ -172,21 +172,20 @@ def check_diagnose(client: httpx.Client) -> None:
     r = client.post(f"/students/{STUDENT}/diagnose")
     if not check("1a POST /students/meera/diagnose", r.status_code == 200, f"{r.status_code} {r.text[:200]}"):
         return
-    body = r.json()
-    items = body["card"]["items"]
+    items = r.json()["items"]  # contracts v3.8: the bare WeakTopicsCard
     top = [(i["course"], i["topic"], i["impact"], i["citationId"]) for i in items[:3]]
     check("1b top two are Normalization and B+ trees", [i["topic"] for i in items[:2]] == ["Normalization", "B+ trees"],
           f"top3={top}")
     check("1c each impact >= 60", all(i["impact"] >= 60 for i in items[:2]), f"{[i['impact'] for i in items[:2]]}")
-    cites = {c["sectionId"]: c for c in body["citations"]}
-    ok = True
+    ok, shown = True, []
     for i in items[:2]:
-        c = cites.get(i["citationId"])
+        sec = client.get(f"/documents/past_papers/sections/{i['citationId']}")
+        text = sec.json().get("text", "") if sec.status_code == 200 else ""
         truth = past_paper_marks(i["course"], i["topic"])
-        quoted = {int(y): int(m) for m, y in re.findall(r"(\d+) marks in the (\d{4})", c["quote"])} if c else {}
-        ok &= bool(c) and i["citationId"].startswith("past_papers.") and quoted == truth
-    check("1d each has a past-papers citation whose quoted marks match past_papers.json", ok,
-          f"{[(i['citationId'], cites.get(i['citationId'], {}).get('quote', '')[:90]) for i in items[:2]]}")
+        quoted = {int(y): int(m) for m, y in re.findall(r"(\d+) marks in the (\d{4})", text)}
+        ok &= i["citationId"].startswith("past_papers.") and quoted == truth
+        shown.append((i["citationId"], text[:90]))
+    check("1d each has a past-papers citation whose section's marks match past_papers.json", ok, f"{shown}")
 
 
 def check_plan(client: httpx.Client) -> list[dict]:
@@ -195,9 +194,9 @@ def check_plan(client: httpx.Client) -> list[dict]:
     r = client.post(f"/students/{STUDENT}/plan", timeout=240)
     if not check("2a POST /students/meera/plan", r.status_code == 200, f"{r.status_code} {r.text[:300]}"):
         return []
-    body = r.json()
-    print(f"     ({time.perf_counter() - t0:.1f}s) " + " | ".join(t["summary"][:160] for t in body["trace"]), flush=True)
-    card = body["card"]
+    card = r.json()  # contracts v3.8: the bare StudyPlanCard
+    print(f"     ({time.perf_counter() - t0:.1f}s) {sum(len(w['blocks']) for w in card['weeks'])} blocks in "
+          f"{len(card['weeks'])} weeks", flush=True)
     blocks = {b["id"]: b for w in card["weeks"] for b in w["blocks"]}
     today = datetime.now(TZ)
     cal = client.get(f"/calendar/{STUDENT}", params={"from": today.date().isoformat(),
@@ -360,12 +359,21 @@ def check_one_on_one(client: httpx.Client) -> None:
     if not check("4a POST /demo/simulate-week/meera", sim.status_code == 200, f"{sim.status_code} {sim.text[:200]}"):
         return
     sim = sim.json()
-    print(f"     marked {sim['done']} done / {sim['missed']} missed; clock now {sim['clockNow']}", flush=True)
+    print(f"     updated {sim.get('updated')} ({sim['done']} done / {sim['missed']} missed); clock now "
+          f"{sim['clockNow']}", flush=True)
+    check("4a' simulate-week returns {updated, clockNow}", isinstance(sim.get("updated"), int) and sim["updated"] > 0
+          and bool(sim.get("clockNow")), f"updated={sim.get('updated')} clockNow={sim.get('clockNow')}")
     r = client.get(f"/one-on-one/{STUDENT}/current", timeout=120)
     if not check("4b GET /one-on-one/meera/current", r.status_code == 200, f"{r.status_code} {r.text[:200]}"):
         return
     one = r.json()
     rec = one["recap"]
+    contract = {"plannedMinutes", "doneMinutes", "blocksPlanned", "blocksDone", "completedTopics", "skippedTopics",
+                "weakTopicMovement", "flaggedTopics", "blocksMissed", "prepMet", "prepMissed", "window", "streakDays"}
+    check("4b' recap has the v3.8 fields (window {from,to}, flaggedTopics; movement items {topic,from,to})",
+          contract <= set(rec) and set(rec["window"]) == {"from", "to"} and
+          all(set(m) == {"topic", "from", "to"} for m in rec["weakTopicMovement"]),
+          f"missing={sorted(contract - set(rec))}; extra={sorted(set(rec) - contract - {'movementNote'})}")
     check("4c recap has blocksDone and blocksMissed > 0", rec["blocksDone"] > 0 and rec.get("blocksMissed", 0) > 0,
           f"planned={rec['blocksPlanned']} done={rec['blocksDone']} missed={rec.get('blocksMissed')} "
           f"minutes={rec['doneMinutes']}/{rec['plannedMinutes']} streak={rec['streakDays']}")
