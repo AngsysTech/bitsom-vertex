@@ -31,17 +31,22 @@ function Trace({ m }: { m: Message }) {
   const set = useWS((s) => s.set)
   const total = m.trace.reduce((n, t) => n + (t.durationMs || 0), 0)
   const failed = m.trace.some((t) => t.error)
+  // "class_companion · 5 steps" rather than five dotted names; the list opens on click.
+  const tools = [...new Set(m.trace.map((t) => t.tool.split('.')[0]!))]
   return (
     <>
       <button
         type="button"
         onClick={() => set((s) => ({ traceOpen: { ...s.traceOpen, [m.id]: !expanded } }))}
-        className="-ml-1.5 mt-[3px] mb-1 flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-1.5 py-[3px] text-[13px] text-ink-5 hover:border-line hover:bg-white"
+        className="-ml-1.5 mt-px mb-0.5 flex max-w-full cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-5 hover:bg-mist"
       >
-        <Icon name={failed ? 'error' : 'bolt'} size={16} className={failed ? 'text-bad' : 'text-link'} />
+        <Icon name={failed ? 'error' : 'bolt'} size={15} fill className={failed ? 'text-bad' : 'text-link'} />
         <b className={cn('flex-none whitespace-nowrap', failed ? 'text-bad' : 'text-link')}>Worked for {(total / 1000).toFixed(1)}s</b>
-        <span className="min-w-0 truncate">· {m.trace.map((t) => t.tool).join(', ')}</span>
-        <Icon name={expanded ? 'expand_less' : 'expand_more'} size={16} />
+        <span className="min-w-0 truncate">
+          · {tools.join(', ')}
+          {m.trace.length > tools.length && ` · ${m.trace.length} steps`}
+        </span>
+        <Icon name={expanded ? 'expand_less' : 'expand_more'} size={16} className="text-ink-4" />
       </button>
       {expanded && (
         <div className="mb-2 ml-0.5 flex flex-col gap-1 border-l-2 border-line py-0.5 pl-3">
@@ -84,8 +89,8 @@ function CardChips({ m }: { m: Message }) {
   return (
     <div className="mt-1.5 flex flex-wrap gap-1.5">
       {chips.map((c) => (
-        <button key={c.key} type="button" onClick={c.go} className="flex h-6 cursor-pointer items-center gap-1 rounded-full border border-line bg-white px-2.5 text-xs font-bold text-ink hover:border-ink-5">
-          <Icon name={c.icon} size={14} className="text-ink-5" />
+        <button key={c.key} type="button" onClick={c.go} className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[13px] font-bold text-ink shadow-[0_1px_1px_rgba(15,23,42,.04)] hover:border-ink-3 hover:bg-soft">
+          <Icon name={c.icon} size={16} className="text-ink-5" />
           {c.label}
         </button>
       ))}
@@ -114,7 +119,7 @@ export function MessageRow({ m, dmAgent, inClass, highlight }: { m: Message; dmA
     const icon = systemIcon(m.text)
     return (
       <div data-msg-id={m.id} className={cn('flex items-start gap-2 py-1.5 pr-5 pl-[66px] text-[13px] text-ink-5', highlight && 'animate-flash')}>
-        <Icon name={icon} size={16} className={cn('mt-0.5', icon === 'error' ? 'text-bad' : icon === 'info' ? 'text-ink-4' : 'text-ink')} />
+        <Icon name={icon} size={16} className={cn('mt-0.5', icon === 'error' ? 'text-bad' : 'text-ink-4')} />
         <div className="min-w-0 flex-1">
           <Markdown text={m.text} citations={m.citations} />
           {(() => {
@@ -139,7 +144,6 @@ export function MessageRow({ m, dmAgent, inClass, highlight }: { m: Message; dmA
       <div
         data-msg-id={m.id}
         className={cn('flex gap-2.5 py-2 pr-5 hover:bg-soft', reply ? 'pl-[66px]' : 'pl-5', highlight && 'animate-flash')}
-        style={m.role === 'agent' && !reply ? { boxShadow: 'inset 3px 0 0 #E2E8F0' } : undefined}
       >
         <Avatar m={m} agent={agent} small={reply} />
         <div className="min-w-0 flex-1">

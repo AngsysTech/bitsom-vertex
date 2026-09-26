@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '@/components/Icon'
 import { cn } from '@/lib/utils'
 import { useWS, type ThreadKey } from '@/store/workspace'
@@ -6,8 +6,11 @@ import { useWS, type ThreadKey } from '@/store/workspace'
 const FORMAT: [string, string][] = [
   ['format_bold', 'Bold'],
   ['format_italic', 'Italic'],
+  ['strikethrough_s', 'Strikethrough'],
   ['link', 'Link'],
-  ['format_list_bulleted', 'List'],
+  ['format_list_bulleted', 'Bulleted list'],
+  ['format_list_numbered', 'Numbered list'],
+  ['code', 'Code'],
 ]
 
 export interface PlusItem {
@@ -15,6 +18,15 @@ export interface PlusItem {
   label: string
   hint?: string
   onClick: () => void
+}
+
+/** Toolbar icon slot that isn't built yet: a tooltip, never a dead click (AGENTS.md §8). */
+function Soon({ icon, tip, round }: { icon: string; tip: string; round?: boolean }) {
+  return (
+    <span data-tip={`${tip} · coming soon`} className={cn('flex size-7 cursor-default items-center justify-center text-ink-4 hover:bg-mist hover:text-ink-5', round ? 'rounded-full' : 'rounded')}>
+      <Icon name={icon} size={18} />
+    </span>
+  )
 }
 
 function PlusMenu({ items }: { items: PlusItem[] }) {
@@ -37,24 +49,27 @@ function PlusMenu({ items }: { items: PlusItem[] }) {
         type="button"
         aria-label="Add"
         aria-expanded={open}
+        data-tip={open ? undefined : 'Upload audio or paste a transcript'}
         onClick={() => setOpen(!open)}
-        className={cn('flex size-7 cursor-pointer items-center justify-center rounded-full hover:bg-line', open && 'bg-line text-ink')}
+        className={cn('flex size-7 cursor-pointer items-center justify-center rounded-full bg-mist text-ink-5 transition-colors hover:bg-line hover:text-ink', open && 'bg-ink text-white hover:bg-ink hover:text-white')}
       >
-        <Icon name="add" size={18} />
+        <Icon name="add" size={18} className={cn('transition-transform', open && 'rotate-45')} />
       </button>
       {open && (
-        <div className="absolute bottom-9 left-0 z-50 flex w-64 flex-col overflow-hidden rounded-lg border border-line bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,.2)]">
+        <div className="absolute bottom-9 left-0 z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-line bg-white py-1.5 shadow-[0_12px_32px_rgba(15,23,42,.18)]">
           {items.map((it) => (
             <button
               key={it.label}
               type="button"
               onClick={() => (setOpen(false), it.onClick())}
-              className="flex cursor-pointer items-start gap-2.5 px-3 py-2 text-left hover:bg-soft"
+              className="group flex cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-ink hover:text-white"
             >
-              <Icon name={it.icon} size={18} className="mt-px text-ink-5" />
-              <span className="flex flex-col">
-                <b className="text-[13px] text-ink">{it.label}</b>
-                {it.hint && <span className="text-xs text-ink-5">{it.hint}</span>}
+              <span className="flex size-8 flex-none items-center justify-center rounded-md bg-mist text-ink-5 group-hover:bg-white/10 group-hover:text-white">
+                <Icon name={it.icon} size={18} />
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <b className="text-[13px]">{it.label}</b>
+                {it.hint && <span className="text-xs text-ink-5 group-hover:text-white/70">{it.hint}</span>}
               </span>
             </button>
           ))}
@@ -64,12 +79,21 @@ function PlusMenu({ items }: { items: PlusItem[] }) {
   )
 }
 
-/** Message box. `left` sits beside it (class channels: Record lecture); `plus` fills the + menu. */
-export function Composer({ threadKey, placeholder, left, plus, starters }: { threadKey: ThreadKey; placeholder: string; left?: ReactNode; plus?: PlusItem[]; starters?: string[] }) {
+/** Message box, Slack-style: formatting row, text, toolbar (+, @, then `tools`) and Send. */
+export function Composer({ threadKey, placeholder, tools, plus, starters }: { threadKey: ThreadKey; placeholder: string; tools?: ReactNode; plus?: PlusItem[]; starters?: string[] }) {
   const [draft, setDraft] = useState('')
   const busy = useWS((s) => !!s.threads[threadKey]?.sending || s.loadingStudent)
   const send = useWS((s) => s.send)
   const canSend = !!draft.trim() && !busy
+  const box = useRef<HTMLTextAreaElement>(null)
+
+  // Grow with the text, like Slack, up to a cap; then scroll inside.
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+  }, [draft])
 
   const submit = () => {
     if (!canSend) return
@@ -78,7 +102,7 @@ export function Composer({ threadKey, placeholder, left, plus, starters }: { thr
   }
 
   return (
-    <div className="flex-none px-5 pb-[18px]">
+    <div className="flex-none px-5 pb-5">
       {starters && starters.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {starters.map((q) => (
@@ -94,54 +118,54 @@ export function Composer({ threadKey, placeholder, left, plus, starters }: { thr
           ))}
         </div>
       )}
-      <div className="flex items-end gap-2.5">
-        {left}
-        <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-ink-3 bg-soft">
-          <div className="flex gap-0.5 px-1.5 py-1 text-ink-5">
-            {FORMAT.map(([icon, tip]) => (
-              <span key={icon} data-tip={`${tip} · coming soon`} className="flex size-7 cursor-default items-center justify-center rounded hover:bg-line">
-                <Icon name={icon} size={18} />
+      <div className="rounded-lg border border-ink-3 bg-white transition-[border-color,box-shadow] focus-within:border-ink-5 focus-within:shadow-[0_1px_8px_rgba(15,23,42,.08)]">
+        <div className="flex items-center gap-0.5 px-1.5 pt-1.5">
+          {FORMAT.map(([icon, tip], i) => (
+            <span key={icon} className="flex items-center">
+              {(i === 3 || i === 4) && <span className="mx-1 h-4 w-px bg-line" />}
+              <Soon icon={icon} tip={tip} />
+            </span>
+          ))}
+        </div>
+        <textarea
+          ref={box}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          placeholder={placeholder}
+          rows={1}
+          className="block max-h-[200px] min-h-[38px] w-full resize-none border-none bg-transparent px-3 py-2 text-[15px] leading-[22px] text-ink outline-none placeholder:text-ink-4"
+        />
+        <div className="flex items-center gap-1 px-1.5 pb-1.5">
+          {plus ? <PlusMenu items={plus} /> : <Soon icon="add" tip="Attach" round />}
+          <Soon icon="alternate_email" tip="Mention" />
+          {tools && (
+            <>
+              <span className="mx-1 h-4 w-px bg-line" />
+              {tools}
+            </>
+          )}
+          <div className="ml-auto flex items-center gap-2.5">
+            {draft && (
+              <span className="hidden text-[11px] text-ink-4 sm:inline">
+                <b className="text-ink-5">Shift + Enter</b> for a new line
               </span>
-            ))}
-          </div>
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault()
-                submit()
-              }
-            }}
-            placeholder={placeholder}
-            rows={2}
-            className="block min-h-12 w-full resize-none border-none bg-transparent px-3 py-1 text-[15px] leading-[22px] text-ink outline-none placeholder:text-ink-4"
-          />
-          <div className="flex items-center justify-between px-1.5 pt-1 pb-1.5">
-            <div className="flex gap-0.5 text-ink-5">
-              {plus ? (
-                <PlusMenu items={plus} />
-              ) : (
-                <span data-tip="Coming soon" className="flex size-7 cursor-not-allowed items-center justify-center rounded-full hover:bg-line">
-                  <Icon name="add" size={18} />
-                </span>
-              )}
-              <span data-tip="Coming soon" className="flex size-7 cursor-not-allowed items-center justify-center rounded hover:bg-line">
-                <Icon name="alternate_email" size={18} />
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="text-[11px] text-ink-4">Enter to send · Shift+Enter for a new line</span>
-              <button
-                type="button"
-                onClick={submit}
-                disabled={!canSend}
-                aria-label="Send"
-                className={cn('flex h-7 w-8 items-center justify-center rounded text-white', canSend ? 'cursor-pointer bg-ink' : 'bg-ink-4')}
-              >
-                <Icon name="send" size={18} fill />
-              </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSend}
+              aria-label="Send"
+              data-tip={canSend ? 'Send · Enter' : undefined}
+              className={cn('flex h-7 w-8 items-center justify-center rounded-md transition-colors', canSend ? 'cursor-pointer bg-ink text-white hover:bg-ink-7' : 'text-ink-3')}
+            >
+              <Icon name="send" size={18} fill />
+            </button>
           </div>
         </div>
       </div>

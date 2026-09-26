@@ -22,69 +22,75 @@ function Header({ agent }: { agent: Agent }) {
   const tab = useWS((s) => s.tab)
   const set = useWS((s) => s.set)
   const chips = useScopeChips(agent)
-  const tabCls = (on: boolean) =>
-    cn('flex cursor-pointer items-center gap-1 border-b-2 px-0.5 py-2 text-[13px] font-bold', on ? 'border-ink text-ink' : 'border-transparent text-ink-5')
+  const tabs: { id: 'messages' | 'canvas'; label: string; icon: string }[] = [
+    { id: 'messages', label: 'Messages', icon: 'chat_bubble' },
+    { id: 'canvas', label: 'Canvas', icon: 'dashboard' },
+  ]
+  const link = 'flex h-6 flex-none cursor-pointer items-center gap-1 rounded-md px-1.5 text-xs whitespace-nowrap text-ink-5 hover:bg-mist hover:text-ink'
 
   return (
-    <div className="flex-none border-b border-line px-5 pt-2.5">
-      <div className="flex items-center gap-2.5">
-        <span className="flex size-8 flex-none items-center justify-center rounded-lg border border-line bg-soft text-lg">{agent.emoji}</span>
+    <div className="flex-none border-b border-line">
+      <div className="flex items-center gap-3 px-5 pt-3 pb-1">
+        <span className="flex size-9 flex-none items-center justify-center rounded-lg bg-mist text-lg">{agent.emoji}</span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg font-black">{agent.name}</span>
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-[17px] leading-6 font-black">{agent.name}</span>
             <button
               type="button"
               onClick={() => set((s) => ({ starred: starred ? s.starred.filter((x) => x !== agent.id) : [...s.starred, agent.id] }))}
               data-tip={starred ? 'Remove from Starred' : 'Star conversation'}
-              className="flex cursor-pointer p-0.5 text-ink-5"
+              className={cn('flex size-6 flex-none cursor-pointer items-center justify-center rounded hover:bg-mist', starred ? 'text-warn' : 'text-ink-4 hover:text-ink')}
             >
-              <Icon name="star" size={18} fill={starred} />
+              <Icon name="star" size={17} fill={starred} />
             </button>
           </div>
-          <span className="text-[13px] text-ink-5">{agent.tagline}</span>
+          <span className="truncate text-[13px] leading-5 text-ink-5">{agent.tagline}</span>
         </div>
         {!panelOpen && (
           <button
             type="button"
             onClick={() => set({ panelOpen: true })}
             data-tip="Show context"
-            className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[13px] font-bold text-ink"
+            className="flex h-7 flex-none cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[13px] font-bold text-ink hover:bg-soft"
           >
             <Icon name="view_sidebar" size={18} />
             Context
           </button>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-ink-5">Reads:</span>
+      <div className="flex flex-wrap items-center gap-0.5 px-3.5 pb-1">
+        <span data-tip="This agent answers only from these documents" className="mr-0.5 ml-1.5 cursor-default text-xs text-ink-4">
+          Reads
+        </span>
         {chips.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            onClick={() => navigate(`/files/${c.docIds[0]}`)}
-            data-tip={c.docIds.length > 1 ? `${c.docIds.length} documents` : undefined}
-            className="inline-flex h-[22px] cursor-pointer items-center gap-1 rounded-full border border-line bg-soft px-2 text-xs text-ink hover:border-ink-5"
-          >
-            <Icon name="description" size={14} className="text-ink-5" />
+          <button key={c.label} type="button" onClick={() => navigate(`/files/${c.docIds[0]}`)} data-tip={c.docIds.length > 1 ? `${c.docIds.length} documents` : undefined} className={link}>
+            <Icon name="description" size={15} className="text-ink-4" />
             {c.label}
             {c.docIds.length > 1 && <span className="text-ink-4">{c.docIds.length}</span>}
           </button>
         ))}
         {agent.id === DEFAULT_AGENT && (
-          <span className="inline-flex h-[22px] items-center gap-1 rounded-full border border-line bg-soft px-2 text-xs text-ink" data-tip="Lectures you record in class channels">
-            <Icon name="mic" size={14} className="text-ink-5" />
+          <span className={cn(link, 'cursor-default')} data-tip="Lectures you record in class channels">
+            <Icon name="mic" size={15} className="text-ink-4" />
             Lectures
           </span>
         )}
       </div>
-      <div className="mt-1.5 flex gap-5">
-        <button type="button" onClick={() => set({ tab: 'messages' })} className={tabCls(tab === 'messages')}>
-          Messages
-        </button>
-        <button type="button" onClick={() => set({ tab: 'canvas' })} className={tabCls(tab === 'canvas')}>
-          <Icon name="dashboard" size={16} />
-          Canvas
-        </button>
+      <div className="flex items-center gap-1 px-3.5">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => set({ tab: t.id })}
+            className={cn(
+              'flex flex-none cursor-pointer items-center gap-1.5 border-b-2 px-1.5 pt-1 pb-2 text-[13px] font-bold',
+              tab === t.id ? 'border-ink text-ink' : 'border-transparent text-ink-5 hover:text-ink',
+            )}
+          >
+            <Icon name={t.icon} size={16} fill={tab === t.id} />
+            {t.label}
+          </button>
+        ))}
       </div>
     </div>
   )

@@ -7,133 +7,155 @@ import { classPath, navigate, type ClassTab } from '@/lib/route'
 import { fmtDayShort, fmtHM, inDays } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { startRecording, uploadAudio } from '@/store/companion'
-import { classKey, useWS } from '@/store/workspace'
+import { classKey, useWS, type LocalMarker } from '@/store/workspace'
 import type { Agent, ClassChannel as ClassChannelT } from '@/types'
 import { HandoutView } from './HandoutView'
 import { LecturesTab } from './LecturesTab'
-import { JobRow, MarkerRow } from './LectureRows'
+import { JobRow, MarkerGroupRow } from './LectureRows'
 import { RecordingBar } from './RecordingBar'
 
 const COACH: Agent = { id: 'academic_coach', kind: 'specialist', name: 'Academic Coach', tagline: '', emoji: '🎓', scope: [], starters: [] }
 const EXAM_LABEL = { quiz: 'Quiz', mid_sem: 'Mid-sem', end_sem: 'End-sem' } as const
 const slugOf = (code: string) => code.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
-function ReadsChips({ courseCode }: { courseCode: string }) {
+/** Slack's bookmarks, as the coach's scope: the documents this channel's coach reads. */
+function ReadsLinks({ courseCode }: { courseCode: string }) {
   const files = useWS((s) => s.files)
   const doc = (kind: string, match?: (id: string, title: string) => boolean) =>
     files.find((f) => f.kind === 'document' && f.docKind === kind && (!match || match(f.id, f.title)))
   const syllabus = doc('syllabus', (id, title) => id === `syllabus.${slugOf(courseCode)}` || title.startsWith(courseCode))
   const papers = doc('past_papers')
   const exams = doc('exam_calendar')
-  const chips: { label: string; icon: string; go?: () => void }[] = [
+  const links: { label: string; icon: string; go?: () => void }[] = [
     { label: 'Syllabus', icon: 'menu_book', go: syllabus && (() => navigate(`/files/${syllabus.id}`)) },
-    { label: 'Lectures', icon: 'mic', go: () => navigate(classPath(courseCode, 'lectures')) },
     { label: 'Past papers', icon: 'quiz', go: papers && (() => navigate(`/files/${papers.id}`)) },
     { label: 'Exam calendar', icon: 'event', go: exams && (() => navigate(`/files/${exams.id}/exam_calendar.${slugOf(courseCode)}`)) },
   ]
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-ink-5">Reads:</span>
-      {chips.map((c) => (
+    <div className="flex min-w-0 items-center gap-0.5 overflow-hidden">
+      <span data-tip="The coach in this channel answers only from these, plus the lectures" className="mr-1 hidden flex-none cursor-default text-xs text-ink-4 @3xl:inline">
+        Coach reads
+      </span>
+      {links.map((c) => (
         <button
           key={c.label}
           type="button"
           disabled={!c.go}
           onClick={c.go}
-          data-tip={c.go ? undefined : 'Not in this workspace’s files'}
-          className="inline-flex h-[22px] cursor-pointer items-center gap-1 rounded-full border border-line bg-soft px-2 text-xs text-ink hover:border-ink-5 disabled:cursor-default disabled:opacity-50"
+          data-tip={c.go ? c.label : 'Not in this workspace’s files'}
+          className="flex h-7 flex-none cursor-pointer items-center gap-1 rounded-md px-1.5 text-[13px] whitespace-nowrap text-ink-5 hover:bg-mist hover:text-ink disabled:cursor-default disabled:opacity-50"
         >
-          <Icon name={c.icon} size={14} className="text-ink-5" />
-          {c.label}
+          <Icon name={c.icon} size={16} className="text-ink-4" />
+          <span className="hidden @2xl:inline">{c.label}</span>
         </button>
       ))}
     </div>
   )
 }
 
+const Dot = () => <span className="text-ink-3">·</span>
+
 function Header({ cls, tab }: { cls: ClassChannelT; tab: ClassTab }) {
   const starred = useWS((s) => s.starred.includes(cls.channelId))
   const panelOpen = useWS((s) => s.panelOpen)
   const set = useWS((s) => s.set)
   const lectures = useWS((s) => s.lectures.value?.filter((l) => l.courseCode === cls.courseCode).length ?? 0)
-  const tabCls = (on: boolean) => cn('flex cursor-pointer items-center gap-1 border-b-2 px-0.5 py-2 text-[13px] font-bold', on ? 'border-ink text-ink' : 'border-transparent text-ink-5')
+  const tabs: { id: ClassTab; label: string; icon: string; count?: number }[] = [
+    { id: 'messages', label: 'Messages', icon: 'chat_bubble' },
+    { id: 'lectures', label: 'Lectures', icon: 'mic', count: lectures },
+    { id: 'schedule', label: 'Schedule', icon: 'calendar_month' },
+  ]
   return (
-    <div className="flex-none border-b border-line px-5 pt-2.5">
-      <div className="flex items-center gap-2.5">
-        <span className="flex size-8 flex-none items-center justify-center rounded-lg border border-line bg-soft text-lg">📘</span>
+    <div className="flex-none border-b border-line">
+      <div className="flex items-center gap-3 px-5 pt-3 pb-1.5">
+        <span className="flex size-9 flex-none items-center justify-center rounded-lg bg-mist text-lg">📘</span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-lg font-black">
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-[17px] leading-6 font-black">
               {cls.courseCode} · {cls.title}
             </span>
             <button
               type="button"
               onClick={() => set((s) => ({ starred: starred ? s.starred.filter((x) => x !== cls.channelId) : [...s.starred, cls.channelId] }))}
               data-tip={starred ? 'Remove from Starred' : 'Star channel'}
-              className="flex cursor-pointer p-0.5 text-ink-5"
+              className={cn('flex size-6 flex-none cursor-pointer items-center justify-center rounded hover:bg-mist', starred ? 'text-warn' : 'text-ink-4 hover:text-ink')}
             >
-              <Icon name="star" size={18} fill={starred} />
+              <Icon name="star" size={17} fill={starred} />
             </button>
           </div>
-          <span className="text-[13px] text-ink-5">
-            {cls.faculty} · Slot {cls.slot}
-          </span>
+          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-[13px] leading-5 whitespace-nowrap text-ink-5">
+            <span className="truncate">
+              {cls.faculty} · Slot {cls.slot}
+            </span>
+            {cls.nextSessionAt && (
+              <>
+                <Dot />
+                <span className="flex flex-none items-center gap-1">
+                  <Icon name="schedule" size={15} className="text-ink-4" />
+                  Next {fmtDayShort(cls.nextSessionAt)} {fmtHM(cls.nextSessionAt)}
+                  {cls.nextSessionRoom && ` · ${cls.nextSessionRoom}`}
+                </span>
+                {cls.prepDue > 0 && <span className="flex-none rounded-full bg-warn-soft px-1.5 text-[11px] leading-[18px] font-bold text-warn-ink">{cls.prepDue} prep due</span>}
+              </>
+            )}
+            {cls.examAt && (
+              <>
+                <Dot />
+                <span className="flex flex-none items-center gap-1 font-bold text-bad">
+                  <Icon name="event" size={15} />
+                  {EXAM_LABEL[cls.examKind ?? 'quiz']} {inDays(cls.examAt)}
+                </span>
+              </>
+            )}
+          </div>
         </div>
         {!panelOpen && (
-          <button type="button" onClick={() => set({ panelOpen: true })} className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[13px] font-bold text-ink">
+          <button type="button" onClick={() => set({ panelOpen: true })} className="flex h-7 flex-none cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[13px] font-bold text-ink hover:bg-soft">
             <Icon name="view_sidebar" size={18} />
             Context
           </button>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {cls.nextSessionAt && (
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-ink px-2.5 text-xs font-bold">
-            <Icon name="schedule" size={14} />
-            Next session {fmtDayShort(cls.nextSessionAt)} {fmtHM(cls.nextSessionAt)}
-            {cls.nextSessionRoom && ` · ${cls.nextSessionRoom}`}
-            {cls.prepDue > 0 && <span className="rounded-full bg-warn-soft px-1.5 text-warn-ink">{cls.prepDue} prep due</span>}
-          </span>
-        )}
-        {cls.examAt && (
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-bad bg-bad-soft px-2.5 text-xs font-bold">
-            <Icon name="event" size={14} className="text-bad" />
-            {EXAM_LABEL[cls.examKind ?? 'quiz']} {inDays(cls.examAt)}
-          </span>
-        )}
-      </div>
-      <ReadsChips courseCode={cls.courseCode} />
-      <div className="mt-1.5 flex gap-5">
-        <button type="button" onClick={() => navigate(classPath(cls.courseCode))} className={tabCls(tab === 'messages')}>
-          Messages
-        </button>
-        <button type="button" onClick={() => navigate(classPath(cls.courseCode, 'lectures'))} className={tabCls(tab === 'lectures')}>
-          <Icon name="mic" size={16} />
-          Lectures {lectures > 0 && <span className="text-ink-4">{lectures}</span>}
-        </button>
-        <button type="button" onClick={() => navigate(classPath(cls.courseCode, 'schedule'))} className={tabCls(tab === 'schedule')}>
-          <Icon name="calendar_month" size={16} />
-          Schedule
-        </button>
+      <div className="@container flex items-center gap-1 px-3.5">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => navigate(classPath(cls.courseCode, t.id))}
+            className={cn(
+              'flex flex-none cursor-pointer items-center gap-1.5 border-b-2 px-1.5 pt-1 pb-2 text-[13px] font-bold',
+              tab === t.id ? 'border-ink text-ink' : 'border-transparent text-ink-5 hover:text-ink',
+            )}
+          >
+            <Icon name={t.icon} size={16} fill={tab === t.id} />
+            {t.label}
+            {!!t.count && <span className="rounded-full bg-mist px-1.5 text-[11px] leading-4 text-ink-5">{t.count}</span>}
+          </button>
+        ))}
+        <span className="mx-2 mb-1 h-4 w-px flex-none bg-line" />
+        <div className="mb-1 min-w-0 flex-1">
+          <ReadsLinks courseCode={cls.courseCode} />
+        </div>
       </div>
     </div>
   )
 }
 
+/** Slack's mic slot in the composer toolbar, labelled: this is the channel's main action. */
 function RecordButton({ courseCode, disabled }: { courseCode: string; disabled?: boolean }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => void startRecording(courseCode)}
-      data-tip="Record this class · R"
-      className="flex w-[108px] flex-none cursor-pointer flex-col items-center justify-center gap-1.5 self-stretch rounded-lg bg-cyan px-2 text-[13px] leading-4 font-black text-ink hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+      data-tip={disabled ? 'Another class is recording' : 'Record this class · R'}
+      className="group flex h-7 cursor-pointer items-center gap-1.5 rounded-md pr-1.5 pl-1 text-[13px] font-bold text-ink transition-colors hover:bg-bad-soft disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <span className="flex size-7 items-center justify-center rounded-full bg-white">
-        <span className="size-3 rounded-full bg-bad" />
+      <span className="flex size-5 items-center justify-center rounded-full bg-bad text-white">
+        <Icon name="mic" size={14} fill />
       </span>
       Record lecture
-      <kbd className="rounded border border-ink/30 px-1 font-mono text-[10px] font-bold">R</kbd>
+      <kbd className="rounded border border-line bg-white px-1 font-mono text-[10px] font-bold text-ink-5">R</kbd>
     </button>
   )
 }
@@ -181,7 +203,7 @@ function ClassComposer({ courseCode }: { courseCode: string }) {
       <Composer
         threadKey={classKey(courseCode)}
         placeholder={`Message Academic Coach about ${courseCode}`}
-        left={<RecordButton courseCode={courseCode} disabled={!!elsewhere} />}
+        tools={<RecordButton courseCode={courseCode} disabled={!!elsewhere} />}
         plus={[
           { icon: 'upload_file', label: 'Upload audio', hint: 'A recording of the class (mp3, m4a, wav, webm)', onClick: () => file.current?.click() },
           { icon: 'description', label: 'Paste transcript', hint: 'Text fallback: same pipeline, no transcription', onClick: () => set({ paste: { courseCode } }) },
@@ -206,7 +228,11 @@ function Empty({ channelName, courseCode }: { channelName: string; courseCode: s
 function ClassMessages({ courseCode, coach, channelName }: { courseCode: string; coach: Agent; channelName: string }) {
   const markers = useWS((s) => s.localMarkers)
   const jobs = useWS((s) => s.jobs)
-  const extra: ExtraRow[] = markers.filter((m) => m.courseCode === courseCode && !m.late).map((m) => ({ key: m.localId, at: m.createdAt, node: <MarkerRow m={m} /> }))
+  // One row per recording ("You flagged 4 moments"), not one per tap.
+  const groups = new Map<string, LocalMarker[]>()
+  for (const m of markers) if (m.courseCode === courseCode && !m.late) groups.set(m.lectureId ?? 'live', [...(groups.get(m.lectureId ?? 'live') ?? []), m])
+  const extra: ExtraRow[] = [...groups].map(([k, ms]) => ({ key: `flags:${k}`, at: ms[0]!.createdAt, node: <MarkerGroupRow markers={ms} /> }))
+  const flagKey = [...groups.values()].reduce((n, ms) => n + ms.length, 0)
   const live = Object.values(jobs)
     .filter((j) => j.courseCode === courseCode && !(j.phase === 'ready' && j.messageId))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
@@ -220,7 +246,7 @@ function ClassMessages({ courseCode, coach, channelName }: { courseCode: string;
       footer={live.map((j) => (
         <JobRow key={j.id} job={j} />
       ))}
-      footerKey={live.map((j) => `${j.id}:${j.phase}:${j.lecture?.status}`).join('|')}
+      footerKey={live.map((j) => `${j.id}:${j.phase}:${j.lecture?.status}`).join('|') + `#${flagKey}`}
     />
   )
 }

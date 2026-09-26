@@ -4,6 +4,7 @@ import { Spinner } from '@/components/Spinner'
 import { DEFAULT_AGENT } from '@/lib/config'
 import { dismissJob, retryJob, retryMarker } from '@/store/companion'
 import { classPath, navigate } from '@/lib/route'
+import { fmtTime } from '@/lib/format'
 import { mmss } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useWS, type LectureJob, type LocalMarker } from '@/store/workspace'
@@ -77,7 +78,12 @@ export function JobRow({ job }: { job: LectureJob }) {
   const failed = job.phase === 'failed' || job.phase === 'upload_failed'
   return (
     <div data-msg-id={`job:${job.id}`} className="py-2 pr-5 pl-[66px]">
-      <div className={cn('flex max-w-[560px] flex-col gap-1.5 rounded-lg border px-3.5 py-2.5', failed ? 'border-bad bg-bad-soft' : job.phase === 'ready' ? 'border-ok bg-ok-soft' : 'border-line bg-soft')}>
+      <div
+        className={cn(
+          'flex max-w-[560px] flex-col gap-1.5 rounded-lg border border-l-[3px] border-line bg-white px-3.5 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04)]',
+          failed ? 'border-l-bad bg-bad-soft' : job.phase === 'ready' ? 'border-l-ok' : 'border-l-cyan',
+        )}
+      >
         <div className="flex items-center gap-2 text-[13px]">
           <Icon name={icon} size={17} className="text-ink-5" />
           <b>{what}</b>
@@ -86,7 +92,7 @@ export function JobRow({ job }: { job: LectureJob }) {
             {lec?.durationSec ? ` · ${mmss(lec.durationSec)}` : ''}
           </span>
           {job.phase === 'ready' && (
-            <button type="button" onClick={() => dismissJob(job.id)} aria-label="Dismiss" className="ml-auto flex size-6 cursor-pointer items-center justify-center rounded text-ink-5 hover:bg-white">
+            <button type="button" onClick={() => dismissJob(job.id)} aria-label="Dismiss" className="ml-auto flex size-6 cursor-pointer items-center justify-center rounded text-ink-5 hover:bg-mist">
               <Icon name="close" size={15} />
             </button>
           )}
@@ -117,7 +123,8 @@ export function JobRow({ job }: { job: LectureJob }) {
           </div>
         )}
         {job.phase === 'ready' && lec && (
-          <div className="flex items-center gap-2 border-t border-ok/30 pt-2 text-[13px]">
+          <div className="flex items-center gap-2 border-t border-line pt-2 text-[13px]">
+            <Icon name="check_circle" size={16} fill className="text-ok" />
             <b>Handout ready</b>
             <button type="button" onClick={() => navigate(classPath(job.courseCode, 'lectures', lec.id))} className="flex cursor-pointer items-center gap-0.5 font-bold text-link">
               Open handout <Icon name="arrow_outward" size={14} />
@@ -139,38 +146,56 @@ export function JobRow({ job }: { job: LectureJob }) {
   )
 }
 
-/** "🚩 Flagged at 12:40 — 'lost at 2PL diagram'", with where its POST stands. */
-export function MarkerRow({ m }: { m: LocalMarker }) {
-  const state =
-    m.state === 'posted' ? (
-      <span className="flex items-center gap-0.5 text-ok">
-        <Icon name="check" size={13} /> saved
-      </span>
-    ) : m.state === 'posting' ? (
-      <span className="flex items-center gap-1">
-        <Spinner size={10} /> sending…
-      </span>
-    ) : m.state === 'failed' ? (
-      <span className="flex items-center gap-1 text-bad">
-        not saved ({m.error}) —
-        <button type="button" onClick={() => retryMarker(m.localId)} className="cursor-pointer font-bold text-link">
+/** One flag inside the row: time, note, and its own state only when it isn't simply saved. */
+function FlagChip({ m }: { m: LocalMarker }) {
+  const failed = m.state === 'failed'
+  return (
+    <span className={cn('inline-flex h-[22px] max-w-[260px] items-center gap-1 rounded-md border px-1.5 text-xs', failed ? 'border-bad/40 bg-bad-soft' : 'border-line bg-white')}>
+      <b className="font-mono text-ink tabular-nums">{mmss(m.atSec)}</b>
+      {m.note && <span className="truncate text-ink-5">“{m.note}”</span>}
+      {m.state === 'posting' && <Spinner size={10} className="text-ink-4" />}
+      {failed && (
+        <button type="button" onClick={() => retryMarker(m.localId)} data-tip={`Not saved (${m.error}) · retry`} className="cursor-pointer font-bold text-link">
           retry
         </button>
-      </span>
-    ) : m.lectureId ? (
-      <span className="text-warn-ink">{m.error ? `retrying (${m.error})` : 'queued'}</span>
-    ) : (
-      <span>queued · posts when the recording uploads</span>
-    )
+      )}
+    </span>
+  )
+}
+
+/** "You flagged 4 moments · 0:03 “lost at 2PL” · 0:15 … ✓ saved": one row per recording, with where its POSTs stand. */
+export function MarkerGroupRow({ markers }: { markers: LocalMarker[] }) {
+  const failed = markers.filter((m) => m.state === 'failed').length
+  const retrying = markers.find((m) => m.state === 'queued' && m.lectureId)
+  const state = failed ? (
+    <span className="text-bad">{failed} not saved</span>
+  ) : markers.some((m) => m.state === 'posting') ? (
+    <span className="flex items-center gap-1">
+      <Spinner size={10} /> sending…
+    </span>
+  ) : markers.every((m) => m.state === 'posted') ? (
+    <span className="flex items-center gap-0.5 text-ok">
+      <Icon name="check" size={14} /> saved
+    </span>
+  ) : retrying ? (
+    <span className="text-warn-ink">{retrying.error ? `retrying (${retrying.error})` : 'queued'}</span>
+  ) : (
+    <span>posts when the recording uploads</span>
+  )
+  const n = markers.length
   return (
-    <div className="flex items-center gap-2 py-1 pr-5 pl-[66px] text-[13px]">
-      <span>🚩</span>
-      <span>
-        Flagged at <b className="font-mono">{mmss(m.atSec)}</b>
-        {m.note && <span className="text-ink"> — “{m.note}”</span>}
-      </span>
-      <span className="text-xs text-ink-4">·</span>
-      <span className="text-xs text-ink-5">{state}</span>
+    <div className="flex items-start gap-2 py-1.5 pr-5 pl-[66px] text-[13px] text-ink-5">
+      <Icon name="flag" size={16} fill className="mt-[3px] text-bad" />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+        <span>
+          You flagged <b className="text-ink">{n === 1 ? 'one moment' : `${n} moments`}</b>
+        </span>
+        {markers.map((m) => (
+          <FlagChip key={m.localId} m={m} />
+        ))}
+        <span className="text-xs">{state}</span>
+      </div>
+      <span className="mt-0.5 flex-none text-[11px] text-ink-4">{fmtTime(markers[0]!.createdAt)}</span>
     </div>
   )
 }
