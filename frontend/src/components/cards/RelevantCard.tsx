@@ -6,9 +6,12 @@ import { relevantKey, useWS } from '@/store/workspace'
 import type { Citation, RelevantCard as RelevantCardT } from '@/types'
 import { CardLabel } from './shared'
 
+/** Stable fallback for the interests selector: a fresh `[]` per call makes zustand's getSnapshot loop forever. */
+const NO_INTERESTS: string[] = []
+
 /** Make it Relevant, side by side: the grounded explanation (muted) next to the same facts through an interest. */
 export function RelevantCard({ card, citations, onClose, className }: { card: RelevantCardT; citations: Citation[]; onClose?: () => void; className?: string }) {
-  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? [])
+  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? NO_INTERESTS)
   const busy = useWS((s) => (card.source ? s.relevant[relevantKey(card.source)]?.status === 'loading' : false))
   const makeRelevant = useWS((s) => s.makeRelevant)
   const next = interests.length > 1 ? interests[(interests.indexOf(card.interest) + 1) % interests.length] : undefined
