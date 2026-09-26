@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 import { useWS } from '@/store/workspace'
 import type { CalendarItem, CalendarItemKind } from '@/types'
 import { AddTaskDialog, type TaskDraft } from './AddTaskDialog'
+import { InterestStrip, INTEREST_BLOCK, useInterestOf, useInterests } from './InterestEvents'
+import { interestItems } from '@/lib/interestEvents'
 
 const START_H = 7
 const END_H = 23
@@ -23,6 +25,7 @@ const KIND_FILTERS: { label: string; kinds: CalendarItemKind[] }[] = [
   { label: 'Actions', kinds: ['action'] },
   { label: 'Deadlines', kinds: ['deadline'] },
   { label: 'My tasks', kinds: ['task'] },
+  { label: 'Interests', kinds: ['event'] },
 ]
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -50,7 +53,10 @@ function subTitle(i: CalendarItem, mins: number) {
 function useSourceText() {
   const plan = useWS((s) => s.studentState?.plan)
   const lectures = useWS((s) => s.lectures.value)
+  const interestOf = useInterestOf()
   return (i: CalendarItem) => {
+    const hit = interestOf(i)
+    if (hit) return `Matches your interest: ${hit.interest} · ${hit.ev.host} · ${hit.ev.venue}`
     const src = i.source
     if (src.type === 'timetable') return 'From the timetable'
     if (src.type === 'exam_calendar') return `From the exam calendar · ${src.examId}`
@@ -131,6 +137,57 @@ function ItemPopover({ pop, onClose }: { pop: PopState; onClose: () => void }) {
     setPos({ left: Math.max(8, Math.min(pop.x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(pop.y, window.innerHeight - r.height - 8)) })
   }, [pop.x, pop.y])
   const when = isAllDay(live) ? `${fmtDayShort(live.start)} · all day` : `${fmtDayShort(live.start)} · ${fmtHM(live.start)}–${fmtHM(live.end!)}`
+  const hit = useInterestOf()(live)
+  const studentId = useWS((s) => s.studentId)
+  const [going, setGoing] = useState<'idle' | 'busy' | 'done'>('idle')
+  const goingTo = async () => {
+    if (!studentId || !live.end) return
+    setGoing('busy')
+    setDeleteError('')
+    try {
+      await api.addTask({ studentId, title: live.title, start: live.start.length === 16 ? `${live.start}:00` : live.start, minutes: minutesOf(live) })
+      setGoing('done')
+      useWS.getState().bumpCalendar()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : String(e))
+      setGoing('idle')
+    }
+  }
+  if (hit)
+    return (
+      <>
+        <div className="fixed inset-0 z-[950]" onClick={onClose} />
+        <div ref={ref} role="dialog" className="fixed z-[951] flex w-[300px] flex-col gap-2 rounded-lg border border-line bg-white p-3.5 shadow-[0_12px_32px_rgba(15,23,42,.22)]" style={pos}>
+          <div className="flex items-start gap-2">
+            <span className={cn('mt-0.5 rounded border px-1.5 py-px text-[10px] font-bold tracking-[.04em] uppercase', INTEREST_BLOCK)}>Interest</span>
+            <b className="flex-1 text-sm leading-[19px]">{live.title}</b>
+            <button type="button" onClick={onClose} aria-label="Close" className="flex size-6 cursor-pointer items-center justify-center rounded text-ink-5 hover:bg-soft">
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+          <span className="text-xs text-ink-5">
+            {when} · {hit.ev.venue}
+          </span>
+          <span className="flex items-center gap-1 self-start rounded-full bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
+            <Icon name="favorite" size={13} fill /> Matches your interest: {hit.interest}
+          </span>
+          <span className="text-xs leading-[17px] text-ink">{hit.ev.blurb}</span>
+          <span className="text-xs text-ink-5">
+            {hit.ev.host} · synthetic event, UI preview (the events connector isn’t built yet)
+          </span>
+          {deleteError && <span className="truncate text-xs text-bad">{deleteError}</span>}
+          <button
+            type="button"
+            disabled={going !== 'idle'}
+            onClick={() => void goingTo()}
+            className="flex h-7 cursor-pointer items-center justify-center gap-1 rounded-md bg-ink text-xs font-bold text-white hover:bg-ink-7 disabled:cursor-default disabled:opacity-70"
+          >
+            {going === 'busy' ? <Spinner size={11} /> : <Icon name={going === 'done' ? 'check' : 'event_available'} size={14} />}
+            {going === 'done' ? 'On your calendar · plan rebuilds work around it' : 'I’m going · add to my calendar'}
+          </button>
+        </div>
+      </>
+    )
   return (
     <>
       <div className="fixed inset-0 z-[950]" onClick={onClose} />
@@ -197,6 +254,7 @@ function ItemPopover({ pop, onClose }: { pop: PopState; onClose: () => void }) {
 function Block({ item, style, onOpen }: { item: CalendarItem; style: CSSProperties; onOpen: (e: React.MouseEvent) => void }) {
   const fresh = useWS((s) => (s.freshItems[item.id] ? Date.now() - s.freshItems[item.id]! < 6000 : false))
   const sourceText = useSourceText()
+  const hit = useInterestOf()(item)
   const mins = minutesOf(item)
   const tall = Number(style.height) >= 34
   return (
@@ -207,7 +265,7 @@ function Block({ item, style, onOpen }: { item: CalendarItem; style: CSSProperti
       style={style}
       className={cn(
         'absolute flex cursor-pointer flex-col overflow-hidden rounded-[5px] border px-1.5 py-[3px] text-left text-[11px] leading-[14px] hover:z-10 hover:shadow-md',
-        KIND_STYLE[item.kind].block,
+        hit ? INTEREST_BLOCK : KIND_STYLE[item.kind].block,
         item.status === 'done' && 'opacity-60',
         item.status === 'missed' && 'border-dashed opacity-70',
         fresh && 'z-10 animate-fresh',
@@ -215,9 +273,10 @@ function Block({ item, style, onOpen }: { item: CalendarItem; style: CSSProperti
     >
       <span className={cn('flex items-center gap-1 font-bold', item.status === 'done' && 'line-through')}>
         <StatusIcon item={item} />
+        {hit && <Icon name="favorite" size={11} fill className="flex-none text-rose-500" />}
         <span className="truncate">{shortTitle(item)}</span>
       </span>
-      {tall && <span className="truncate text-ink-5">{subTitle(item, mins)}</span>}
+      {tall && <span className="truncate text-ink-5">{hit ? `♥ ${hit.interest} · ${hit.ev.venue}` : subTitle(item, mins)}</span>}
     </button>
   )
 }
@@ -407,9 +466,23 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
   const range = view === 'week' ? { from: anchor, to: addDays(anchor, 6) } : { from: mondayOf(monthFirst), to: addDays(mondayOf(monthFirst), 41) }
   const entry = useCalendarRange(range.from, range.to, courseCode)
   const reload = useWS((s) => s.loadCalendar)
+  const studentId = useWS((s) => s.studentId)
+  const interests = useInterests()
+  const fromMs = range.from.getTime()
+  const toMs = range.to.getTime()
+  // Interest events (UI preview, hardcoded): shown beside the real items, never stored. One the student already
+  // added as a task ("I'm going") shows once, as their task.
+  const interestList = useMemo(() => {
+    if (courseCode || !studentId) return []
+    const taken = new Set((entry?.items ?? []).map((i) => `${i.title}|${i.start.slice(0, 16)}`))
+    return interestItems(studentId, interests, new Date(fromMs), new Date(toMs)).filter((i) => !taken.has(`${i.title}|${i.start.slice(0, 16)}`))
+  }, [courseCode, studentId, interests, fromMs, toMs, entry?.items])
   const items = useMemo(
-    () => (entry?.items ?? []).filter((i) => (!courses.length || (i.courseCode && courses.includes(i.courseCode))) && !hidden.includes(i.kind)),
-    [entry?.items, courses, hidden],
+    () =>
+      [...(entry?.items ?? []), ...(courses.length ? [] : interestList)].filter(
+        (i) => (!courses.length || (i.courseCode && courses.includes(i.courseCode))) && !hidden.includes(i.kind),
+      ),
+    [entry?.items, interestList, courses, hidden],
   )
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPop(null)
@@ -559,6 +632,7 @@ export function CalendarView({ courseCode, initialView = 'week', hideCourseFilte
           </button>
         </div>
       )}
+      {!courseCode && <InterestStrip events={interestList} hidden={hidden.includes('event')} onOpen={open} />}
       {view === 'week' ? (
         <WeekGrid monday={anchor} items={items} onOpen={open} onAdd={setDraft} />
       ) : (
