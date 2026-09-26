@@ -1,0 +1,95 @@
+/*
+ * The mind map's colour, and the skeleton's motion.
+ *
+ * Every node and branch carries its branch's hue in `--tone` (an HSL triplet, set
+ * inline). Fills, lines and ink are MIXED from it against the theme's own card and
+ * foreground colours, so one hue reads as a pastel in light mode and a deep tint in
+ * dark mode — and every fill is opaque, so nothing behind a node shows through it.
+ */
+
+.mindmap-node {
+  --mm-fill: 8%;
+  --mm-line: 30%;
+  --mm-ink: 16%;
+  background-color: color-mix(in srgb, hsl(var(--tone)) var(--mm-fill), hsl(var(--card)));
+  border-color: color-mix(in srgb, hsl(var(--tone)) var(--mm-line), hsl(var(--card)));
+  color: color-mix(in srgb, hsl(var(--tone)) var(--mm-ink), hsl(var(--foreground)));
+}
+
+.mindmap-node[data-level="1"] {
+  --mm-fill: 18%;
+  --mm-line: 46%;
+  --mm-ink: 30%;
+}
+
+.dark .mindmap-node {
+  --mm-fill: 10%;
+  --mm-line: 30%;
+  --mm-ink: 12%;
+}
+
+.dark .mindmap-node[data-level="1"] {
+  --mm-fill: 22%;
+  --mm-line: 48%;
+  --mm-ink: 16%;
+}
+
+.mindmap-branch {
+  stroke: color-mix(in srgb, hsl(var(--tone)) 55%, hsl(var(--background)));
+}
+
+.dark .mindmap-branch {
+  stroke: color-mix(in srgb, hsl(var(--tone)) 60%, hsl(var(--background)));
+}
+
+.mindmap-toggle {
+  border-color: color-mix(in srgb, hsl(var(--tone)) 45%, hsl(var(--background)));
+  color: color-mix(in srgb, hsl(var(--tone)) 72%, hsl(var(--foreground)));
+}
+
+/* The loading skeleton: branches draw themselves out of the root, nodes breathe. */
+
+.mindmap-skeleton-node {
+  animation: mindmap-breathe 1.8s ease-in-out infinite;
+}
+
+.mindmap-skeleton-branch {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mindmap-draw 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes mindmap-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes mindmap-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  45%,
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mindmap-skeleton-node,
+  .mindmap-skeleton-branch {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}

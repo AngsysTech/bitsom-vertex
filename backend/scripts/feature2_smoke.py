@@ -259,27 +259,55 @@ def _companion_action(client: httpx.Client) -> tuple[dict | None, str]:
 
 
 def _insert_action(db_path: str, study: list[dict]) -> tuple[dict | None, str]:
-    """Fallback: one accepted-action calendar item, written directly, at a free slot on a study-block day."""
-    day_blocks = sorted(study, key=lambda i: i["start"])
-    for anchor in day_blocks:
+    """Fallback: write what accepting a class-companion action writes (the accepted action, its plan
+    block in StudentState.plan, its block_slot and its calendar item), at a free evening slot on a
+    study-block day. Mirrors tools/companion._accept, so the planner and the 1:1 see a real action."""
+    course, topic = "CS F212", "Two-phase locking"
+    section = next(sid for sid, title in syllabus_ids().items()
+                   if sid.startswith("syllabus.cs-f212.") and norm(title) == norm(topic))
+    for anchor in sorted(study, key=lambda i: i["start"]):
         day = dt(anchor["start"]).date()
         taken = [(dt(i["start"]), dt(i["end"])) for i in study if dt(i["start"]).date() == day]
         taken += [(s, e) for s, e, _ in class_intervals(day)]
         t = datetime(day.year, day.month, day.day, 18, 0, tzinfo=TZ)
         while t.hour < 22:
             slot = (t, t + timedelta(minutes=45))
-            if not any(overlaps(slot, x) for x in taken):
-                item = {"id": "cal_smoke_action", "studentId": STUDENT, "kind": "action",
-                        "title": "Self-study: Two-phase locking", "courseCode": "CS F212",
-                        "start": slot[0].isoformat(timespec="seconds"), "end": slot[1].isoformat(timespec="seconds"),
-                        "source": {"type": "action", "actionId": "act_smoke", "lectureId": "lec_smoke"},
-                        "status": "planned"}
-                now = datetime.now().isoformat()
-                with sqlite3.connect(db_path) as conn:
-                    conn.execute("INSERT OR REPLACE INTO docs VALUES ('calendar_item', ?, ?, 'act_smoke', ?, ?, ?)",
-                                 (item["id"], STUDENT, now, now, json.dumps(item)))
-                return {"calendarItemId": item["id"]}, "inserted one action item directly (companion not used)"
-            t += timedelta(minutes=15)
+            if any(overlaps(slot, x) for x in taken):
+                t += timedelta(minutes=15)
+                continue
+            start, end = (x.isoformat(timespec="seconds") for x in slot)
+            why = "Not taught in the CS F212 lecture of 22 Sep (smoke-test fixture)"
+            action = {"id": "act_smoke", "lectureId": "lec_smoke", "kind": "study", "title": f"Self-study: {topic}",
+                      "course": course, "topic": topic, "minutes": 45, "why": why,
+                      "provenance": {"syllabusSectionId": section}, "status": "accepted",
+                      "planBlockId": "pb_smoke_action", "calendarItemId": "cal_smoke_action"}
+            item = {"id": "cal_smoke_action", "studentId": STUDENT, "kind": "action", "title": action["title"],
+                    "courseCode": course, "start": start, "end": end,
+                    "source": {"type": "action", "actionId": "act_smoke", "lectureId": "lec_smoke"},
+                    "status": "planned"}
+            block = {"id": "pb_smoke_action", "course": course, "topic": topic, "minutes": 45, "why": why,
+                     "citationId": section}
+            monday = day - timedelta(days=day.weekday())
+            label = f"Week of {monday:%b} {monday.day}"
+            now = datetime.now().isoformat()
+            with sqlite3.connect(db_path) as conn:
+                row = conn.execute("SELECT body FROM docs WHERE kind='state' AND id=?", (STUDENT,)).fetchone()
+                state = json.loads(row[0]) if row else {"studentId": STUDENT}
+                weeks = state.setdefault("plan", {"type": "study_plan", "weeks": []})["weeks"]
+                week = next((w for w in weeks if w["label"] == label), None)
+                if week is None:
+                    week = {"label": label, "blocks": []}
+                    weeks.append(week)
+                week["blocks"].append(block)
+                for kind, doc_id, parent, body in [("state", STUDENT, None, state),
+                                                   ("action", "act_smoke", "lec_smoke", action),
+                                                   ("block_slot", "pb_smoke_action", None, {"start": start, "end": end}),
+                                                   ("calendar_item", "cal_smoke_action", "act_smoke", item)]:
+                    conn.execute("INSERT OR REPLACE INTO docs (kind, id, student_id, parent_id, created_at, "
+                                 "updated_at, body) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                 (kind, doc_id, STUDENT, parent, now, now, json.dumps(body)))
+            return ({"calendarItemId": "cal_smoke_action", "planBlockId": "pb_smoke_action"},
+                    "wrote one accepted action directly (action, plan block, slot, calendar item; companion not used)")
     return None, "no free evening slot on any study-block day"
 
 

@@ -1,4 +1,4 @@
-import type { AgentId, Card, ConnectorKind, DocumentKind, StudentRecordKind, WorkspaceFile } from '@/types'
+import type { ActionItem, AgentId, CalendarItemKind, Card, ConnectorKind, DocumentKind, LectureCommitment, LectureStatus, StudentRecordKind, WorkspaceFile } from '@/types'
 
 export const DOC_KIND_LABEL: Record<DocumentKind, string> = {
   handbook: 'Handbook',
@@ -52,11 +52,15 @@ export const CARD_AGENT: Record<Card['type'], AgentId> = {
   skills_gap: 'course_planner',
   picks: 'campus_guide',
   resources: 'campus_guide',
-  one_on_one: 'study_buddy',
+  one_on_one: 'academic_coach',
+  coverage: 'academic_coach',
+  actions: 'academic_coach',
 }
 
 /** Right-panel order; latest card of each type wins. */
 export const CARD_ORDER: Card['type'][] = [
+  'coverage',
+  'actions',
   'audit',
   'weak_topics',
   'study_plan',
@@ -71,3 +75,56 @@ export const CARD_ORDER: Card['type'][] = [
 export const STATUS_COLOR = { ok: '#10B981', gap: '#F59E0B', at_risk: '#EF4444' } as const
 
 export const isClubAgent = (id: string) => id.startsWith('club:')
+
+/** Agents that are below the line today: rendered greyed under "coming soon" when /workspace doesn't return them. */
+export const COMING_SOON_AGENTS: { id: AgentId; name: string; emoji: string; tagline: string }[] = [
+  { id: 'course_planner', name: 'Course Planner', emoji: '📅', tagline: 'Electives, slot clashes and skills for your target role' },
+  { id: 'campus_guide', name: 'Campus Guide', emoji: '🧭', tagline: 'Help, resources, clubs and events worth your time' },
+]
+
+/** Club agents are below the line too; the Agents page shows them as one "coming soon" card each. */
+export const COMING_SOON_CLUBS: { name: string; emoji: string; tagline: string }[] = [
+  { name: 'Club agents', emoji: '🎭', tagline: 'Each club answers from its own feed, inside Campus Guide threads' },
+]
+
+/** Calendar block styles by kind (brief §5). Cyan is the accent: study blocks and actions only. */
+export const KIND_STYLE: Record<CalendarItemKind, { label: string; block: string; dot: string }> = {
+  class: { label: 'Class', block: 'border-ink bg-white text-ink', dot: '#0F172A' },
+  exam: { label: 'Exam', block: 'border-bad bg-bad-soft text-ink', dot: '#EF4444' },
+  quiz: { label: 'Quiz', block: 'border-bad bg-bad-soft text-ink', dot: '#EF4444' },
+  study_block: { label: 'Study', block: 'border-cyan bg-cyan-soft text-ink', dot: '#22D3EE' },
+  prep: { label: 'Prep', block: 'border-warn bg-warn-soft text-ink', dot: '#F59E0B' },
+  deadline: { label: 'Deadline', block: 'border-bad bg-white text-ink', dot: '#EF4444' },
+  action: { label: 'Action', block: 'border-cyan bg-white text-ink', dot: '#0891B2' },
+}
+
+export const CALENDAR_KINDS: CalendarItemKind[] = ['class', 'exam', 'quiz', 'study_block', 'prep', 'action', 'deadline']
+
+/** Kinds a student can mark done / missed / planned. Classes and exams are read-only. */
+export const STUDY_KINDS: CalendarItemKind[] = ['study_block', 'prep', 'action', 'deadline']
+
+export const ACTION_KIND_LABEL: Record<ActionItem['kind'], string> = {
+  study: 'Study',
+  review: 'Review',
+  ask: 'Ask',
+  resource: 'Resource',
+  prep: 'Prep',
+  deadline: 'Deadline',
+}
+
+export const COMMITMENT_LABEL: Record<LectureCommitment['kind'], string> = {
+  next_lecture_topic: 'Next lecture',
+  assignment: 'Assignment',
+  reading: 'Reading',
+  deadline: 'Deadline',
+  exam_hint: 'Exam hint',
+}
+
+export const LECTURE_STATUS_LABEL: Record<LectureStatus, string> = {
+  uploaded: 'Uploaded',
+  transcribing: 'Transcribing',
+  transcribed: 'Transcribed',
+  processing: 'Processing',
+  ready: 'Ready',
+  failed: 'Failed',
+}

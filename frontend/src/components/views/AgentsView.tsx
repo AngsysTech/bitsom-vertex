@@ -1,6 +1,6 @@
 import { Icon } from '@/components/Icon'
 import { useScopeChips } from '@/hooks/useScopeChips'
-import { CONNECTOR_KIND_LABEL, PROVIDES_LABEL } from '@/lib/labels'
+import { COMING_SOON_AGENTS, COMING_SOON_CLUBS, CONNECTOR_KIND_LABEL, PROVIDES_LABEL } from '@/lib/labels'
 import { navigate } from '@/lib/route'
 import { cn } from '@/lib/utils'
 import { useWS } from '@/store/workspace'
@@ -61,6 +61,24 @@ function AgentCard({ agent }: { agent: Agent }) {
   )
 }
 
+/** Below the line today: greyed, no Open DM, never a simulated reply. */
+function ComingSoonCard({ emoji, name, tagline }: { emoji: string; name: string; tagline: string }) {
+  return (
+    <div data-tip="Coming soon" className="flex cursor-not-allowed flex-col gap-2.5 rounded-[10px] border border-dashed border-line bg-soft p-4 opacity-70">
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 flex-none items-center justify-center rounded-[10px] border border-line bg-white text-2xl grayscale">{emoji}</span>
+        <div className="flex flex-col gap-0.5">
+          <b className="text-[15px] text-ink-5">{name}</b>
+          <span className="text-[13px] leading-[18px] text-ink-5">{tagline}</span>
+        </div>
+      </div>
+      <span className="mt-auto inline-flex items-center gap-1 self-start rounded-full border border-line bg-white px-2 py-0.5 text-[11px] font-bold text-ink-5">
+        <Icon name="lock" size={13} /> Coming soon
+      </span>
+    </div>
+  )
+}
+
 function ConnectorCard({ c }: { c: Connector }) {
   const b = BADGE[c.status]
   return (
@@ -114,11 +132,22 @@ export function AgentsView() {
       </div>
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {tab === 'agents' ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-            {agents.map((a) => (
-              <AgentCard key={a.id} agent={a} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+              {agents.filter((a) => a.kind !== 'club').map((a) => (
+                <AgentCard key={a.id} agent={a} />
+              ))}
+            </div>
+            <div className="mt-6 mb-2.5 text-[11px] font-bold tracking-[.06em] text-ink-5 uppercase">Coming soon</div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+              {COMING_SOON_AGENTS.filter((c) => !agents.some((a) => a.id === c.id)).map((c) => (
+                <ComingSoonCard key={c.id} emoji={c.emoji} name={c.name} tagline={c.tagline} />
+              ))}
+              {COMING_SOON_CLUBS.map((c) => (
+                <ComingSoonCard key={c.name} emoji={c.emoji} name={c.name} tagline={c.tagline} />
+              ))}
+            </div>
+          </>
         ) : (
           <>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">

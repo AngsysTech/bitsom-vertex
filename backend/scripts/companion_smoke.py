@@ -8,16 +8,22 @@ port with a throwaway SQLite file, so it never touches backend/data/app.db.
     .venv/bin/python scripts/companion_smoke.py --audio clip.mp3  # + 7 (real audio) and 8 (STT key killed)
     .venv/bin/python scripts/companion_smoke.py --make-audio      # + 7/8 with a ~2 min clip spoken by macOS `say`
     .venv/bin/python scripts/companion_smoke.py --base-url http://127.0.0.1:8000   # use a running server
+    .venv/bin/python scripts/companion_smoke.py --student meera   # another student, same lecture
+    .venv/bin/python scripts/companion_smoke.py --lecture app/data/lectures/cs-f372-2026-09-23-scheduling.md
 
-Checks (from the build brief):
+Checks (from the build brief). Actions are matched on their canonical `topic`, never on titles.
  1. transcript path → status ready in < 60 s
  2. handout has >= 3 sections; every segmentId exists in the transcript
- 3. coverage.missed has "Two-phase locking"; emphasized has the serializability exam-hint quote, verbatim in its segment
+ 3. coverage.missed has the lecture's planted skipped topic (lectures/README.md); for the CS F212 demo
+    lecture, emphasized has the serializability exam-hint quote, verbatim in its segment
  4. a next_lecture_topic commitment on deadlocks, dueBy = the CS F212 session the lecturer named (timetable.json)
- 5. actions: prep (deadlocks, due by next session), study (two-phase locking, why cites marks), review (serializability)
+ 5. actions: prep (Deadlocks, due by next session), study (Two-phase locking, why cites marks),
+    review (Serializability); 5d every coverage.missed topic has a study or prep action;
+    5e one action per (topic, kind)
  6. accept the study action → plan block in StudentState + calendar item with source.type = "action"
  7. real audio clip through STT → ready, >= 2 sections
  8. STT key killed → audio lecture failed with error; transcript path still passes 1-6
+Checks 3b, 4 and 5a-5c are specific to the CS F212 demo lecture and run only for it.
 """
 from __future__ import annotations
 
@@ -31,6 +37,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -39,10 +46,29 @@ import httpx
 
 BACKEND = Path(__file__).resolve().parents[1]
 DATA = BACKEND / "app" / "data"
-LECTURE_FILE = DATA / "lectures" / "cs-f212-2026-09-22-transactions.md"
-COURSE, STUDENT, LECTURE_DATE = "CS F212", "aarav", "2026-09-22"
+DEMO_LECTURE = DATA / "lectures" / "cs-f212-2026-09-22-transactions.md"
+# the topic each synthetic lecture skips on purpose (lectures/README.md)
+PLANTED = {"cs-f212-2026-09-22-transactions.md": "Two-phase locking",
+           "cs-f372-2026-09-23-scheduling.md": "Multilevel feedback queues",
+           "cs-f303-2026-09-24-transport.md": "Congestion control"}
 TZ = ZoneInfo("Asia/Kolkata")
 READY_BUDGET_SEC = 60
+
+# set by configure() from --student / --lecture
+LECTURE_FILE, COURSE, STUDENT, LECTURE_DATE = DEMO_LECTURE, "CS F212", "aarav", "2026-09-22"
+TITLE = "Transactions, schedules and serializability"
+
+
+def configure(student: str, lecture: Path) -> None:
+    """Point the checks at one lecture file (course and date from its front matter) and student."""
+    global LECTURE_FILE, COURSE, STUDENT, LECTURE_DATE, TITLE
+    front = re.match(r"\A---\n(.*?)\n---", lecture.read_text(), re.S)
+    meta = dict(re.findall(r"^(\w+):\s*(.+?)\s*$", front.group(1) if front else "", re.M))
+    LECTURE_FILE, STUDENT = lecture.resolve(), student
+    COURSE, LECTURE_DATE = meta.get("courseCode", COURSE), meta.get("date", LECTURE_DATE)
+    if LECTURE_FILE != DEMO_LECTURE.resolve():
+        TITLE = meta.get("unit") or f"{COURSE} lecture"
+
 
 results: list[tuple[str, bool, str]] = []
 
@@ -136,12 +162,12 @@ def parse_dt(value: str | None) -> datetime | None:
 # ---- checks 1-6 ---------------------------------------------------------------------------
 
 def run_text_path(server: Server, label: str) -> bool:
-    print(f"\n== Text path ({label})", flush=True)
+    print(f"\n== Text path ({label}: {STUDENT}, {LECTURE_FILE.name})", flush=True)
     before = len(results)
+    demo = LECTURE_FILE == DEMO_LECTURE.resolve()
     client = httpx.Client(base_url=server.url, timeout=30)
     r = client.post("/lectures", json={"studentId": STUDENT, "courseCode": COURSE, "date": LECTURE_DATE,
-                                       "title": "Transactions, schedules and serializability",
-                                       "transcriptText": LECTURE_FILE.read_text()})
+                                       "title": TITLE, "transcriptText": LECTURE_FILE.read_text()})
     if not check("1a POST /lectures (transcriptText)", r.status_code == 200 and r.json().get("source") == "transcript",
                  f"{r.status_code} {r.text[:120]}"):
         return False
@@ -163,32 +189,48 @@ def run_text_path(server: Server, label: str) -> bool:
     cards = client.get(f"/lectures/{lec_id}/cards").json()
     cov, act = cards["coverage"], cards["actions"]
     missed = [m["topic"] for m in cov["missed"]]
-    check("3a coverage.missed contains Two-phase locking", any(norm(t) == "two-phase locking" for t in missed),
-          f"missed={missed}")
-    hint = [e for e in cov["emphasized"] if "serializab" in norm(e["quote"]) and re.search(r"end.?sem", norm(e["quote"]))]
-    check("3b emphasized has the serializability exam-hint quote, verbatim in its segment",
-          bool(hint) and all(norm(e["quote"]) in norm(seg.get(e["segmentId"], "")) for e in hint),
-          f"{[(e['segmentId'], e['quote'][:70]) for e in hint]}")
-
-    nl = [c for c in act["commitments"] if c["kind"] == "next_lecture_topic" and "deadlock" in norm(c["text"])]
-    next_session = expected_due(nl[0]["quote"]) if nl else None
-    check("4 next_lecture_topic (deadlocks) dueBy = the CS F212 session the lecturer named, from timetable.json",
-          bool(nl) and parse_dt(nl[0].get("dueBy")) == next_session,
-          f"quote={nl[0]['quote'] if nl else None!r}; expected {next_session and next_session.isoformat()}, "
-          f"got {[c.get('dueBy') for c in nl]}")
-
+    planted = PLANTED.get(LECTURE_FILE.name)
+    if planted:
+        check(f"3a coverage.missed contains {planted}", any(norm(t) == norm(planted) for t in missed),
+              f"missed={missed}")
     items = act["items"]
-    prep = [a for a in items if a["kind"] == "prep" and "deadlock" in norm(a["title"] + " " + a["topic"])]
-    study = [a for a in items if a["kind"] == "study" and norm(a["topic"]) == "two-phase locking"]
-    review = [a for a in items if a["kind"] == "review" and "serializab" in norm(a["title"] + " " + a["topic"])]
-    check("5a prep action on deadlocks, due by the next session",
-          bool(prep) and next_session is not None and parse_dt(prep[0].get("dueBy")) is not None
-          and parse_dt(prep[0]["dueBy"]) <= next_session,
-          f"{[(a['title'], a.get('dueBy')) for a in prep]}")
-    check("5b study action on two-phase locking, why cites past-paper marks",
-          bool(study) and bool(re.search(r"\d+\s*(–|-|to)?\s*\d*\s*marks", study[0]["why"])),
-          f"{[a['why'] for a in study]}")
-    check("5c review action on serializability", bool(review), f"{[a['title'] for a in review]}")
+    for a in items:
+        print(f"         {a['kind']:8} {a['topic'][:34]:34} due {a.get('dueBy') or '-':25} {a['title'][:56]}")
+
+    def on(kind: str, topic: str) -> list[dict]:
+        """Actions of this kind whose canonical topic is ``topic``."""
+        return [a for a in items if a["kind"] == kind and norm(a["topic"]) == norm(topic)]
+
+    study = [a for a in items if a["kind"] == "study" and any(norm(a["topic"]) == norm(t) for t in missed)]
+    if demo:
+        hint = [e for e in cov["emphasized"]
+                if "serializab" in norm(e["quote"]) and re.search(r"end.?sem", norm(e["quote"]))]
+        check("3b emphasized has the serializability exam-hint quote, verbatim in its segment",
+              bool(hint) and all(norm(e["quote"]) in norm(seg.get(e["segmentId"], "")) for e in hint),
+              f"{[(e['segmentId'], e['quote'][:70]) for e in hint]}")
+
+        nl = [c for c in act["commitments"] if c["kind"] == "next_lecture_topic" and "deadlock" in norm(c["text"])]
+        next_session = expected_due(nl[0]["quote"]) if nl else None
+        check("4 next_lecture_topic (deadlocks) dueBy = the CS F212 session the lecturer named, from timetable.json",
+              bool(nl) and parse_dt(nl[0].get("dueBy")) == next_session,
+              f"quote={nl[0]['quote'] if nl else None!r}; expected {next_session and next_session.isoformat()}, "
+              f"got {[c.get('dueBy') for c in nl]}")
+
+        prep, study, review = on("prep", "Deadlocks"), on("study", "Two-phase locking"), on("review", "Serializability")
+        check("5a prep action on Deadlocks, due by the next session",
+              bool(prep) and next_session is not None and parse_dt(prep[0].get("dueBy")) is not None
+              and parse_dt(prep[0]["dueBy"]) <= next_session,
+              f"{[(a['title'], a.get('dueBy')) for a in prep]}")
+        check("5b study action on Two-phase locking, why cites past-paper marks",
+              bool(study) and bool(re.search(r"\d+\s*(–|-|to)?\s*\d*\s*marks", study[0]["why"])),
+              f"{[a['why'] for a in study]}")
+        check("5c review action on Serializability", bool(review), f"{[a['title'] for a in review]}")
+    without = [t for t in missed if not (on("study", t) or on("prep", t))]
+    check("5d every coverage.missed topic has a study or prep action", not without,
+          f"missed={missed}" + (f", without one: {without}" if without else ""))
+    dups = [f"{kind} {topic!r}" for (topic, kind), n in Counter((norm(a["topic"]), a["kind"]) for a in items).items()
+            if n > 1]
+    check("5e one action per (topic, kind)", not dups, f"duplicates: {dups}" if dups else f"{len(items)} actions")
 
     if study:
         acc = client.post(f"/actions/{study[0]['id']}", json={"status": "accepted"}).json()
@@ -216,6 +258,9 @@ def run_text_path(server: Server, label: str) -> bool:
               and any(c.get("lectureId") == lec_id for c in m["cards"])]
     check("7-notify academic_coach thread has the summary message with both cards and a trace",
           bool(notify) and len(notify[0]["trace"]) >= 6, f"{notify[0]['text'][:140] if notify else thread}")
+    step = next((t for t in notify[0]["trace"] if t["tool"] == "class_companion.actions"), None) if notify else None
+    if step:
+        print(f"         trace class_companion.actions: {step['summary']}", flush=True)
     return all(ok for _, ok, _ in results[before:])
 
 
@@ -277,7 +322,11 @@ def main() -> int:
     ap.add_argument("--db", help="SQLite path of the --base-url server (for check 6b); default backend/data/app.db")
     ap.add_argument("--audio", type=Path)
     ap.add_argument("--make-audio", action="store_true")
+    ap.add_argument("--student", default=STUDENT)
+    ap.add_argument("--lecture", type=Path, default=DEMO_LECTURE,
+                    help="transcript .md with courseCode/date front matter (default: the CS F212 demo lecture)")
     args = ap.parse_args()
+    configure(args.student, args.lecture)
 
     tmp = Path(tempfile.mkdtemp(prefix="companion_smoke_"))
     db = args.db or (str(BACKEND / "data" / "app.db") if args.base_url else str(tmp / "smoke.db"))

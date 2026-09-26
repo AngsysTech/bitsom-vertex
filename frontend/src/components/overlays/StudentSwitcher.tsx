@@ -9,6 +9,7 @@ export function StudentSwitcher() {
   const students = useWS((s) => s.students)
   const current = useWS((s) => s.studentId)
   const set = useWS((s) => s.set)
+  const recording = useWS((s) => s.recording?.courseCode)
   if (!open) return null
   return (
     <>
@@ -18,17 +19,18 @@ export function StudentSwitcher() {
           <b className="text-[15px]">Switch student</b>
           <span className="rounded border border-line px-1.5 py-px text-[11px] text-ink-5">⌘K</span>
         </div>
+        {recording && <div className="border-b border-line bg-bad-soft px-4 py-2 text-xs text-ink">Stop the {recording} recording before switching students.</div>}
         {students.map((s) => (
           <div
             key={s.id}
-            onClick={() => switchStudent(s.id)}
-            className={cn('flex cursor-pointer items-center gap-3 px-4 py-2.5 hover:bg-soft', s.id === current ? 'bg-soft' : 'bg-white')}
+            onClick={() => !recording && switchStudent(s.id)}
+            className={cn('flex items-center gap-3 px-4 py-2.5 hover:bg-soft', recording ? 'cursor-not-allowed opacity-60' : 'cursor-pointer', s.id === current ? 'bg-soft' : 'bg-white')}
           >
             <span className="flex size-9 flex-none items-center justify-center rounded-lg bg-ink text-[13px] font-black text-white">{initials(s.name)}</span>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <b className="text-sm">{s.name}</b>
               <span className="text-xs text-ink-5">
-                {s.program} · Sem {s.semester} · {s.careerGoal}
+                {s.program} · Sem {s.semester} · {s.careerGoal} · {s.interests.join(', ')}
               </span>
             </div>
             {s.id === current && <Icon name="check" size={20} className="text-ink" />}

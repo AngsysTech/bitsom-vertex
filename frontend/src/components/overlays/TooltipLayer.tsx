@@ -10,7 +10,7 @@ export function TooltipLayer() {
       const text = el?.dataset.tip
       if (!el || !text) return setTip((t) => (t ? null : t))
       const r = el.getBoundingClientRect()
-      const x = Math.min(Math.max(r.left + r.width / 2, 90), window.innerWidth - 90)
+      const x = Math.min(Math.max(r.left + r.width / 2, 170), window.innerWidth - 170)
       setTip((t) => (t && t.text === text && t.x === x && t.y === r.bottom + 6 ? t : { text, x, y: r.bottom + 6 }))
     }
     const hide = () => setTip(null)
@@ -31,7 +31,7 @@ export function TooltipLayer() {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none fixed z-[1001] -translate-x-1/2 rounded-md bg-ink px-[9px] py-[5px] text-xs font-bold whitespace-nowrap text-white shadow-[0_4px_12px_rgba(15,23,42,.25)]"
+      className="pointer-events-none fixed z-[1001] w-max max-w-[320px] -translate-x-1/2 rounded-md bg-ink px-[9px] py-[5px] text-xs leading-[17px] font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,.25)]"
       style={{ left: tip.x, top: tip.y }}
     >
       {tip.text}

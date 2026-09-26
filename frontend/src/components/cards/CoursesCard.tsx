@@ -13,7 +13,7 @@ export function CoursesCard({ card, citations }: { card: CoursesCardT; citations
             <span>
               <b>{c.code}</b> {c.title}
             </span>
-            <span className="flex-none text-ink-5">{c.credits} units</span>
+            <span className="flex-none text-ink-5">{c.units} units</span>
           </div>
           <div className="text-xs text-ink-5">
             {c.slot} · {c.faculty}
