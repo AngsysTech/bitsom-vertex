@@ -172,6 +172,10 @@ def run_text_path(server: Server, label: str) -> bool:
                  f"{r.status_code} {r.text[:120]}"):
         return False
     lec_id = r.json()["id"]
+    early = client.post(f"/lectures/{lec_id}/markers", json={"atSec": 75, "note": "lost at the precedence graph"})
+    check("M1 POST marker before processing → StuckMarker (unresolved until there is a transcript)",
+          early.status_code == 200 and early.json().get("atSec") == 75 and not early.json().get("segmentId"),
+          f"{early.status_code} {early.text[:140]}")
     lec, elapsed = wait_until_done(client, lec_id)
     check("1 status ready in < 60 s", lec.get("status") == "ready" and elapsed < READY_BUDGET_SEC,
           f"status={lec.get('status')} in {elapsed:.1f}s" + (f" error={lec.get('error')}" if lec.get("error") else ""))
@@ -252,16 +256,62 @@ def run_text_path(server: Server, label: str) -> bool:
         check("6c GET /calendar shows it with source.type = action", bool(hit),
               f"{[(i['kind'], i['start'], i['title']) for i in hit]}; {len(calendar)} items total")
 
-    thread = client.get(f"/threads/{STUDENT}/academic_coach").json()
+    thread = client.get(f"/threads/{STUDENT}/class/{COURSE}").json()
     notify = [m for m in thread["messages"] if m["role"] == "agent" and m["cards"]
               and {c["type"] for c in m["cards"]} >= {"coverage", "actions"}
               and any(c.get("lectureId") == lec_id for c in m["cards"])]
-    check("7-notify academic_coach thread has the summary message with both cards and a trace",
-          bool(notify) and len(notify[0]["trace"]) >= 6, f"{notify[0]['text'][:140] if notify else thread}")
+    check("7-notify class thread has the summary message with both cards and a trace",
+          thread.get("id") == f"{STUDENT}:class:{COURSE}" and thread.get("courseCode") == COURSE
+          and bool(notify) and len(notify[0]["trace"]) >= 6,
+          f"{thread.get('id')}: {notify[0]['text'][:140] if notify else thread.get('messages')}")
     step = next((t for t in notify[0]["trace"] if t["tool"] == "class_companion.actions"), None) if notify else None
     if step:
         print(f"         trace class_companion.actions: {step['summary']}", flush=True)
+
+    # stuck markers: the pre-processing tap, resolved on ready
+    markers = client.get(f"/lectures/{lec_id}/markers").json()
+    m1 = next((m for m in markers if m["id"] == early.json().get("id")), {})
+    sections = {sec["id"]: sec for sec in handout["sections"]}
+    check("M2 marker resolved on ready: segmentId, handoutSectionId, topic",
+          bool(m1.get("segmentId")) and m1.get("handoutSectionId") in sections and bool(m1.get("topic"))
+          and seg_covers(transcript, m1["segmentId"], 75), json.dumps(m1)[:220])
+    check("M3 handout section.stuck, coverage.confusion and a review action name the marker",
+          m1.get("id") in ((sections.get(m1.get("handoutSectionId")) or {}).get("stuck") or {}).get("markerIds", [])
+          and any(c["markerId"] == m1.get("id") for c in cov.get("confusion", []))
+          and any(a["kind"] == "review" and a["provenance"].get("markerId") == m1.get("id") for a in act["items"]),
+          f"confusion={cov.get('confusion')}")
+
+    # a tap after ready is applied at once: cards recompute and the class thread hears about it
+    n_msgs = len(thread["messages"])
+    late = client.post(f"/lectures/{lec_id}/markers", json={"atSec": 0}).json()
+    cards2 = client.get(f"/lectures/{lec_id}/cards").json()
+    thread2 = client.get(f"/threads/{STUDENT}/class/{COURSE}").json()
+    note_msg = [m for m in thread2["messages"][n_msgs:]
+                if any(t["tool"] == "class_companion.marker" for t in m.get("trace") or [])]
+    check("M4 marker after ready: resolved in the response, cards recomputed, note in class thread",
+          bool(late.get("handoutSectionId")) and bool(late.get("topic"))
+          and any(c["markerId"] == late.get("id") for c in cards2["coverage"]["confusion"])
+          and any(a["kind"] == "review" and (a["provenance"].get("markerId") == late.get("id")
+                                             or norm(a["topic"]) == norm(late.get("topic", "")))
+                  for a in cards2["actions"]["items"])
+          and bool(note_msg), f"{json.dumps(late)[:160]} | {note_msg[0]['text'][:120] if note_msg else 'no message'}")
+
+    # the Schedule tab: courseCode filters the calendar to one class
+    rng = {"from": "2026-09-21", "to": "2026-10-18"}
+    everything = client.get(f"/calendar/{STUDENT}", params=rng).json()
+    one = client.get(f"/calendar/{STUDENT}", params={**rng, "courseCode": COURSE}).json()
+    check("C1 GET /calendar?courseCode filters to that class",
+          bool(one) and all(i.get("courseCode") == COURSE for i in one) and len(one) < len(everything),
+          f"{len(one)} of {len(everything)} items")
     return all(ok for _, ok, _ in results[before:])
+
+
+def seg_covers(transcript: dict, seg_id: str, at: float) -> bool:
+    """The resolved segment is the one covering ``at``, or the nearest one when none does."""
+    segs = transcript["segments"]
+    inside = [x for x in segs if x["startSec"] <= at < x["endSec"]]
+    want = inside[0] if inside else min(segs, key=lambda x: min(abs(at - x["startSec"]), abs(at - x["endSec"])))
+    return want["id"] == seg_id
 
 
 # ---- checks 7 and 8 -------------------------------------------------------------------------

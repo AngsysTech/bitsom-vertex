@@ -60,6 +60,15 @@ def course_title(course_code: str) -> str | None:
     return _catalog_titles().get(course_slug(course_code)) or None
 
 
+def canonical_course_code(course_code: str) -> str:
+    """"cs-f212" / "CS  F212" → "CS F212" as the catalog or timetable writes it; else as given."""
+    slug = course_slug(course_code or "")
+    data = _load("catalog.json") or {}
+    rows = data.get("courses", []) if isinstance(data, dict) else data
+    known = [r.get("code") or r.get("courseCode") for r in rows] + [r.get("courseCode") for r in _rows()]
+    return next((c for c in known if c and course_slug(c) == slug), " ".join((course_code or "").split()))
+
+
 # ---- timetable -------------------------------------------------------------------
 
 @dataclass

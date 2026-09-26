@@ -1,4 +1,5 @@
-"""Agent DM threads in SQLite. Thread id is ``<studentId>:<agentId>`` (contracts §3)."""
+"""Threads in SQLite (contracts §3). DMs: ``<studentId>:<agentId>``. Class channels:
+``<studentId>:class:<courseCode>`` with the course code as the catalog writes it ("CS F212")."""
 from __future__ import annotations
 
 from typing import Any
@@ -14,6 +15,18 @@ def thread_id(student_id: str, agent_id: str) -> str:
 def append_message(student_id: str, message: Message) -> Message:
     db.put("message", message.id, message.dump(), student_id=student_id, parent_id=message.threadId)
     return message
+
+
+def class_thread_id(student_id: str, course_code: str) -> str:
+    """Class-channel thread: lecture events + the course-scoped coach (contracts v3.5)."""
+    return f"{student_id}:class:{course_code}"
+
+
+def get_class_thread(student_id: str, course_code: str, agent_id: str = "academic_coach") -> dict[str, Any]:
+    tid = class_thread_id(student_id, course_code)
+    messages = [Message.model_validate(m) for m in db.find("message", parent_id=tid)]
+    messages.sort(key=lambda m: m.createdAt)
+    return Thread(id=tid, studentId=student_id, agentId=agent_id, courseCode=course_code, messages=messages).dump()
 
 
 def get_thread(student_id: str, agent_id: str) -> dict[str, Any]:

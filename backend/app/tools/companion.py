@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import re
 import threading
+from types import SimpleNamespace
 import time
 import uuid
 from collections import Counter
@@ -35,11 +36,11 @@ from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
 from app.core.models import (ActionItem, ActionProvenance, ActionsCard, CalendarItem, Citation, CoverageCard,
                              CoverageCovered, CoverageEmphasized, CoverageMissed, Handout, HandoutDefinition,
                              HandoutSection, Lecture, LectureCommitment, Message, ToolTrace, Transcript,
-                             TranscriptSegment)
+                             TranscriptSegment, CoverageConfusion, StuckFlag, StuckMarker)
 from app.core.records import load_student, topic_marks
 from app.core.state import add_plan_block, remove_plan_block
 from app.core.syllabus import Syllabus, Topic, load_syllabus
-from app.core.threads import append_message, thread_id
+from app.core.threads import append_message, class_thread_id
 from app.core.verify import find_verbatim, normalize_ws
 from app.tools import calendar as cal
 from app.vendored.audio_notes.notes_generation import NotesGenerationService
@@ -268,7 +269,8 @@ def _run(lecture_id: str) -> None:
     ctx = Ctx(lecture=get_lecture(lecture_id), tracer=Tracer(lecture_id))
     ctx.syllabus = load_syllabus(ctx.lecture.courseCode)
     steps = [("transcribe", step_transcribe), ("handout", step_handout), ("coverage", step_coverage),
-             ("commitments", step_commitments), ("actions", step_actions), ("notify", step_notify)]
+             ("commitments", step_commitments), ("actions", step_actions), ("markers", step_markers),
+             ("notify", step_notify)]
     for name, fn in steps:
         started = time.perf_counter()
         ctx.soft_error = None
@@ -285,6 +287,7 @@ def _run(lecture_id: str) -> None:
                        error=ctx.soft_error)
     ctx.lecture.status = "ready"
     _save_lecture(ctx.lecture)
+    apply_late_markers(lecture_id)  # taps that arrived while the last steps ran
 
 
 def _fail(ctx: Ctx, step: str, error: str) -> None:
@@ -292,7 +295,7 @@ def _fail(ctx: Ctx, step: str, error: str) -> None:
     lec.status, lec.error = "failed", f"{step}: {error}"
     _save_lecture(lec)
     append_message(lec.studentId, Message(
-        id=f"msg_{uuid.uuid4().hex[:10]}", threadId=thread_id(lec.studentId, AGENT_ID), role="system",
+        id=f"msg_{uuid.uuid4().hex[:10]}", threadId=class_thread_id(lec.studentId, lec.courseCode), role="system",
         agentId=AGENT_ID, createdAt=_utcnow(),
         text=f"Class companion stopped at **{step}** for {lec.courseCode} ({lec.date}): {error}",
         trace=ctx.tracer.entries))
@@ -1155,15 +1158,18 @@ def step_notify(ctx: Ctx) -> str:
         s3 = f"I've proposed {len(ctx.actions)} actions; the first, “{first.title}”, is due {_fmt_due(first.dueBy)}."
     else:
         s3 = "Nothing in this lecture needs a follow-up action."
+    if cov and cov.confusion:
+        flagged = list(dict.fromkeys(c.topic for c in cov.confusion))
+        s3 += f" You flagged {len(cov.confusion)} moment(s) as confusing ({', '.join(flagged)}); each has a review item."
     cards = []
     if cov:
         cards.append(cov.dump())
     cards.append(ActionsCard(lectureId=lec.id, commitments=ctx.commitments, items=ctx.actions).dump())
     started = time.perf_counter()
-    msg = Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=thread_id(lec.studentId, AGENT_ID), role="agent",
-                  agentId=AGENT_ID, createdAt=_utcnow(), text=" ".join([s1, s2, s3]), citations=citations,
-                  cards=cards, trace=ctx.tracer.entries + [ToolTrace(
-                      tool="class_companion.notify", summary="message appended to academic_coach thread",
+    msg = Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=class_thread_id(lec.studentId, lec.courseCode),
+                  role="agent", agentId=AGENT_ID, createdAt=_utcnow(), text=" ".join([s1, s2, s3]),
+                  citations=citations, cards=cards, trace=ctx.tracer.entries + [ToolTrace(
+                      tool="class_companion.notify", summary=f"message appended to the {lec.courseCode} class thread",
                       durationMs=int((time.perf_counter() - started) * 1000))])
     append_message(lec.studentId, msg)
     return f"message {msg.id} with {len(cards)} cards, {len(citations)} verified citations"
@@ -1242,3 +1248,207 @@ def _unaccept(action: ActionItem, student_id: str) -> None:
     if action.calendarItemId:
         db.delete("calendar_item", action.calendarItemId)
     action.planBlockId = action.calendarItemId = None
+
+
+# ---------------------------------------------------------------------------------
+# 9. stuck markers: "I'm stuck here" taps (contracts §9b, v3.4)
+# ---------------------------------------------------------------------------------
+#
+# A marker is a timestamp, plus an optional short note, that the student tapped in class. Code
+# resolves it: the segment covering atSec, the handout section holding that segment (or the
+# nearest section, since some handouts leave a segment out of every section), and that
+# section's syllabus topic. Once the handout exists it shows up as HandoutSection.stuck, a
+# CoverageCard.confusion row and a review action whose provenance.markerId names it. No model
+# is asked anything: the marker is the student's own signal, and every text here is built
+# from the marker, the handout and computed facts.
+
+MARKER_NOTE_MAX = 60
+_marker_lock = threading.Lock()
+
+
+def _markers_for(lecture_id: str) -> list[dict[str, Any]]:
+    return sorted(db.find("marker", parent_id=lecture_id), key=lambda m: (m["atSec"], m["createdAt"]))
+
+
+def list_markers(lecture_id: str) -> list[dict[str, Any]]:
+    """StuckMarker[] for a lecture (also read by the mind-map adapter)."""
+    get_lecture(lecture_id)
+    return [StuckMarker.model_validate(m).dump() for m in _markers_for(lecture_id)]
+
+
+def _mmss(sec: float) -> str:
+    return f"{int(sec // 60)}:{int(sec % 60):02d}"
+
+
+def _segment_at(segments: list[TranscriptSegment], at_sec: float) -> TranscriptSegment | None:
+    if not segments:
+        return None
+    inside = [s for s in segments if s.startSec <= at_sec < s.endSec]
+    if inside:
+        return inside[0]
+    return min(segments, key=lambda s: min(abs(at_sec - s.startSec), abs(at_sec - s.endSec)))
+
+
+def _section_for(handout: Handout | None, segments: list[TranscriptSegment],
+                 seg_id: str | None) -> tuple[HandoutSection | None, str]:
+    """The handout section holding the segment, else the nearest section by transcript order."""
+    if not handout or not handout.sections or not seg_id:
+        return None, "no handout yet"
+    for sec in handout.sections:
+        if seg_id in sec.segmentIds:
+            return sec, "contains the segment"
+    order = {s.id: i for i, s in enumerate(segments)}
+    at = order.get(seg_id)
+    if at is None:
+        return None, "segment not in transcript"
+
+    def distance(sec: HandoutSection) -> float:
+        idx = [order[x] for x in sec.segmentIds if x in order]
+        if not idx:
+            return float("inf")
+        return 0 if min(idx) <= at <= max(idx) else min(abs(at - min(idx)), abs(at - max(idx)))
+    return min(handout.sections, key=distance), "nearest section (segment is in none)"
+
+
+def _resolve(marker: dict[str, Any], segments: list[TranscriptSegment], handout: Handout | None) -> str:
+    seg = _segment_at(segments, float(marker["atSec"]))
+    if seg:
+        marker["segmentId"] = seg.id
+    sec, how = _section_for(handout, segments, marker.get("segmentId"))
+    if sec:
+        marker["handoutSectionId"] = sec.id
+        marker["topic"] = sec.syllabusTopic or sec.heading
+    return how
+
+
+def _flag_fact(markers: list[dict[str, Any]]) -> str:
+    times = ", ".join(_mmss(m["atSec"]) + (f' ("{m["note"]}")' if m.get("note") else "") for m in markers)
+    return f"you flagged it in class at {times}"
+
+
+def _apply_markers(lec: Lecture, markers: list[dict[str, Any]], segments: list[TranscriptSegment],
+                   handout: Handout, coverage: CoverageCard, actions: list[ActionItem]
+                   ) -> tuple[list[ActionItem], list[str]]:
+    """Put resolved markers into the handout, the coverage card and the actions (all mutated in
+    place and persisted). Returns (actions touched, notes for the trace)."""
+    now = datetime.now(TZ)
+    exam = next_exam(lec.courseCode, max(_lecture_at(lec), now))
+    by_section = {s.id: s for s in handout.sections}
+    touched: list[ActionItem] = []
+    notes: list[str] = []
+    for m in markers:
+        how = _resolve(m, segments, handout)
+        sec = by_section.get(m.get("handoutSectionId") or "")
+        if sec is None:
+            notes.append(f"{m['id']} at {_mmss(m['atSec'])}: not placed ({how})")
+            continue
+        sec.stuck = sec.stuck or StuckFlag()
+        if m["id"] not in sec.stuck.markerIds:
+            sec.stuck.markerIds.append(m["id"])
+            sec.stuck.atSec.append(float(m["atSec"]))
+        if not any(c.markerId == m["id"] for c in coverage.confusion):
+            coverage.confusion.append(CoverageConfusion(topic=m["topic"], markerId=m["id"], atSec=float(m["atSec"]),
+                                                        handoutSectionId=sec.id, note=m.get("note")))
+        topic_markers = [x for x in markers if x.get("topic") == m["topic"]]
+        review = next((a for a in actions if a.kind == "review" and norm_topic(a.topic) == norm_topic(m["topic"])),
+                      None)
+        if review is None:
+            facts, prov = _facts_for(SimpleNamespace(lecture=lec), m["topic"], exam)
+            review = ActionItem(
+                id=f"act_{uuid.uuid4().hex[:10]}", lectureId=lec.id, kind="review",
+                title=f"Revisit {m['topic']}: you flagged it at {_mmss(m['atSec'])}", course=lec.courseCode,
+                topic=m["topic"], minutes=30, dueBy=due_iso(exam) if exam else None,
+                why="; ".join([_flag_fact(topic_markers)] + facts),
+                provenance=ActionProvenance(markerId=m["id"], segmentId=m.get("segmentId"),
+                                            syllabusSectionId=sec.syllabusSectionId, **prov))
+            actions.append(review)
+            notes.append(f"{m['id']} at {_mmss(m['atSec'])} → {m['segmentId']}, {sec.id} ({how}), "
+                         f"topic {m['topic']}: new review action {review.id}")
+        else:
+            base = re.sub(r"(^|; )you flagged it in class at [^;]*", "", review.why).strip("; ")
+            review.why = "; ".join(x for x in [base, _flag_fact(topic_markers)] if x)
+            if not review.provenance.markerId:
+                review.provenance.markerId = m["id"]
+            notes.append(f"{m['id']} at {_mmss(m['atSec'])} → {m['segmentId']}, {sec.id} ({how}), "
+                         f"topic {m['topic']}: linked to review action {review.id}")
+        if review not in touched:
+            touched.append(review)
+        m["applied"] = True
+    db.put("handout", lec.id, handout.dump(), student_id=lec.studentId, parent_id=lec.id)
+    db.put("coverage", lec.id, coverage.dump(), student_id=lec.studentId, parent_id=lec.id)
+    for a in touched:
+        db.put("action", a.id, a.dump(), student_id=lec.studentId, parent_id=lec.id)
+    for m in markers:
+        db.put("marker", m["id"], m, student_id=lec.studentId, parent_id=lec.id)
+    return touched, notes
+
+
+def step_markers(ctx: Ctx) -> str:
+    """Pipeline step: every marker of the lecture goes into this run's handout, coverage and actions."""
+    with _marker_lock:
+        markers = _markers_for(ctx.lecture.id)
+        if not markers:
+            return "no stuck markers"
+        _, notes = _apply_markers(ctx.lecture, markers, ctx.segments, ctx.handout, ctx.coverage, ctx.actions)
+    return f"{len(markers)} stuck marker(s): " + "; ".join(notes)
+
+
+def _apply_after_ready(lec: Lecture, pending: list[dict[str, Any]]) -> None:
+    """Markers that reach a ready lecture: apply now, recompute the cards, tell the class thread."""
+    started = time.perf_counter()
+    segments = get_transcript(lec.id).segments
+    handout = Handout.model_validate(db.get("handout", lec.id))
+    coverage = CoverageCard.model_validate(db.get("coverage", lec.id))
+    actions = _actions_for(lec.id)
+    touched, notes = _apply_markers(lec, pending, segments, handout, coverage, actions)
+    placed = [m for m in pending if m.get("applied")]
+    if not placed:
+        return
+    m = placed[-1]
+    note = f' ("{m["note"]}")' if m.get("note") else ""
+    review = touched[-1] if touched else None
+    text = f"Noted: you're stuck on **{m['topic']}** at {_mmss(m['atSec'])}{note}."
+    if review:
+        text += f" It's in this lecture's confusion list, and “{review.title}” is due {_fmt_due(review.dueBy)}."
+    commitments = db.get("commitments", lec.id) or {"items": []}
+    cards = [coverage.dump(), ActionsCard(lectureId=lec.id, items=_actions_for(lec.id),
+                                          commitments=[LectureCommitment.model_validate(c)
+                                                       for c in commitments["items"]]).dump()]
+    append_message(lec.studentId, Message(
+        id=f"msg_{uuid.uuid4().hex[:10]}", threadId=class_thread_id(lec.studentId, lec.courseCode), role="agent",
+        agentId=AGENT_ID, createdAt=_utcnow(), text=text, cards=cards,
+        trace=[ToolTrace(tool="class_companion.marker", summary="; ".join(notes),
+                         durationMs=int((time.perf_counter() - started) * 1000))]))
+
+
+def apply_late_markers(lecture_id: str) -> None:
+    """After "ready": markers that arrived while the pipeline's last steps ran."""
+    with _marker_lock:
+        lec = get_lecture(lecture_id)
+        pending = [m for m in _markers_for(lecture_id) if not m.get("applied")]
+        if lec.status == "ready" and pending:
+            _apply_after_ready(lec, pending)
+
+
+def add_marker(lecture_id: str, at_sec: Any, note: Any = None) -> dict[str, Any]:
+    """POST /lectures/:id/markers. Works while recording, before processing, or after ready."""
+    lec = get_lecture(lecture_id)
+    try:
+        at = float(at_sec)
+    except (TypeError, ValueError):
+        raise BadRequest("atSec must be a number of seconds")
+    if at < 0 or at != at:
+        raise BadRequest("atSec must be >= 0")
+    text = normalize_ws(str(note))[:MARKER_NOTE_MAX] if note not in (None, "") else None
+    marker: dict[str, Any] = {"id": f"mk_{uuid.uuid4().hex[:10]}", "lectureId": lec.id, "atSec": round(at, 1),
+                              "createdAt": _utcnow(), "applied": False, **({"note": text} if text else {})}
+    with _marker_lock:
+        lec = get_lecture(lecture_id)
+        body = db.get("transcript", lec.id)
+        segments = Transcript.model_validate(body).segments if body else []
+        handout_body = db.get("handout", lec.id)
+        _resolve(marker, segments, Handout.model_validate(handout_body) if handout_body else None)
+        db.put("marker", marker["id"], marker, student_id=lec.studentId, parent_id=lec.id)
+        if lec.status == "ready":
+            _apply_after_ready(lec, [marker])
+    return StuckMarker.model_validate(db.get("marker", marker["id"])).dump()

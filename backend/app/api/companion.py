@@ -7,8 +7,9 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 
+from app.core.academics import canonical_course_code, same_course
 from app.core.config import TZ
-from app.core.threads import get_thread
+from app.core.threads import get_class_thread, get_thread
 from app.tools import calendar as cal
 from app.tools import companion
 from app.tools.companion import BadRequest
@@ -83,6 +84,24 @@ async def update_action(action_id: str, request: Request) -> dict[str, Any]:
     return companion.update_action(action_id, str(body.get("status", "")))
 
 
+@router.post("/lectures/{lecture_id}/markers")
+async def add_marker(lecture_id: str, request: Request) -> dict[str, Any]:
+    """{atSec, note?} → StuckMarker. Works while recording, before processing, or after ready;
+    notes are cut to 60 characters."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise BadRequest("body must be JSON {atSec, note?}")
+    if not isinstance(body, dict) or "atSec" not in body:
+        raise BadRequest("atSec is required")
+    return companion.add_marker(lecture_id, body.get("atSec"), body.get("note"))
+
+
+@router.get("/lectures/{lecture_id}/markers")
+def list_markers(lecture_id: str) -> list[dict[str, Any]]:
+    return companion.list_markers(lecture_id)
+
+
 @router.get("/students/{student_id}/lectures")
 def student_lectures(student_id: str) -> list[dict[str, Any]]:
     return companion.list_lectures(student_id)
@@ -102,7 +121,15 @@ def calendar(student_id: str, request: Request) -> list[dict[str, Any]]:
         end = start + timedelta(days=14)
     elif q.get("to") and len(q.get("to")) == 10:
         end += timedelta(days=1)  # a date-only `to` is inclusive
-    return cal.build_calendar(student_id, start, end)
+    items = cal.build_calendar(student_id, start, end)
+    if q.get("courseCode"):  # one class's Schedule tab
+        items = [i for i in items if same_course(i.get("courseCode"), q.get("courseCode"))]
+    return items
+
+
+@router.get("/threads/{student_id}/class/{course_code}")
+def class_thread(student_id: str, course_code: str) -> dict[str, Any]:
+    return get_class_thread(student_id, canonical_course_code(course_code))
 
 
 @router.get("/threads/{student_id}/{agent_id}")
