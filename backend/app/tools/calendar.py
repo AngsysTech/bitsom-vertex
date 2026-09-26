@@ -79,7 +79,13 @@ def _interval(item: CalendarItem) -> tuple[datetime, datetime] | None:
 def busy(student_id: str, start: datetime, end: datetime) -> list[tuple[datetime, datetime]]:
     items = _class_items(student_id, start - timedelta(days=1), end + timedelta(days=1)) + \
         _exam_items(student_id, start - timedelta(days=1), end + timedelta(days=1)) + stored_items(student_id)
-    return [iv for iv in (_interval(i) for i in items) if iv]
+    out = [iv for iv in (_interval(i) for i in items) if iv]
+    # an exam or quiz whose calendar entry has a date but no time blocks that whole day
+    for i in items:
+        if i.kind in ("exam", "quiz") and (i.allDay or not i.end):
+            day = parse_iso(i.start[:10])
+            out.append((day, day + timedelta(days=1)))
+    return out
 
 
 def find_slot(student_id: str, minutes: int, earliest: datetime, latest: datetime,
@@ -110,12 +116,14 @@ def build_calendar(student_id: str, start: datetime, end: datetime) -> list[dict
     actions = {a["planBlockId"]: a for a in db.find("action", student_id=student_id) if a.get("planBlockId")}
     timed_action_blocks = {pid for pid, a in actions.items()
                            if any(i.id == a.get("calendarItemId") and not i.allDay for i in stored)}
+    # blocks from tools/plan.py are stored as their own calendar items (source plan_block)
+    own_items = {i.source.planBlockId for i in stored if i.source.type == "plan_block"}
     placed: list[tuple[datetime, datetime]] = []
     plan = get_state(student_id).get("plan") or {}
     for week in plan.get("weeks", []):
         monday = plan_week_monday(week.get("label", "")) or monday_of(datetime.now(TZ).date())
         for block in week.get("blocks", []):
-            if block["id"] in timed_action_blocks:
+            if block["id"] in timed_action_blocks or block["id"] in own_items:
                 continue
             slot_doc = db.get("block_slot", block["id"])
             if slot_doc:
@@ -133,7 +141,60 @@ def build_calendar(student_id: str, start: datetime, end: datetime) -> list[dict
                                           start=iso(slot[0]), end=iso(slot[1]),
                                           source={"type": "plan_block", "planBlockId": block["id"]},
                                           status="planned"))
+    statuses = {s["itemId"]: s["status"] for s in db.find("calendar_status", student_id=student_id)}
+    for i in items:
+        if i.id in statuses:
+            i.status = statuses[i.id]
     items.sort(key=lambda i: (parse_iso(i.start), i.kind))
     return [i.dump() for i in items]
+
+
+# ---- status (done | missed | planned), persisted as an overlay keyed by item id ----------
+# The overlay never edits another module's calendar_item docs; build_calendar applies it.
+
+STATUSES = ("planned", "done", "missed")
+STUDY_KINDS = ("study_block", "action", "prep", "deadline")
+
+
+def _derived_plan_item(item_id: str, student_id: str | None) -> CalendarItem | None:
+    """A plan block rendered by build_calendar from its block_slot (no stored item)."""
+    block_id = item_id.removeprefix("plan:")
+    if student_id is None:
+        action = next((a for a in db.find("action") if a.get("planBlockId") == block_id), None)
+        lecture = db.get("lecture", action["lectureId"]) if action else None
+        student_id = lecture.get("studentId") if lecture else None
+    slot = db.get("block_slot", block_id)
+    if not student_id or not slot:
+        return None
+    plan = get_state(student_id).get("plan") or {}
+    block = next((b for w in plan.get("weeks", []) for b in w.get("blocks", []) if b.get("id") == block_id), None)
+    if block is None:
+        return None
+    return CalendarItem(id=item_id, studentId=student_id, kind="study_block", title=f"Study: {block.get('topic')}",
+                        courseCode=block.get("course"), start=slot["start"], end=slot["end"],
+                        source={"type": "plan_block", "planBlockId": block_id}, status="planned")
+
+
+def set_item_status(item_id: str, status: str, student_id: str | None = None) -> dict[str, Any]:
+    if status not in STATUSES:
+        raise ValueError(f"status must be one of {', '.join(STATUSES)}")
+    body = db.get("calendar_item", item_id)
+    if body:
+        item = CalendarItem.model_validate(body)
+    elif item_id.startswith("plan:"):
+        item = _derived_plan_item(item_id, student_id)
+    else:
+        item = None
+    if item is None:
+        if item_id.startswith(("class:", "exam:")):
+            raise ValueError("status applies to study blocks, actions, prep and deadlines, not classes or exams")
+        raise LookupError(f"calendar item {item_id} not found")
+    if item.kind not in STUDY_KINDS:
+        raise ValueError(f"status applies to {', '.join(STUDY_KINDS)} items; {item_id} is a {item.kind}")
+    db.put("calendar_status", item_id, {"itemId": item_id, "status": status,
+                                        "at": datetime.now(TZ).isoformat(timespec="seconds")},
+           student_id=item.studentId)
+    item.status = status
+    return item.dump()
 
 

@@ -244,3 +244,107 @@ class CalendarItem(Model):
     allDay: Optional[bool] = None
     source: Union[SourceTimetable, SourceExam, SourcePlanBlock, SourceAction]
     status: Optional[Literal["planned", "done", "missed"]] = None
+
+
+# ---- academic coach: weak topics, weekly 1:1, escalation (contracts §4, §5, §7) --------
+
+class WeakTopic(Model):
+    course: str
+    topic: str
+    score: str
+    examWeight: float
+    impact: int
+    citationId: str
+
+
+class WeakTopicsCard(Model):
+    type: Literal["weak_topics"] = "weak_topics"
+    items: list[WeakTopic] = Field(default_factory=list)
+
+
+class TopicMovement(Model):
+    topic: str
+    # not in contracts.ts: which course the topic belongs to
+    course: Optional[str] = None
+    from_: int = Field(alias="from")
+    to: int
+
+    model_config = {"populate_by_name": True}
+
+    def dump(self) -> dict[str, Any]:
+        return self.model_dump(mode="json", exclude_none=True, by_alias=True)
+
+
+class OneOnOneRecap(Model):
+    plannedMinutes: int
+    doneMinutes: int
+    blocksPlanned: int
+    blocksDone: int
+    completedTopics: list[str] = Field(default_factory=list)
+    skippedTopics: list[str] = Field(default_factory=list)
+    weakTopicMovement: list[TopicMovement] = Field(default_factory=list)
+    streakDays: int = 0
+    # not in contracts.ts (additive): missed blocks, prep/deadline items met or missed,
+    # and a note when impact could not move because no new marks arrived
+    blocksMissed: int = 0
+    prepMet: int = 0
+    prepMissed: int = 0
+    movementNote: Optional[str] = None
+    windowStart: Optional[str] = None
+    windowEnd: Optional[str] = None
+
+    def dump(self) -> dict[str, Any]:
+        return self.model_dump(mode="json", exclude_none=True, by_alias=True)
+
+
+class OneOnOneQuestion(Model):
+    id: str
+    prompt: str
+    answer: Optional[str] = None
+
+
+class OneOnOneAdjustment(Model):
+    blockId: Optional[str] = None
+    change: Literal["add", "move", "drop", "resize"]
+    detail: str
+
+
+class OneOnOne(Model):
+    id: str
+    studentId: str
+    weekLabel: str
+    status: Literal["ready", "in_progress", "done"]
+    recap: OneOnOneRecap
+    wins: list[str] = Field(default_factory=list)
+    concerns: list[str] = Field(default_factory=list)
+    questions: list[OneOnOneQuestion] = Field(default_factory=list)
+    proposedAdjustments: list[OneOnOneAdjustment] = Field(default_factory=list)
+    adjustedPlan: Optional[StudyPlanCard] = None
+    shareWithAdvisor: bool = False
+
+    def dump(self) -> dict[str, Any]:
+        return self.model_dump(mode="json", exclude_none=True, by_alias=True)
+
+
+class Escalation(Model):
+    ticketId: str
+    status: Literal["open", "answered"]
+    reason: Literal["out_of_scope", "needs_human", "conflicting_rules"]
+
+
+class TicketReply(Model):
+    text: str
+    at: str
+
+
+class Ticket(Model):
+    ticketId: str
+    studentId: str
+    studentName: str
+    agentId: str
+    question: str
+    agentSummary: str
+    citations: list[Citation] = Field(default_factory=list)
+    status: Literal["open", "answered"] = "open"
+    reply: Optional[TicketReply] = None
+    createdAt: str

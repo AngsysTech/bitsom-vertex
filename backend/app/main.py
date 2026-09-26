@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api import coach as coach_api
 from app.api import companion as companion_api
 from app.tools.companion import BadRequest, NotFound
 
@@ -20,6 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 app = FastAPI(title="Student Workspace API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(companion_api.router)
+app.include_router(coach_api.router)
 
 
 @app.exception_handler(NotFound)

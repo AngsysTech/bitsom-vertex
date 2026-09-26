@@ -54,6 +54,68 @@ Prompts are in `app/prompts/class_companion.md`.
 It starts its own server on a temporary database, then runs checks 1–8: the text path,
 coverage, commitments, actions, accept → plan + calendar, real STT, and STT key killed.
 
+## Academic Coach: week plan, calendar, weekly 1:1, chat (Feature 2)
+
+LLM reads, code counts, LLM advises. Every number a student sees is computed in Python;
+the model picks from closed lists and writes short clauses, and code verifies what it picks.
+
+| Tool / module | What | Code vs model |
+|---|---|---|
+| `tools/diagnose.py` · `diagnose_performance` | per Sem-5 topic: `scored/max` (sum of internal-mark components naming it) × `examWeight` (mean marks in the last 3 end-sems) → `impact` → `WeakTopicsCard`, written to `StudentState.weakTopics` | code only |
+| `tools/plan.py` · `build_study_plan` | per week, minutes per weak topic (+ carry-over from the 1:1) → 25/50-min blocks after the last class of the day, never over a class/quiz/exam, each course before its end-sem, ≤ 120 min/day incl. accepted actions → `StudyPlanCard` + one `CalendarItem` per block (`source.type = "plan_block"`) | model allocates (closed-choice topic/section ids, verified); code places and writes every number in `why` |
+| `tools/calendar.py` | `GET /calendar` merge (timetable → class, exam calendar → exam/quiz, plan → study_block, accepted actions → action/prep/deadline); `POST /calendar/items/:id/status` | code |
+| `tools/lookback.py` · `weekly_review` | Weekly 1:1: recap from the last 7 days of calendar items; wins/concerns/questions/adjustments; complete → re-plan with carry-over, optional advisor ticket | recap is code; model writes lines, each must cite a recap topic or number and state no other number |
+| `agents/academic_coach.py` | `POST /chat`: route (closed tool list) → tool → compose with `[Cn]` markers from verified citations only | model routes and writes; code verifies markers and numbers |
+| `core/parser.py`, `core/scope.py`, `core/citations.py` | documents with stable section ids (`handbook.5.4`, `syllabus.cs-f212.1.4`, `exam_calendar.cs-f212`, `past_papers.cs-f212.normalization`); per-agent scope enforced in code; quotes verified verbatim | code |
+| `escalation.py` | tickets, advisor inbox, reply lands in the student's DM | code |
+
+**Impact scale.** `impact = examWeight × (1 − scored/max)`, divided by the heaviest end-sem
+topic in `past_papers.json` (Normalization, 20 marks) and × 100, so 100 means scoring nothing on
+the heaviest topic. The division is monotonic, so the ranking is exactly the ranking of
+`examWeight × (1 − scored/max)`. Meera: Normalization 67, B+ trees 65, CPU scheduling 61.
+
+**Exam times.** `exam_calendar.json` has dates only, so exams and quizzes are all-day items and
+no study block is placed on those days. No time is invented.
+
+**Prompts:** `prompts/plan_allocate.md`, `lookback.md`, `academic_coach_route.md`,
+`academic_coach_answer.md` (evidence for `answer_from_docs`), `academic_coach_compose.md`.
+`run_degree_audit` is a stub that answers "audit not available yet" until Feature 3 lands.
+
+### Endpoints
+
+`POST /chat {studentId, agentId: "academic_coach", text}` · `POST /calendar/items/:id/status {status}` ·
+`GET /one-on-one/:studentId/current` · `POST /one-on-one/:id/answer {questionId, answer}` ·
+`POST /one-on-one/:id/complete {shareWithAdvisor}` · `GET /advisor/inbox` · `POST /advisor/reply {ticketId, text}` ·
+`GET /documents/:docId` · `GET /documents/:docId/sections/:secId`.
+Not in contracts §10: `POST /students/:id/diagnose` and `POST /students/:id/plan` (tool
+endpoints; return `{card, citations, trace}`) and the demo fixture below.
+
+### Demo setup step (disclosed): simulate a week
+
+```bash
+curl -X POST localhost:8000/students/meera/plan            # build the plan first
+curl -X POST localhost:8000/demo/simulate-week/meera       # then fast-forward one week
+```
+
+`POST /demo/simulate-week/:studentId` marks the student's plan blocks and accepted-action items
+in the next 7 days done or missed deterministically (every third, in time order, is missed),
+then moves that student's clock (`core/clock.py`) forward 7 days, so the Weekly 1:1 has a real
+week to review. It changes statuses and the clock only; it writes no text. Say so on stage.
+Planning and the 1:1 read time from `core/clock.py`; message timestamps stay on the wall
+clock, and the class companion's own date logic stays on the wall clock too.
+
+### Definition-of-done smoke test
+
+```bash
+.venv/bin/python scripts/feature2_smoke.py                 # check 3 runs the class companion
+.venv/bin/python scripts/feature2_smoke.py --no-companion  # check 3 inserts one action directly
+```
+
+It starts its own server on a temporary database and runs checks 1–7: diagnose, plan
+placement, the merged calendar with an accepted companion action, simulate week → 1:1 →
+complete with an advisor ticket, and three `/chat` routes (`build_study_plan`, `escalate`,
+`answer_from_docs`). Expectations come from the dataset files, not from the app.
+
 ## Dataset (`app/data/`)
 
 This folder holds the generated synthetic dataset, copied from `backend_dataset/app/data`
