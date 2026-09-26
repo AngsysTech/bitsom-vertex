@@ -7,9 +7,12 @@ import type { RelevantCard as RelevantCardT } from '@/types'
 
 type Source = NonNullable<RelevantCardT['source']>
 
+/** Stable fallback for the selectors below: a fresh `[]` per call makes zustand's getSnapshot loop forever. */
+const NO_INTERESTS: string[] = []
+
 /** First tap reframes through the student's first interest (pre-selected); the picker switches interest. */
 function useStart(source: Source) {
-  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? [])
+  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? NO_INTERESTS)
   const makeRelevant = useWS((s) => s.makeRelevant)
   return () => void makeRelevant(relevantKey(source), source, interests[0] ?? '')
 }
@@ -59,7 +62,7 @@ export function MakeRelevantButton({ source, variant = 'default', className }: {
 export function RelevantSlot({ source, className }: { source: Source; className?: string }) {
   const key = relevantKey(source)
   const st = useWS((s) => s.relevant[key])
-  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? [])
+  const interests = useWS((s) => s.students.find((x) => x.id === s.studentId)?.interests ?? NO_INTERESTS)
   const makeRelevant = useWS((s) => s.makeRelevant)
   const set = useWS((s) => s.set)
   if (!st) return null
