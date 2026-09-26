@@ -9,6 +9,11 @@ npm run dev        # http://localhost:5173 — mock data by default
 npm run build      # type-check + production build to dist/
 ```
 
+Needs Node 20+ (tested on 22.11 and 22.22). The toolchain is pinned to Vite 6 on purpose: Vite 7/8 need Node
+≥ 22.12, and on older Node npm silently skips their native binding ("Cannot find native binding"). If you ever see
+that error, run `rm -rf node_modules && npm install` — don't delete `package-lock.json`, and don't bump Vite past 6 or
+oxlint past 1.16 unless everyone on the team is on Node ≥ 22.12.
+
 ## Mock vs real backend
 
 | Setting | Effect |
