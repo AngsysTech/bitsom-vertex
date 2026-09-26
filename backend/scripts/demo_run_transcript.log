@@ -1,0 +1,456 @@
+demo_run.py  2026-09-26 14:37:12 IST  server http://127.0.0.1:8765  primary student meera
+git HEAD 4c8392f Companion actions: every missed topic gets its action; smoke matches topics; working tree: 12 uncommitted path(s) (AGENTS.md, backend/app/data/README.md, backend/app/data/connectors.json, backend/app/data/validate.py, backend/scripts/audit_dataset.py, contracts.ts, .claude/, backend/app/data/gap_tags.json, …)
+health {'status': 'ok'}; demo routes present 12/14; MISSING: POST /lectures/{lecture_id}/markers, POST /relevant
+
+── 0. Course check (which lecture is the audio?)
+  --transcript: no audio; text fallback app/data/lectures/cs-f212-2026-09-22-transactions.md (CS F212)
+  ⏱ 0.0s
+  ================================================================================================
+  = MODE transcript · COURSE CS F212 · text fallback cs-f212-2026-09-22-transactions.md
+  ================================================================================================
+
+── 1. reset meera
+  → POST /demo/reset/meera
+  ← 200 in 0.0s
+  cleared 1 lecture(s); deleted {'action': 7, 'block_slot': 2, 'calendar_item': 54, 'calendar_status': 13, 'clock': 1, 'commitments': 1, 'coverage': 1, 'handout': 1, 'lecture': 1, 'message': 6, 'one_on_one': 1, 'plan_block': 52, 'plan_meta': 1, 'ticket': 2, 'trace': 1, 'transcript': 1}; plan cleared True; audio folders removed 1
+  ⏱ 0.0s  [PASS]
+
+── 2. simulate-week meera
+  → POST /demo/simulate-week/meera
+  ← 400 in 0.0s
+  FALLBACK: simulate-week refused (no plan blocks in the next 7 days); built the plan with POST /students/meera/plan, then retried
+  → POST /students/meera/plan
+  ← 200 in 18.3s
+  plan: 81 blocks in 12 week(s); placed 81 blocks (3100 min; 19 in the next 3 weeks) after the last class of each day, none over a class, quiz or exam, each course before it
+  → POST /demo/simulate-week/meera
+  ← 200 in 0.0s
+  marked 7 done, 3 missed between Sat 26 Sep 14:37 and Sat 03 Oct 14:37
+  clockNow = 2026-10-03T14:37:31+05:30
+  ⏱ 18.3s  [PASS*]
+
+── 3. create lecture (transcript, CS F212, 2026-09-26)
+  → POST /lectures  {"studentId": "meera", "courseCode": "CS F212", "date": "2026-09-26"} + transcriptText=<cs-f212-2026-09-22-transactions.md, 3731 chars>
+  ← 200 in 0.0s
+  lecture lec_df0234c699: status uploaded, source transcript, CS F212 2026-09-26
+  ⏱ 0.0s  [PASS]
+
+── 4. stuck marker at 120 s
+  → POST /lectures/lec_df0234c699/markers  {"atSec": 120, "note": "lost here"}
+  ← 404 in 0.0s
+  FAILED: POST /lectures/lec_df0234c699/markers → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+── 5. process and poll
+  → POST /lectures/lec_df0234c699/process
+  ← 200 in 0.0s
+  polling GET /lectures/lec_df0234c699 every 2 s (cap 180 s)
+       0.0s  processing
+      36.1s  ready
+  ready in 36.1s; durationSec 236.4
+  ⏱ 36.1s  [PASS]
+
+── 6. handout + cards
+  → GET /lectures/lec_df0234c699/handout
+  ← 200 in 0.0s
+  → GET /lectures/lec_df0234c699/cards
+  ← 200 in 0.0s
+  → GET /lectures/lec_df0234c699/transcript
+  ← 200 in 0.0s
+  handout “Database Transactions and Concurrency Control”: 3 sections; summary: ACID properties describe the guarantees that make database transactions dependable. Isolation does not require transactions to run one at a time: concurrency improves database usefulness, provided its results remain understandable and corr…
+    h1   0:00–0:52   ACID Properties of Transactions                              → ACID properties
+    h2   0:52–2:10   Serializability and Precedence Graphs                        → Serializability
+    h3   2:10–3:56   Locking Basics and Anomalies                                 → Locking basics
+  stuck section: none — no section carries `stuck` (the section covering 120 s is h2 “Serializability and Precedence Graphs”)
+  coverage vs “Unit 3: Transactions and concurrency”: covered 4 (Transactions and concurrency, ACID properties, Serializability, Locking basics)
+  coverage.missed[].topic: ['Two-phase locking', 'Deadlocks']
+    missed Two-phase locking: The lecture explained shared and exclusive locks and noted that protocols govern their use, but did not explain two-phase locking.
+    missed Deadlocks: The lecture discussed locking basics and concurrency anomalies, but did not explain deadlocks. The lecturer deferred it: "we'll come back to deadlocks next wee…
+  coverage.emphasized[].quote (2):
+    [1:43 s7] Serializability: “This part on serializability will definitely be on the end-sem, I'm telling you now”
+    [1:59 s8] Serializability: “Do not just learn the word; practise drawing the graph from a schedule because that is where people lose marks”
+  coverage.confusion: field absent (markers not implemented)
+  commitments (5):
+    exam_hint          due Mon 30 Nov       Serializability will be on the end-sem exam.  [1:43] “This part on serializability will definitely be on the end-sem, I'm telling you now”
+    next_lecture_topic due Mon 28 Sep 09:00 Examples will be used to compare legal and illegal interleavings.  [2:51] “We will use examples next time and compare legal and illegal interleavings”
+    next_lecture_topic due Mon 28 Sep 09:00 Deadlocks will be covered again next week.  [3:10] “we'll come back to deadlocks next week”
+    assignment         due no dueBy         Try drawing the precedence graph for a schedule with three transactions.  [3:28] “For now, after class, take one schedule with three transactions and try the precedence graph yourself”
+    next_lecture_topic due Mon 28 Sep 09:00 The locking story will be made more formal and connected to anomalies.  [3:46] “next session we will make the locking story more formal and connect it to the anomalies you have already seen”
+  actions (7):
+    prep     due Mon 28 Sep 09:00  25 min  Preview legal and illegal interleaving examples
+    prep     due Mon 28 Sep 09:00  25 min  Preview deadlocks and their basic causes
+    prep     due Mon 28 Sep 09:00  30 min  Review locking and transaction anomalies
+    study    due Mon 12 Oct        45 min  Self-study two-phase locking and its protocol rules
+    review   due Mon 12 Oct        40 min  Review serializability and practice schedule checks
+    review   due Mon 12 Oct        60 min  Review normalization and repair weak areas
+    review   due Mon 12 Oct        60 min  Review B+ trees and practice core operations
+  → GET /threads/meera/academic_coach
+  ← 200 in 0.0s
+  pipeline timings (trace on the 'handout ready' message):
+    class_companion.transcribe             0.0s  14 segments, 3.9 min (text fallback: ~40-word segments at sentence boundaries, synthetic timestamps)
+    class_companion.handout               21.5s  3 topic parts → vendored notes → 3 sections, every segment id verified; syllabus-mapped 3/3; exam hints 1 ver…
+    class_companion.coverage               5.8s  Unit 3: Transactions and concurrency: 4/6 topics covered, missed ['Two-phase locking', 'Deadlocks'] (deferred…
+    class_companion.commitments            3.9s  5 verified ({'exam_hint': 1, 'next_lecture_topic': 3, 'assignment': 1}), 0 dropped (quote not verbatim)
+    class_companion.actions                3.8s  8 candidates from missed/emphasized/commitments/marks → 7 actions {'prep': 3, 'study': 1, 'review': 3}; commi…
+    class_companion.notify                 0.0s  message appended to academic_coach thread
+  ⏱ 0.0s  [PASS]
+
+── 7. accept first study + first prep
+  → POST /actions/act_7ab6c3d5eb  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted study “Self-study two-phase locking and its protocol rules” (due Mon 12 Oct) → calendarItemId cal_6385faa6f1, planBlockId pb_4f3c859b0f
+  → POST /actions/act_6ad53a626b  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted prep “Preview legal and illegal interleaving examples” (due Mon 28 Sep 09:00) → calendarItemId cal_4db8e1e9f9, planBlockId pb_fceae8c1ef
+  ⏱ 0.0s  [PASS]
+
+── 8. calendar, next 14 days
+  → GET /calendar/meera?from=2026-09-26&to=2026-10-10
+  ← 200 in 0.0s
+  44 items: class 24, study_block 18, prep 1, action 1
+   Sat 26 Sep
+     15:00–15:50  study_block plan_block    Study: Normalization (done)
+     16:00–16:50  study_block plan_block    Study: CPU scheduling (done)
+     18:00–18:25  prep        action        Preview legal and illegal interleaving examples   ◀ accepted
+   Sun 27 Sep
+     10:00–10:50  study_block plan_block    Study: B+ trees (missed)
+   Mon 28 Sep
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     16:30–17:20  study_block plan_block    Study: Normalization (done)
+   Tue 29 Sep
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: B+ trees (done)
+   Wed 30 Sep
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+     16:30–17:20  study_block plan_block    Study: CPU scheduling (missed)
+   Thu 01 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+     15:30–16:20  study_block plan_block    Study: Random variables (done)
+   Fri 02 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: Deterministic finite automata (done)
+   Sat 03 Oct
+     10:00–10:25  study_block plan_block    Study: Relational model (missed)
+     10:45–11:10  study_block plan_block    Study: B+ trees (done)
+   Sun 04 Oct
+     10:00–10:25  study_block plan_block    Study: Normalization
+     10:45–11:10  study_block plan_block    Study: CPU scheduling
+   Mon 05 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     16:30–17:20  study_block plan_block    Study: Normalization
+     18:00–18:45  action      action        Self-study two-phase locking and its protocol rules   ◀ accepted
+   Tue 06 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: B+ trees
+   Wed 07 Oct
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+     16:30–17:20  study_block plan_block    Study: CPU scheduling
+   Thu 08 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+     15:30–16:20  study_block plan_block    Study: Deterministic finite automata
+   Fri 09 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–12:55  study_block plan_block    Study: Normalization
+   Sat 10 Oct
+     10:00–10:25  study_block plan_block    Study: B+ trees
+  [PASS] assert accepted study cal_6385faa6f1 is on the calendar: Mon 05 Oct 18:00
+  [PASS] assert accepted study cal_6385faa6f1 overlaps nothing
+  [PASS] assert accepted prep cal_4db8e1e9f9 is on the calendar: Sat 26 Sep 18:00
+  [PASS] assert accepted prep cal_4db8e1e9f9 overlaps nothing
+  ⏱ 0.0s  [PASS]
+
+── 9. chat “What should I study this week?”
+  → POST /chat  {"studentId": "meera", "agentId": "academic_coach", "text": "What should I study this week?"}
+  ← 200 in 24.8s
+  route: route → build_study_plan: The student asks what to study this week; use the existing study plan without an explicit request to rebuild it.
+  agent reply (512 chars): Study **Normalization** (150 min), **B+ trees** (150 min), and **CPU scheduling** (125 min) this week, in the planned blocks after classes; the plan totals 575 min across 15 blocks, with at most 120 min a day. These topics are assessable and have carried substantial marks in recent end-sems: Normal…
+  citations 8; cards ['study_plan', 'weak_topics']
+    trace academic_coach.route                  1.4s  route → build_study_plan: The student asks what to study this week; use the existing study plan wit…
+    trace diagnose_performance                  0.0s  internal marks × last-3 end-sem past papers → 14 topics across 6 courses; top: Normalization 67, B+…
+    trace build_study_plan.allocate            20.0s  10 closed-choice topics × 11 weeks (Week of Sep 28 → Week of Dec 7, capacity 5675 min); model alloc…
+    trace build_study_plan.place                0.1s  placed 83 blocks (2850 min; 30 in the next 3 weeks) after the last class of each day, none over a c…  ERROR 1 blocks unplaced
+    trace academic_coach.compose                3.2s  reply written from 6 facts; 8/8 verified citations used
+    plan Week of Sep 21: 1 blocks, 25 min — Serializability
+    plan Week of Sep 28: 5 blocks, 200 min — Normalization, CPU scheduling, B+ trees, Deterministic finite automata, Relational model
+    plan Week of Oct 5: 13 blocks, 470 min — Normalization, Two-phase locking, B+ trees, CPU scheduling, Random variables, Bayes theorem, Conditional probability, Relational model, Deterministic finite automata, Institutions and incentives
+    plan Week of Oct 12: 4 blocks, 100 min — Normalization, B+ trees, CPU scheduling, Random variables  [CS F212 Quiz 2 (Mon 12 Oct 2026); CS F351 Quiz 2 (Tue 13 Oct 2026); CS F372 Quiz 2 (Wed 14 Oct 2026); CS F303 Quiz 2 (Thu 15 Oct 2026); MATH F241 Quiz 2 (Fri 16 Oct 2026); HSS F235 Quiz 2 (Sat 17 Oct 2026)]
+    plan Week of Oct 19: 11 blocks, 350 min — Normalization, B+ trees, CPU scheduling, Random variables, Technology adoption, Conditional probability, Deterministic finite automata, Relational model
+    plan Week of Oct 26: 10 blocks, 325 min — Normalization, B+ trees, CPU scheduling, Deterministic finite automata, Bayes theorem, Relational model, Institutions and incentives
+    plan Week of Nov 2: 10 blocks, 325 min — Normalization, B+ trees, CPU scheduling, Random variables, Deterministic finite automata, Relational model, Technology adoption
+    plan Week of Nov 9: 9 blocks, 300 min — Normalization, B+ trees, CPU scheduling, Conditional probability, Deterministic finite automata, Institutions and incentives
+    plan Week of Nov 16: 9 blocks, 300 min — Normalization, B+ trees, CPU scheduling, Deterministic finite automata, Bayes theorem, Technology adoption
+    plan Week of Nov 23: 7 blocks, 250 min — Normalization, B+ trees, CPU scheduling, Deterministic finite automata
+    plan Week of Nov 30: 3 blocks, 125 min — CPU scheduling, Deterministic finite automata, Random variables  [CS F212 End-sem (Mon 30 Nov 2026); CS F351 End-sem (Wed 2 Dec 2026); CS F372 End-sem (Fri 4 Dec 2026); CS F303 End-sem (Sun 6 Dec 2026)]
+    plan Week of Dec 7: 3 blocks, 150 min — Random variables, Conditional probability, Institutions and incentives  [MATH F241 End-sem (Tue 8 Dec 2026); HSS F235 End-sem (Thu 10 Dec 2026)]
+  ⏱ 24.8s  [PASS]
+
+── 10. weekly 1:1 round trip
+  → GET /one-on-one/meera/current
+  ← 200 in 4.8s
+  ooo_meera_20260928 “Week of Sep 26” status ready
+  recap: planned 475 min / 11 blocks; done 325 min / 7 blocks; missed 3 blocks; streak 3 days
+  recap topics: completed ['Normalization', 'CPU scheduling', 'B+ trees', 'Random variables', 'Deterministic finite automata']; skipped ['B+ trees', 'CPU scheduling', 'Relational model']
+  recap weakTopicMovement [{'topic': 'Normalization', 'course': 'CS F212', 'from': 67, 'to': 67}, {'topic': 'CPU scheduling', 'course': 'CS F372', 'from': 61, 'to': 61}, {'topic': 'B+ trees', 'course': 'CS F212', 'from': 65, 'to': 65}, {'topic': 'Random variables', 'course': 'MATH F241', 'from': 17, 'to': 17}, {'topic': 'Deterministic finite automata', 'course': 'CS F351', 'from': 14, 'to': 14}, {'topic': 'Relational model', 'course': 'CS F212', 'from': 12, 'to': 12}]; flaggedTopics None; note: No new internal marks since the plan was built on Sat 3 Oct 2026 (latest marks dated Thu 24 Sep 2026), so impact did not move.
+    win: You completed 7 blocks for 325 min, including Normalization, B+ trees, Random variables, and Deterministic finite automata.
+    win: You kept a streak of 3 days and completed 2 Normalization blocks for 100 min.
+    concern: You missed B+ trees on Sun 27 Sep and Relational model on Sat 03 Oct; both matter for the CS F212 Quiz 2 on Mon 12 Oct 2026.
+    concern: You missed CPU scheduling on Wed 30 Sep, ahead of the CS F372 Quiz 2 on Wed 14 Oct 2026.
+    concern: No new internal marks came in, so impact did not move for Normalization, CPU scheduling, B+ trees, Random variables, Deterministic finite automata, or Relational model.
+    question q1: What got in the way of the B+ trees block on Sun 27 Sep?
+    question q2: What got in the way of the CPU scheduling block on Wed 30 Sep?
+    question q3: What needs to change for the Relational model block on Sat 03 Oct?
+    adjustment move: Move the missed B+ trees block to the coming week, ahead of the CS F212 Quiz 2 on Mon 12 Oct 2026.
+    adjustment move: Move the missed CPU scheduling block to the coming week, ahead of the CS F372 Quiz 2 on Wed 14 Oct 2026.
+    adjustment move: Move the missed Relational model block to the coming week, ahead of the CS F212 Quiz 2 on Mon 12 Oct 2026.
+  → POST /one-on-one/ooo_meera_20260928/answer  {"questionId": "q1", "answer": "Ran out of time on Tuesdays"}
+  ← 200 in 0.0s
+  answered q1; status in_progress
+  → POST /one-on-one/ooo_meera_20260928/complete  {"shareWithAdvisor": true}
+  ← 200 in 24.1s
+  status done; adjustedPlan 12 week(s)
+    week 1 Week of Sep 21: 1 blocks — Serializability
+    week 2 Week of Sep 28: 4 blocks — B+ trees, Relational model, CPU scheduling, Normalization
+    week 3 Week of Oct 5: 14 blocks — Institutions and incentives, Two-phase locking, B+ trees, Technology adoption, CPU scheduling, Relational model, Deterministic finite automata, Normalization, Random variables, Conditional probability, Bayes theorem
+    week 4 Week of Oct 12: 4 blocks — B+ trees, CPU scheduling, Normalization, Deterministic finite automata
+    week 5 Week of Oct 19: 13 blocks — B+ trees, Technology adoption, CPU scheduling, Relational model, Bayes theorem, Normalization, Random variables, Conditional probability, Institutions and incentives, Deterministic finite automata
+    week 6 Week of Oct 26: 11 blocks — B+ trees, CPU scheduling, Normalization, Random variables, Conditional probability, Technology adoption, Deterministic finite automata, Institutions and incentives
+    week 7 Week of Nov 2: 12 blocks — B+ trees, CPU scheduling, Relational model, Institutions and incentives, Normalization, Random variables, Deterministic finite automata, Bayes theorem, Technology adoption
+    week 8 Week of Nov 9: 11 blocks — B+ trees, CPU scheduling, Normalization, Random variables, Conditional probability, Technology adoption, Deterministic finite automata, Institutions and incentives
+    week 9 Week of Nov 16: 12 blocks — B+ trees, CPU scheduling, Relational model, Institutions and incentives, Normalization, Random variables, Deterministic finite automata, Bayes theorem, Technology adoption
+    week 10 Week of Nov 23: 10 blocks — B+ trees, Normalization, CPU scheduling, Random variables, Deterministic finite automata, Institutions and incentives, Technology adoption
+    week 11 Week of Nov 30: 5 blocks — CPU scheduling, Deterministic finite automata, Random variables, Institutions and incentives, Technology adoption
+    week 12 Week of Dec 7: 4 blocks — Random variables, Conditional probability, Institutions and incentives, Technology adoption
+  adjustedPlan week 1 block count: 1
+  → GET /advisor/inbox
+  ← 200 in 0.0s
+  new ticket A-101: Weekly 1:1 for Meera Nair, Week of Sep 26: planned 475 min in 11 blocks; done 325 min (7 blocks); missed 3 blocks; streak 3 days. Skipped: B+ trees, CPU scheduling, Relational model. No new internal marks since the plan was built on Sat 3 …
+  ⏱ 28.8s  [PASS]
+
+── 11. chat “Can I get a fee extension for a medical issue?”
+  → POST /chat  {"studentId": "meera", "agentId": "academic_coach", "text": "Can I get a fee extension for a medical issue?"}
+  ← 200 in 2.7s
+  route: route → escalate: Fee extensions and medical circumstances are outside the available document scope and require a human advisor.
+  agent reply (182 chars): Meera, ticket A-102 has been opened, and a human advisor will reply in this thread. The documents I can read don’t cover fee extensions for medical issues, so I can’t confirm a rule.
+  citations 0; cards []; escalation {'ticketId': 'A-102', 'status': 'open', 'reason': 'out_of_scope'}
+    trace academic_coach.route                  1.5s  route → escalate: Fee extensions and medical circumstances are outside the available document scope…
+    trace escalate                              0.0s  ticket A-102 opened (out_of_scope) with 0 verified citations and the agent summary
+    trace academic_coach.compose                1.3s  reply written from 2 facts; 0/0 verified citations used
+  [PASS] assert escalation present: {"ticketId": "A-102", "status": "open", "reason": "out_of_scope"}
+  [PASS] assert zero citations: 0 citation(s)
+  ⏱ 2.7s  [PASS]
+
+── 12. advisor reply lands in the DM
+  → GET /advisor/inbox
+  ← 200 in 0.0s
+  inbox: 2 ticket(s)
+    A-102 meera  open     Can I get a fee extension for a medical issue?
+    A-101 meera  open     Weekly 1:1 shared for review (Week of Sep 26)
+  → POST /advisor/reply  {"ticketId": "A-102", "text": "Approved, submit the medical certificate to the Academic Office by Friday."}
+  ← 200 in 0.0s
+  A-102 → answered
+  → GET /threads/meera/academic_coach
+  ← 200 in 0.0s
+  [PASS] assert advisor reply is in the student's academic_coach thread: msg_9f7c534d41 (6 messages in thread)
+  original escalation on msg_d176b41a59: {'ticketId': 'A-102', 'status': 'answered', 'reason': 'out_of_scope'}
+  ⏱ 0.0s  [PASS]
+
+── 13. Make it Relevant on the stuck section
+  no stuck section; using the section at the marker (120 s): h2 “Serializability and Precedence Graphs”
+  → POST /relevant  {"studentId": "meera", "interest": "badminton", "source": {"type": "handout_section", "lectureId": "lec_df0234c699", "sectionId": "h2"}}
+  ← 404 in 0.0s
+  FAILED: POST /relevant → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+── 14.1. reset aarav
+  → POST /demo/reset/aarav
+  ← 200 in 0.0s
+  cleared 1 lecture(s); deleted {'action': 6, 'block_slot': 2, 'calendar_item': 93, 'commitments': 1, 'coverage': 1, 'handout': 1, 'lecture': 1, 'message': 3, 'plan_block': 91, 'plan_meta': 1, 'trace': 1, 'transcript': 1}; plan cleared True; audio folders removed 1
+  ⏱ 0.0s  [PASS]
+
+── 14.3. create lecture (transcript, CS F212, 2026-09-26)
+  → POST /lectures  {"studentId": "aarav", "courseCode": "CS F212", "date": "2026-09-26"} + transcriptText=<cs-f212-2026-09-22-transactions.md, 3731 chars>
+  ← 200 in 0.0s
+  lecture lec_75fd4f4779: status uploaded, source transcript, CS F212 2026-09-26
+  ⏱ 0.0s  [PASS]
+
+── 14.4. stuck marker at 120 s
+  → POST /lectures/lec_75fd4f4779/markers  {"atSec": 120, "note": "lost here"}
+  ← 404 in 0.0s
+  FAILED: POST /lectures/lec_75fd4f4779/markers → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+── 14.5. process and poll
+  → POST /lectures/lec_75fd4f4779/process
+  ← 200 in 0.0s
+  polling GET /lectures/lec_75fd4f4779 every 2 s (cap 180 s)
+       0.0s  processing
+      40.2s  ready
+  ready in 40.2s; durationSec 236.4
+  ⏱ 40.2s  [PASS]
+
+── 14.6. handout + cards
+  → GET /lectures/lec_75fd4f4779/handout
+  ← 200 in 0.0s
+  → GET /lectures/lec_75fd4f4779/cards
+  ← 200 in 0.0s
+  → GET /lectures/lec_75fd4f4779/transcript
+  ← 200 in 0.0s
+  handout “Database Transaction Management”: 3 sections; summary: ACID properties describe the guarantees that make database transactions reliable despite partial failures and overlapping operations. Database isolation does not require transactions to run one at a time: concurrency improves usefulness, p…
+    h1   0:00–0:52   ACID Properties                                              → ACID properties
+    h2   0:52–2:10   Serializability and Precedence Graphs                        → Serializability
+    h3   2:10–3:46   Locking Basics                                               → Locking basics
+  stuck section: none — no section carries `stuck` (the section covering 120 s is h2 “Serializability and Precedence Graphs”)
+  coverage vs “Unit 3: Transactions and concurrency”: covered 4 (Transactions and concurrency, ACID properties, Serializability, Locking basics)
+  coverage.missed[].topic: ['Two-phase locking', 'Deadlocks']
+    missed Two-phase locking: The lecture introduced locking basics and said the locking story would be made more formal next session, but did not explain two-phase locking.
+    missed Deadlocks: The lecture discussed lock waiting and concurrency anomalies, but did not explain deadlocks. The lecturer deferred it: "we'll come back to deadlocks next week".
+  coverage.emphasized[].quote (2):
+    [1:43 s7] Serializability: “This part on serializability will definitely be on the end-sem, I'm telling you now”
+    [1:59 s8] Serializability: “Do not just learn the word; practise drawing the graph from a schedule because that is where people lose marks”
+  coverage.confusion: field absent (markers not implemented)
+  commitments (5):
+    exam_hint          due Mon 30 Nov       Serializability will be on the end-semester exam.  [1:43] “This part on serializability will definitely be on the end-sem, I'm telling you now”
+    next_lecture_topic due Mon 28 Sep 09:00 Examples will be used to compare legal and illegal interleavings next time.  [2:51] “We will use examples next time and compare legal and illegal interleavings”
+    next_lecture_topic due Mon 28 Sep 09:00 Deadlocks will be covered next week.  [3:10] “we'll come back to deadlocks next week”
+    assignment         due no dueBy         After class, draw the precedence graph for a schedule with three transactions and write t…  [3:28] “For now, after class, take one schedule with three transactions and try the precedence graph yourself. If you cannot de…”
+    next_lecture_topic due Mon 28 Sep 09:00 The next session will formalize locking and connect it to anomalies.  [3:46] “next session we will make the locking story more formal and connect it to the anomalies you have already seen”
+  actions (6):
+    prep     due Mon 28 Sep 09:00  30 min  Practice comparing legal and illegal interleavings
+    prep     due Mon 28 Sep 09:00  25 min  Review deadlocks before the next lecture
+    prep     due Mon 28 Sep 09:00  25 min  Preview formal locking and its connection to anomalies
+    ask      due Mon 28 Sep 09:00  15 min  Ask how to identify each precedence-graph edge
+    study    due Mon 12 Oct        45 min  Learn two-phase locking before Quiz 2
+    review   due Mon 12 Oct        40 min  Review serializability and its test
+  → GET /threads/aarav/academic_coach
+  ← 200 in 0.0s
+  pipeline timings (trace on the 'handout ready' message):
+    class_companion.transcribe             0.0s  14 segments, 3.9 min (text fallback: ~40-word segments at sentence boundaries, synthetic timestamps)
+    class_companion.handout               22.7s  3 topic parts → vendored notes → 3 sections, every segment id verified; syllabus-mapped 3/3; exam hints 1 ver…
+    class_companion.coverage               5.7s  Unit 3: Transactions and concurrency: 4/6 topics covered, missed ['Two-phase locking', 'Deadlocks'] (deferred…
+    class_companion.commitments            4.8s  5 verified ({'exam_hint': 1, 'next_lecture_topic': 3, 'assignment': 1}), 0 dropped (quote not verbatim)
+    class_companion.actions                5.5s  6 candidates from missed/emphasized/commitments/marks → 6 actions {'prep': 3, 'ask': 1, 'study': 1, 'review':…
+    class_companion.notify                 0.0s  message appended to academic_coach thread
+  ⏱ 0.0s  [PASS]
+
+── 14.7. accept first study + first prep
+  → POST /actions/act_63f96811af  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted study “Learn two-phase locking before Quiz 2” (due Mon 12 Oct) → calendarItemId cal_d79a3ffc2f, planBlockId pb_27c62e76f2
+  → POST /actions/act_055b44f034  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted prep “Practice comparing legal and illegal interleavings” (due Mon 28 Sep 09:00) → calendarItemId cal_2e81990381, planBlockId pb_e3afad1362
+  ⏱ 0.0s  [PASS]
+
+── 14.8. calendar, next 14 days
+  → GET /calendar/aarav?from=2026-09-26&to=2026-10-10
+  ← 200 in 0.0s
+  26 items: class 24, prep 1, action 1
+   Sat 26 Sep
+     18:00–18:30  prep        action        Practice comparing legal and illegal interleavings   ◀ accepted
+   Mon 28 Sep
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+   Tue 29 Sep
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Wed 30 Sep
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Thu 01 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Fri 02 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Mon 05 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     18:00–18:45  action      action        Learn two-phase locking before Quiz 2   ◀ accepted
+   Tue 06 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Wed 07 Oct
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Thu 08 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Fri 09 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+  [PASS] assert accepted study cal_d79a3ffc2f is on the calendar: Mon 05 Oct 18:00
+  [PASS] assert accepted study cal_d79a3ffc2f overlaps nothing
+  [PASS] assert accepted prep cal_2e81990381 is on the calendar: Sat 26 Sep 18:00
+  [PASS] assert accepted prep cal_2e81990381 overlaps nothing
+  ⏱ 0.0s  [PASS]
+
+── 14.9. chat “What should I study this week?”
+  → POST /chat  {"studentId": "aarav", "agentId": "academic_coach", "text": "What should I study this week?"}
+  ← 200 in 27.2s
+  route: route → build_study_plan: The student asks what to study this week; no study plan exists yet.
+  agent reply (547 chars): This week, prioritize **Flow control** for 100 min, then **Random variables** and **Conditional probability** for 75 min each; the plan schedules 11 study blocks totaling 425 min, after classes, with at most 120 min a day. Flow control is an assessable topic and carried 14–15 marks in the last thre…
+  citations 8; cards ['study_plan', 'weak_topics']
+    trace academic_coach.route                  1.5s  route → build_study_plan: The student asks what to study this week; no study plan exists yet.
+    trace diagnose_performance                  0.0s  internal marks × last-3 end-sem past papers → 12 topics across 5 courses; top: Flow control 36, Ran…
+    trace build_study_plan.allocate            23.7s  10 closed-choice topics × 12 weeks (Week of Sep 21 → Week of Dec 7, capacity 6350 min); model alloc…
+    trace build_study_plan.place                0.0s  placed 81 blocks (3050 min; 21 in the next 3 weeks) after the last class of each day, none over a c…
+    trace academic_coach.compose                2.0s  reply written from 6 facts; 8/8 verified citations used
+    plan Week of Sep 21: 6 blocks, 180 min — Random variables, Deterministic finite automata, Serializability, Flow control, Conditional probability, Relational model
+    plan Week of Sep 28: 7 blocks, 325 min — Flow control, Random variables, Conditional probability, Deterministic finite automata, Bayes theorem, Relational model
+    plan Week of Oct 5: 10 blocks, 395 min — Nondeterministic finite automata, Two-phase locking, Flow control, Random variables, Conditional probability, Deterministic finite automata, Bayes theorem, Relational algebra, Relational model
+    plan Week of Oct 12: 4 blocks, 100 min — Flow control, Random variables, Deterministic finite automata, Relational model  [CS F212 Quiz 2 (Mon 12 Oct 2026); CS F351 Quiz 2 (Tue 13 Oct 2026); CS F372 Quiz 2 (Wed 14 Oct 2026); CS F303 Quiz 2 (Thu 15 Oct 2026); MATH F241 Quiz 2 (Fri 16 Oct 2026); HSS F235 Quiz 2 (Sat 17 Oct 2026)]
+    plan Week of Oct 19: 8 blocks, 325 min — Flow control, Random variables, Conditional probability, Deterministic finite automata, Relational model, Institutions and incentives, Technology adoption
+    plan Week of Oct 26: 9 blocks, 325 min — Flow control, Random variables, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Institutions and incentives, Relational algebra
+    plan Week of Nov 2: 8 blocks, 300 min — Flow control, Random variables, Conditional probability, Deterministic finite automata, Relational model, Technology adoption, Relational algebra
+    plan Week of Nov 9: 8 blocks, 300 min — Flow control, Random variables, Deterministic finite automata, Bayes theorem, Relational model, Institutions and incentives, Nondeterministic finite automata
+    plan Week of Nov 16: 8 blocks, 300 min — Flow control, Random variables, Conditional probability, Deterministic finite automata, Relational model, Technology adoption, Relational algebra
+    plan Week of Nov 23: 7 blocks, 300 min — Flow control, Random variables, Deterministic finite automata, Relational model, Institutions and incentives, Nondeterministic finite automata
+    plan Week of Nov 30: 5 blocks, 175 min — Flow control, Deterministic finite automata, Random variables, Institutions and incentives, Technology adoption  [CS F212 End-sem (Mon 30 Nov 2026); CS F351 End-sem (Wed 2 Dec 2026); CS F372 End-sem (Fri 4 Dec 2026); CS F303 End-sem (Sun 6 Dec 2026)]
+    plan Week of Dec 7: 3 blocks, 100 min — Random variables, Institutions and incentives, Technology adoption  [MATH F241 End-sem (Tue 8 Dec 2026); HSS F235 End-sem (Thu 10 Dec 2026)]
+  ⏱ 27.2s  [PASS]
+
+── 14. meera vs aarav, same lecture
+  actions: meera 7 / aarav 6 (0 identical titles); by kind+topic only meera: ['review Normalization', 'review B+ trees']; only aarav: ['ask Locking basics']; both: ['prep Serializability', 'prep Deadlocks', 'prep Locking basics', 'study Two-phase locking', 'review Serializability']
+  plan, top topics by minutes: meera CPU scheduling (CS F372) 650m, Normalization (CS F212) 625m, B+ trees (CS F212) 625m | aarav Flow control (CS F303) 775m, Random variables (MATH F241) 550m, Deterministic finite automata (CS F351) 475m
+
+══ Summary
+      1  PASS      0.0s  reset meera
+      2  PASS*    18.3s  simulate-week meera  — simulate-week refused (no plan blocks in the next 7 days); built the plan with POST /students/meera/plan, then retried
+      3  PASS      0.0s  create lecture (transcript, CS F212, 2026-09-26)
+      4  FAIL      0.0s  stuck marker at 120 s  — POST /lectures/lec_df0234c699/markers → HTTP 404: {"error": "Not Found"} (no such route on this server)
+      5  PASS     36.1s  process and poll
+      6  PASS      0.0s  handout + cards
+      7  PASS      0.0s  accept first study + first prep
+      8  PASS      0.0s  calendar, next 14 days
+      9  PASS     24.8s  chat “What should I study this week?”
+     10  PASS     28.8s  weekly 1:1 round trip
+     11  PASS      2.7s  chat “Can I get a fee extension for a medical issue?”
+     12  PASS      0.0s  advisor reply lands in the DM
+     13  FAIL      0.0s  Make it Relevant on the stuck section  — POST /relevant → HTTP 404: {"error": "Not Found"} (no such route on this server)
+   14.1  PASS      0.0s  reset aarav
+   14.3  PASS      0.0s  create lecture (transcript, CS F212, 2026-09-26)
+   14.4  FAIL      0.0s  stuck marker at 120 s  — POST /lectures/lec_75fd4f4779/markers → HTTP 404: {"error": "Not Found"} (no such route on this server)
+   14.5  PASS     40.2s  process and poll
+   14.6  PASS      0.0s  handout + cards
+   14.7  PASS      0.0s  accept first study + first prep
+   14.8  PASS      0.0s  calendar, next 14 days
+   14.9  PASS     27.2s  chat “What should I study this week?”
+  asserts: 11/11 passed
+  exit 1

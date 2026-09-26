@@ -1,0 +1,521 @@
+demo_run.py  2026-09-26 14:37:11 IST  server http://127.0.0.1:8000  primary student meera
+git HEAD 4c8392f Companion actions: every missed topic gets its action; smoke matches topics; working tree: 12 uncommitted path(s) (AGENTS.md, backend/app/data/README.md, backend/app/data/connectors.json, backend/app/data/validate.py, backend/scripts/audit_dataset.py, contracts.ts, .claude/, backend/app/data/gap_tags.json, …)
+health {'status': 'ok'}; demo routes present 12/14; MISSING: POST /lectures/{lecture_id}/markers, POST /relevant
+
+── 0. Course check (which lecture is the audio?)
+  audio backend/Lecture.mp3 (45.5 MB)
+  cached assemblyai transcript from 2026-09-26T14:21:19+05:30 (that transcription took 125.3 s)
+  80 segments, 46:28 long, 7262 words
+  opens: “And the reason I call it strategic practice is kind of that they're going to be grouped by theme, like these are problems that help you practice this topic, these are problems that help you practice that topic, and so o…”
+  subject words of each lecture file (15 per file, words no other lecture file uses), counted in the transcript:
+    cs-f212-2026-09-22-transactions.md       CS F212   2/15 present,   9 occurrences (transaction×0, lock×0, operation×0, isolation×0, graph×0, read×4, database×0, guarantee×0, …); plain vocabulary overlap 39%
+    cs-f303-2026-09-24-transport.md          CS F303   0/15 present,   0 occurrences (sequence×0, byte×0, receiver×0, client×0, sender×0, window×0, network×0, acknowledgement×0, …); plain vocabulary overlap 30%
+    cs-f372-2026-09-23-scheduling.md         CS F372   2/15 present,   2 occurrences (arrival×0, burst×0, processe×0, turnaround×0, round×0, robin×0, scheduling×0, scheduler×0, …); plain vocabulary overlap 37%
+  the transcript's own most frequent words: experiment×38, probability×34, outcome×32, choose×29, possible×24, card×18, problem×16, course×16, definition×16, gambling×16, wanna×15, number×15
+  syllabus headings (words only that course's syllabus uses), counted in the transcript:
+    MATH F241   48 (probability×34, simple×7, random×3, theorem×2, baye×1, confidence×1)  Probability and Statistics — Semester 5 Syllabus
+    CS F212     23 (write×11, tree×9, basic×3)  Database Systems — Semester 5 Syllabus
+    CS F372     12 (replacement×10, page×2)  Operating Systems — Semester 5 Syllabus
+    HSS F235    11 (writing×5, argument×3, inequality×1, based×1, source×1)  Technology and Society — Semester 5 Syllabus
+  → matches none of the three lecture files (best cs-f212-2026-09-22-transactions.md: 2/15 subject words); by the syllabi it is MATH F241 (Probability and Statistics — Semester 5 Syllabus)
+  ⏱ 0.1s
+  ================================================================================================
+  = COURSE CHECK: Lecture.mp3 is NOT CS F212 — it matches none of the three lecture files (best
+  = cs-f212-2026-09-22-transactions.md: 2/15 subject words); by the syllabi it is MATH F241
+  = (Probability and Statistics — Semester 5 Syllabus). Using MATH F241 for the whole run. The
+  = planted CS F212 story (Two-phase locking skipped, exam hint, prep for the next CS F212
+  = session) cannot appear on this audio.
+  ================================================================================================
+  the marker at 120 s lands in s4 (1:42–2:10): “That's what you should not do. What you should do is actually have words. And sentences. Just because this is a mathematical class doesn't mean you shouldn't b…”
+
+── 1. reset meera
+  → POST /demo/reset/meera
+  ← 200 in 0.0s
+  cleared 2 lecture(s); deleted {'action': 11, 'block_slot': 2, 'calendar_item': 119, 'calendar_status': 11, 'clock': 1, 'commitments': 2, 'coverage': 2, 'handout': 2, 'lecture': 2, 'message': 7, 'one_on_one': 1, 'plan_block': 117, 'plan_meta': 1, 'ticket': 2, 'trace': 2, 'transcript': 2}; plan cleared True; audio folders removed 2
+  ⏱ 0.0s  [PASS]
+
+── 2. simulate-week meera
+  → POST /demo/simulate-week/meera
+  ← 400 in 0.0s
+  FALLBACK: simulate-week refused (no plan blocks in the next 7 days); built the plan with POST /students/meera/plan, then retried
+  → POST /students/meera/plan
+  ← 200 in 25.2s
+  plan: 109 blocks in 12 week(s); placed 109 blocks (4700 min; 31 in the next 3 weeks) after the last class of each day, none over a class, quiz or exam, each course before i
+  → POST /demo/simulate-week/meera
+  ← 200 in 0.0s
+  marked 12 done, 5 missed between Sat 26 Sep 14:37 and Sat 03 Oct 14:37
+  clockNow = 2026-10-03T14:37:36+05:30
+  ⏱ 25.2s  [PASS*]
+
+── 3. create lecture (audio, MATH F241, 2026-09-26)
+  → POST /lectures  multipart {"studentId": "meera", "courseCode": "MATH F241", "date": "2026-09-26"} + audio=Lecture.mp3 (45.5 MB)
+  ← 200 in 0.1s
+  lecture lec_2e9b452ece: status uploaded, source upload, MATH F241 2026-09-26
+  ⏱ 0.1s  [PASS]
+
+── 4. stuck marker at 120 s
+  → POST /lectures/lec_2e9b452ece/markers  {"atSec": 120, "note": "lost here"}
+  ← 404 in 0.0s
+  FAILED: POST /lectures/lec_2e9b452ece/markers → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+── 5. process and poll
+  → POST /lectures/lec_2e9b452ece/process
+  ← 200 in 0.0s
+  polling GET /lectures/lec_2e9b452ece every 2 s (cap 180 s)
+       0.0s  transcribing
+     138.6s  processing
+  FALLBACK: audio lecture lec_2e9b452ece not ready after 180 s (still processing); reran steps 3-5 on the transcript path (cached STT transcript of Lecture.mp3 (no MATH F241 text file exists))
+  → POST /lectures  {"studentId": "meera", "courseCode": "MATH F241", "date": "2026-09-26"} + transcriptText=<cached STT transcript of Lecture.mp3 (no MATH F241 text file exists), 39576 chars>
+  ← 200 in 0.0s
+  lecture lec_0e3f4a32b0: status uploaded, source transcript, MATH F241 2026-09-26
+  → POST /lectures/lec_0e3f4a32b0/markers  {"atSec": 120, "note": "lost here"}
+  ← 404 in 0.0s
+  (step 4 again) POST /lectures/lec_0e3f4a32b0/markers → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  → POST /lectures/lec_0e3f4a32b0/process
+  ← 200 in 0.0s
+  polling GET /lectures/lec_0e3f4a32b0 every 2 s (cap 180 s)
+       0.0s  processing
+      82.3s  ready
+  ready in 82.3s on the transcript path
+  ⏱ 263.1s  [PASS*]
+
+── 6. handout + cards
+  → GET /lectures/lec_0e3f4a32b0/handout
+  ← 200 in 0.0s
+  → GET /lectures/lec_0e3f4a32b0/cards
+  ← 200 in 0.0s
+  → GET /lectures/lec_0e3f4a32b0/transcript
+  ← 200 in 0.0s
+  handout “MATH F241 lecture”: 20 sections; summary: Course practice is organized to build skill first within individual themes and then across mixed problems. Homework should make the reasoning behind an answer visible, not merely present a final result. Course practice combines regular hom…
+    h1   0:00–2:39   Strategic Practice and Homework                              → (no syllabus topic)
+    h2   2:39–5:28   Homework Reasoning and Communication                         → (no syllabus topic)
+    h3   5:28–7:29   Homework and Math Review                                     → (no syllabus topic)
+    h4   7:29–9:20   Applications and Historical Roots of Probability             → (no syllabus topic)
+    h5   10:16–13:10 Applications and Origins of Probability                      → (no syllabus topic)
+    h6   13:10–13:24 Applications and Origins of Probability                      → (no syllabus topic)
+    h7   16:00–16:18 Probability, Statistics, and Uncertainty                     → (no syllabus topic)
+    h8   16:18–19:02 Sample Spaces and Events                                     → (no syllabus topic)
+    h9   19:23–22:06 Sample Spaces and Events                                     → (no syllabus topic)
+    h10  22:06–25:11 Sample Spaces and Naive Probability                          → (no syllabus topic)
+    h11  25:11–28:04 Sample Spaces and Naive Probability                          → (no syllabus topic)
+    h12  28:04–29:59 Sample Spaces and Naive Probability                          → (no syllabus topic)
+    h13  29:59–32:57 The Multiplication Rule                                      → (no syllabus topic)
+    h14  32:57–35:54 The Multiplication Rule                                      → (no syllabus topic)
+    h15  35:54–36:15 The Multiplication Rule                                      → (no syllabus topic)
+    h16  36:15–39:20 Combinations and Full Houses                                 → (no syllabus topic)
+    h17  39:20–42:22 Combinations and Full Houses                                 → (no syllabus topic)
+    h18  42:22–43:14 Combinations and Full Houses                                 → (no syllabus topic)
+    h19  43:14–45:52 The Sampling Table                                           → (no syllabus topic)
+    h20  45:52–47:32 The Sampling Table                                           → (no syllabus topic)
+  stuck section: none — no section carries `stuck` (the section covering 120 s is h1 “Strategic Practice and Homework”)
+  coverage vs “”: covered 0 (none)
+  coverage.missed[].topic: []
+  coverage.emphasized[].quote (0):
+  coverage.confusion: field absent (markers not implemented)
+  commitments (6):
+    assignment         due no dueBy         Homework is due at the beginning of class in a week.  [5:28] “So homework's due in a week”
+    reading            due no dueBy         Students should take a look at everything in the updated math review handout.  [5:45] “So you can download a new copy of the math review, and hopefully most of that material is review, but you should defini…”
+    reading            due no dueBy         Students should look at the Probability and Sets handout later.  [22:24] “we'll get into this more later, but you should also look at the handout later about probability and sets”
+    next_lecture_topic due Wed 30 Sep 10:00 Newton's material will probably be discussed in the next lecture.  [20:02] “we'll talk about some of Newton's stuff probably in the next lecture”
+    next_lecture_topic due Wed 30 Sep 10:00 The sampling-with-replacement and order-does-not-matter case will be proved next time.  [47:11] “We will prove this next time”
+    next_lecture_topic due Wed 30 Sep       A couple of loose ends will be covered on Wednesday.  [47:47] “There are a couple little things we'll get to on Wednesday”
+  actions (6):
+    prep     due Wed 30 Sep        20 min  Review the lecture's open questions
+    prep     due Wed 30 Sep 10:00  30 min  Review Newton's material for the next lecture
+    prep     due Wed 30 Sep 10:00  30 min  Review sampling with replacement and order
+    resource due Wed 30 Sep 10:00  45 min  Review the updated math handout
+    resource due Wed 30 Sep 10:00  30 min  Read the Probability and Sets handout
+    review   due Fri 16 Oct        60 min  Submit the homework before class
+  → GET /threads/meera/academic_coach
+  ← 200 in 0.0s
+  pipeline timings (trace on the 'handout ready' message):
+    class_companion.transcribe             0.0s  167 segments, 48.4 min (text fallback: ~40-word segments at sentence boundaries, synthetic timestamps)
+    class_companion.handout               73.9s  20 topic parts → vendored notes → 20 sections, every segment id verified; syllabus-mapped 0/20; exam hints 1 …
+    class_companion.coverage               0.0s  no handout section maps to the syllabus, so coverage was not computed  ERROR no handout section maps to the syllabus, so coverage was not computed
+    class_companion.commitments            2.9s  6 verified ({'assignment': 1, 'reading': 2, 'next_lecture_topic': 3}), 0 dropped (quote not verbatim)
+    class_companion.actions                4.8s  6 candidates from missed/emphasized/commitments/marks → 6 actions {'prep': 3, 'resource': 2, 'review': 1}; co…
+    class_companion.notify                 0.0s  message appended to academic_coach thread
+  ⏱ 0.0s  [PASS]
+
+── 7. accept first study + first prep
+  → POST /actions/act_62d7331959  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted prep “Review the lecture's open questions” (due Wed 30 Sep) → calendarItemId cal_9aff006edf, planBlockId pb_183fe50c4d
+  FAILED: no study action was proposed, so it can't be accepted (kinds proposed: ['prep', 'resource', 'review'])
+  ⏱ 0.0s  [FAIL]
+
+── 8. calendar, next 14 days
+  → GET /calendar/meera?from=2026-09-26&to=2026-10-10
+  ← 200 in 0.0s
+  55 items: study_block 30, class 24, prep 1
+   Sat 26 Sep
+     15:00–15:50  study_block plan_block    Study: Normalization (done)
+     16:00–16:50  study_block plan_block    Study: CPU scheduling (done)
+     18:00–18:20  prep        action        Review the lecture's open questions   ◀ accepted
+   Sun 27 Sep
+     10:00–10:50  study_block plan_block    Study: B+ trees (missed)
+     11:00–11:25  study_block plan_block    Study: Deterministic finite automata (done)
+     11:45–12:10  study_block plan_block    Study: Relational model (done)
+   Mon 28 Sep
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     16:30–17:20  study_block plan_block    Study: Normalization (missed)
+     17:30–18:20  study_block plan_block    Study: Relational model (done)
+   Tue 29 Sep
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: B+ trees (done)
+     13:30–14:20  study_block plan_block    Study: Technology adoption (missed)
+   Wed 30 Sep
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+     16:30–17:20  study_block plan_block    Study: CPU scheduling (done)
+     17:30–18:20  study_block plan_block    Study: Institutions and incentives (done)
+   Thu 01 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+     15:30–16:20  study_block plan_block    Study: Random variables (missed)
+     16:30–16:55  study_block plan_block    Study: Normalization (done)
+   Fri 02 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: Conditional probability (done)
+     13:30–13:55  study_block plan_block    Study: B+ trees (missed)
+   Sat 03 Oct
+     10:00–10:50  study_block plan_block    Study: Deterministic finite automata (done)
+     11:00–11:25  study_block plan_block    Study: CPU scheduling (done)
+   Sun 04 Oct
+     10:00–10:50  study_block plan_block    Study: Bayes theorem
+   Mon 05 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     16:30–17:20  study_block plan_block    Study: Normalization
+     17:30–18:20  study_block plan_block    Study: Relational model
+   Tue 06 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: B+ trees
+     13:30–14:20  study_block plan_block    Study: Technology adoption
+   Wed 07 Oct
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+     16:30–17:20  study_block plan_block    Study: CPU scheduling
+     17:30–18:20  study_block plan_block    Study: Institutions and incentives
+   Thu 08 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+     15:30–16:20  study_block plan_block    Study: Random variables
+     16:30–16:55  study_block plan_block    Study: Normalization
+   Fri 09 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+     12:30–13:20  study_block plan_block    Study: Conditional probability
+     13:30–13:55  study_block plan_block    Study: B+ trees
+   Sat 10 Oct
+     10:00–10:50  study_block plan_block    Study: Deterministic finite automata
+     11:00–11:25  study_block plan_block    Study: CPU scheduling
+  [PASS] assert accepted prep cal_9aff006edf is on the calendar: Sat 26 Sep 18:00
+  [PASS] assert accepted prep cal_9aff006edf overlaps nothing
+  ⏱ 0.0s  [PASS]
+
+── 9. chat “What should I study this week?”
+  → POST /chat  {"studentId": "meera", "agentId": "academic_coach", "text": "What should I study this week?"}
+  ← 200 in 25.4s
+  route: route → build_study_plan: The student asks what to study this week; use their existing study plan without rebuilding it.
+  agent reply (449 chars): Study **Normalization** and **B+ trees** for 150 minutes each, and **CPU scheduling** for 125 minutes over the next 7 days; the plan places these blocks after classes, with at most 120 minutes a day. These are assessable topics with strong representation in the cited end-sem papers: Normalization […
+  citations 8; cards ['study_plan', 'weak_topics']
+    trace academic_coach.route                  1.7s  route → build_study_plan: The student asks what to study this week; use their existing study plan w…
+    trace diagnose_performance                  0.0s  internal marks × last-3 end-sem past papers → 14 topics across 6 courses; top: Normalization 67, B+…
+    trace build_study_plan.allocate            21.8s  10 closed-choice topics × 11 weeks (Week of Sep 28 → Week of Dec 7, capacity 5700 min); model alloc…
+    trace build_study_plan.place                0.1s  placed 92 blocks (3275 min; 29 in the next 3 weeks) after the last class of each day, none over a c…
+    trace academic_coach.compose                1.8s  reply written from 6 facts; 8/8 verified citations used
+    plan Week of Sep 21: 1 blocks, 20 min — A couple of loose ends will be covered on Wednesday.
+    plan Week of Sep 28: 4 blocks, 175 min — Normalization, CPU scheduling, B+ trees, Relational model
+    plan Week of Oct 5: 11 blocks, 525 min — Normalization, Relational model, B+ trees, CPU scheduling, Random variables, Conditional probability, Deterministic finite automata, Bayes theorem
+    plan Week of Oct 12: 4 blocks, 100 min — Normalization, CPU scheduling, Random variables, Deterministic finite automata  [CS F212 Quiz 2 (Mon 12 Oct 2026); CS F351 Quiz 2 (Tue 13 Oct 2026); CS F372 Quiz 2 (Wed 14 Oct 2026); CS F303 Quiz 2 (Thu 15 Oct 2026); MATH F241 Quiz 2 (Fri 16 Oct 2026); HSS F235 Quiz 2 (Sat 17 Oct 2026)]
+    plan Week of Oct 19: 12 blocks, 400 min — Normalization, CPU scheduling, B+ trees, Random variables, Relational model, Conditional probability, Institutions and incentives, Deterministic finite automata, Bayes theorem
+    plan Week of Oct 26: 11 blocks, 375 min — Normalization, CPU scheduling, B+ trees, Random variables, Technology adoption, Conditional probability, Deterministic finite automata, Relational model
+    plan Week of Nov 2: 11 blocks, 375 min — Normalization, CPU scheduling, B+ trees, Random variables, Institutions and incentives, Deterministic finite automata, Bayes theorem, Relational model
+    plan Week of Nov 9: 11 blocks, 375 min — Normalization, CPU scheduling, B+ trees, Conditional probability, Technology adoption, Deterministic finite automata, Bayes theorem, Relational model
+    plan Week of Nov 16: 10 blocks, 350 min — Normalization, B+ trees, CPU scheduling, Random variables, Deterministic finite automata, Relational model, Institutions and incentives
+    plan Week of Nov 23: 11 blocks, 375 min — Normalization, CPU scheduling, B+ trees, Random variables, Technology adoption, Conditional probability, Deterministic finite automata, Relational model
+    plan Week of Nov 30: 2 blocks, 75 min — CPU scheduling, Deterministic finite automata  [CS F212 End-sem (Mon 30 Nov 2026); CS F351 End-sem (Wed 2 Dec 2026); CS F372 End-sem (Fri 4 Dec 2026); CS F303 End-sem (Sun 6 Dec 2026)]
+    plan Week of Dec 7: 5 blocks, 150 min — Random variables, Conditional probability, Bayes theorem, Institutions and incentives, Technology adoption  [MATH F241 End-sem (Tue 8 Dec 2026); HSS F235 End-sem (Thu 10 Dec 2026)]
+  ⏱ 25.4s  [PASS]
+
+── 10. weekly 1:1 round trip
+  → GET /one-on-one/meera/current
+  ← 200 in 5.2s
+  ooo_meera_20260928 “Week of Sep 26” status ready
+  recap: planned 745 min / 18 blocks; done 500 min / 12 blocks; missed 5 blocks; streak 8 days
+  recap topics: completed ['Normalization', 'CPU scheduling', 'Deterministic finite automata', 'Relational model', 'B+ trees', 'Institutions and incentives', 'Conditional probability']; skipped ['B+ trees', 'Normalization', 'Technology adoption', 'Random variables']
+  recap weakTopicMovement [{'topic': 'Normalization', 'course': 'CS F212', 'from': 67, 'to': 67}, {'topic': 'CPU scheduling', 'course': 'CS F372', 'from': 61, 'to': 61}, {'topic': 'B+ trees', 'course': 'CS F212', 'from': 65, 'to': 65}, {'topic': 'Deterministic finite automata', 'course': 'CS F351', 'from': 14, 'to': 14}, {'topic': 'Relational model', 'course': 'CS F212', 'from': 12, 'to': 12}, {'topic': 'Technology adoption', 'course': 'HSS F235', 'from': 12, 'to': 12}, {'topic': 'Institutions and incentives', 'course': 'HSS F235', 'from': 12, 'to': 12}, {'topic': 'Random variables', 'course': 'MATH F241', 'from': 17, 'to': 17}, {'topic': 'Conditional probability', 'course': 'MATH F241', 'from': 15, 'to': 15}]; flaggedTopics None; note: No new internal marks since the plan was built on Sat 3 Oct 2026 (latest marks dated Thu 24 Sep 2026), so impact did not move.
+    win: You completed 500 min in 12 blocks and kept an 8-day streak.
+    win: You completed blocks in CPU scheduling, Deterministic finite automata, Relational model, and Conditional probability.
+    concern: You missed Normalization and B+ trees blocks; both matter for the CS F212 Quiz 2 Mon 12 Oct 2026.
+    concern: You missed Technology adoption and Random variables blocks; they matter for the HSS F235 Quiz 2 Sat 17 Oct 2026 and MATH F241 Quiz 2 Fri 16 Oct 2026.
+    concern: Impact did not move for the weak topics; there were no new internal marks since Sat 3 Oct 2026.
+    question q1: What got in the way of the B+ trees blocks on Sun 27 Sep and Fri 02 Oct?
+    question q2: What got in the way of the Normalization block on Mon 28 Sep?
+    question q3: What would help you make room for Technology adoption and Random variables?
+    adjustment move: Move the B+ trees block to the coming week, ahead of the CS F212 Quiz 2 Mon 12 Oct 2026.
+    adjustment move: Move the B+ trees block to the coming week, ahead of the CS F212 Quiz 2 Mon 12 Oct 2026.
+    adjustment move: Move the Normalization block to the coming week, ahead of the CS F212 Quiz 2 Mon 12 Oct 2026.
+  → POST /one-on-one/ooo_meera_20260928/answer  {"questionId": "q1", "answer": "Ran out of time on Tuesdays"}
+  ← 200 in 0.0s
+  answered q1; status in_progress
+  → POST /one-on-one/ooo_meera_20260928/complete  {"shareWithAdvisor": true}
+  ← 200 in 43.3s
+  status done; adjustedPlan 12 week(s)
+    week 1 Week of Sep 21: 1 blocks — A couple of loose ends will be covered on Wednesday.
+    week 2 Week of Sep 28: 4 blocks — Normalization, Random variables, B+ trees, Technology adoption
+    week 3 Week of Oct 5: 14 blocks — B+ trees, Deterministic finite automata, Normalization, Bayes theorem, Relational model, Random variables, Institutions and incentives, Technology adoption, CPU scheduling, Conditional probability
+    week 4 Week of Oct 12: 4 blocks — Normalization, Random variables, CPU scheduling, Deterministic finite automata
+    week 5 Week of Oct 19: 11 blocks — Normalization, Relational model, B+ trees, Random variables, Technology adoption, CPU scheduling, Conditional probability, Deterministic finite automata
+    week 6 Week of Oct 26: 11 blocks — Normalization, Institutions and incentives, B+ trees, Random variables, CPU scheduling, Bayes theorem, Deterministic finite automata, Relational model
+    week 7 Week of Nov 2: 12 blocks — Normalization, Relational model, B+ trees, Random variables, Technology adoption, CPU scheduling, Deterministic finite automata, Conditional probability
+    week 8 Week of Nov 9: 12 blocks — Normalization, Institutions and incentives, B+ trees, Random variables, CPU scheduling, Deterministic finite automata, Bayes theorem, Relational model
+    week 9 Week of Nov 16: 14 blocks — Normalization, Relational model, B+ trees, Random variables, Technology adoption, CPU scheduling, Deterministic finite automata, Conditional probability
+    week 10 Week of Nov 23: 13 blocks — Normalization, B+ trees, Random variables, CPU scheduling, Deterministic finite automata, Bayes theorem, Institutions and incentives
+    week 11 Week of Nov 30: 3 blocks — Random variables, CPU scheduling, Technology adoption
+    week 12 Week of Dec 7: 2 blocks — Random variables, Technology adoption
+  adjustedPlan week 1 block count: 1
+  → GET /advisor/inbox
+  ← 200 in 0.0s
+  new ticket A-101: Weekly 1:1 for Meera Nair, Week of Sep 26: planned 745 min in 18 blocks; done 500 min (12 blocks); missed 5 blocks; streak 8 days. Skipped: B+ trees, Normalization, Technology adoption, Random variables. No new internal marks since the pla…
+  ⏱ 48.5s  [PASS]
+
+── 11. chat “Can I get a fee extension for a medical issue?”
+  → POST /chat  {"studentId": "meera", "agentId": "academic_coach", "text": "Can I get a fee extension for a medical issue?"}
+  ← 200 in 3.0s
+  route: route → escalate: The request concerns a fee extension due to a medical issue, which the listed documents do not cover and requires human assistance.
+  agent reply (185 chars): Meera, a human advisor will reply in this thread under ticket A-102. The documents I can read don’t cover fee extensions for medical issues, so I can’t confirm whether one is available.
+  citations 0; cards []; escalation {'ticketId': 'A-102', 'status': 'open', 'reason': 'out_of_scope'}
+    trace academic_coach.route                  1.6s  route → escalate: The request concerns a fee extension due to a medical issue, which the listed doc…
+    trace escalate                              0.0s  ticket A-102 opened (out_of_scope) with 0 verified citations and the agent summary
+    trace academic_coach.compose                1.3s  reply written from 2 facts; 0/0 verified citations used
+  [PASS] assert escalation present: {"ticketId": "A-102", "status": "open", "reason": "out_of_scope"}
+  [PASS] assert zero citations: 0 citation(s)
+  ⏱ 3.0s  [PASS]
+
+── 12. advisor reply lands in the DM
+  → GET /advisor/inbox
+  ← 200 in 0.0s
+  inbox: 2 ticket(s)
+    A-102 meera  open     Can I get a fee extension for a medical issue?
+    A-101 meera  open     Weekly 1:1 shared for review (Week of Sep 26)
+  → POST /advisor/reply  {"ticketId": "A-102", "text": "Approved, submit the medical certificate to the Academic Office by Friday."}
+  ← 200 in 0.0s
+  A-102 → answered
+  → GET /threads/meera/academic_coach
+  ← 200 in 0.0s
+  [PASS] assert advisor reply is in the student's academic_coach thread: msg_ad3c4f4af0 (7 messages in thread)
+  original escalation on msg_fe465c0490: {'ticketId': 'A-102', 'status': 'answered', 'reason': 'out_of_scope'}
+  ⏱ 0.0s  [PASS]
+
+── 13. Make it Relevant on the stuck section
+  no stuck section; using the section at the marker (120 s): h1 “Strategic Practice and Homework”
+  → POST /relevant  {"studentId": "meera", "interest": "badminton", "source": {"type": "handout_section", "lectureId": "lec_0e3f4a32b0", "sectionId": "h1"}}
+  ← 404 in 0.0s
+  FAILED: POST /relevant → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+   (aarav uses the transcript path too: the audio path failed for meera)
+
+── 14.1. reset aarav
+  → POST /demo/reset/aarav
+  ← 200 in 0.0s
+  cleared 1 lecture(s); deleted {'action': 8, 'block_slot': 2, 'calendar_item': 88, 'commitments': 1, 'coverage': 1, 'handout': 1, 'lecture': 1, 'message': 3, 'plan_block': 86, 'plan_meta': 1, 'trace': 1, 'transcript': 1}; plan cleared True; audio folders removed 1
+  ⏱ 0.0s  [PASS]
+
+── 14.3. create lecture (transcript, MATH F241, 2026-09-26)
+  → POST /lectures  {"studentId": "aarav", "courseCode": "MATH F241", "date": "2026-09-26"} + transcriptText=<cached STT transcript of Lecture.mp3 (no MATH F241 text file exists), 39576 chars>
+  ← 200 in 0.0s
+  lecture lec_1e8cf722a7: status uploaded, source transcript, MATH F241 2026-09-26
+  ⏱ 0.0s  [PASS]
+
+── 14.4. stuck marker at 120 s
+  → POST /lectures/lec_1e8cf722a7/markers  {"atSec": 120, "note": "lost here"}
+  ← 404 in 0.0s
+  FAILED: POST /lectures/lec_1e8cf722a7/markers → HTTP 404: {"error": "Not Found"}  (no such route on this server)
+  ⏱ 0.0s  [FAIL]
+
+── 14.5. process and poll
+  → POST /lectures/lec_1e8cf722a7/process
+  ← 200 in 0.0s
+  polling GET /lectures/lec_1e8cf722a7 every 2 s (cap 180 s)
+       0.0s  processing
+      82.5s  ready
+  ready in 82.5s; durationSec 2904.8
+  ⏱ 82.5s  [PASS]
+
+── 14.6. handout + cards
+  → GET /lectures/lec_1e8cf722a7/handout
+  ← 200 in 0.0s
+  → GET /lectures/lec_1e8cf722a7/cards
+  ← 200 in 0.0s
+  → GET /lectures/lec_1e8cf722a7/transcript
+  ← 200 in 0.0s
+  handout “MATH F241 lecture”: 20 sections; summary: Strategic practice builds skill by first grouping problems around particular topics, then combining them so learners must decide which ideas apply. Strong mathematical work makes reasoning visible, not merely the final answer. Effective pr…
+    h1   0:00–2:39   Strategic Practice and Homework                              → (no syllabus topic)
+    h2   2:39–5:28   Strategic Practice and Homework                              → (no syllabus topic)
+    h3   5:28–7:29   Strategic Practice and Homework                              → (no syllabus topic)
+    h4   7:29–9:20   Applications and History of Probability                      → (no syllabus topic)
+    h5   10:16–13:10 Applications and Historical Roots of Probability             → (no syllabus topic)
+    h6   13:10–16:00 Applications and History of Probability                      → (no syllabus topic)
+    h7   16:00–16:18 Probability, Statistics, and Uncertainty                     → (no syllabus topic)
+    h8   16:18–19:02 Sample Spaces, Events, and Naive Probability                 → (no syllabus topic)
+    h9   20:02–22:06 Sample Spaces and Events                                     → (no syllabus topic)
+    h10  22:06–25:11 Sample Spaces, Events, and Naive Probability                 → (no syllabus topic)
+    h11  25:11–28:04 Sample Space and Naive Probability                           → (no syllabus topic)
+    h12  28:04–29:59 Sample Space and Naive Probability                           → (no syllabus topic)
+    h13  29:59–32:57 The Multiplication Rule                                      → (no syllabus topic)
+    h14  32:57–35:54 Multiplication Rule                                          → (no syllabus topic)
+    h15  35:54–36:15 Multiplication Rule                                          → (no syllabus topic)
+    h16  36:15–39:20 Binomial Coefficients and Full House                         → (no syllabus topic)
+    h17  39:20–42:22 Binomial Coefficients and Full House                         → (no syllabus topic)
+    h18  42:22–43:14 Binomial Coefficients and Full House                         → (no syllabus topic)
+    h19  43:14–45:52 Sampling Table                                               → (no syllabus topic)
+    h20  45:52–47:47 Sampling and Counting Outcomes                               → (no syllabus topic)
+  stuck section: none — no section carries `stuck` (the section covering 120 s is h1 “Strategic Practice and Homework”)
+  coverage vs “”: covered 0 (none)
+  coverage.missed[].topic: []
+  coverage.emphasized[].quote (0):
+  coverage.confusion: field absent (markers not implemented)
+  commitments (7):
+    assignment         due no dueBy         The homework is due in a week.  [5:28] “So homework's due in a week”
+    reading            due no dueBy         Take a look at everything in the updated math review handout.  [5:45] “So you can download a new copy of the math review, and hopefully most of that material is review, but you should defini…”
+    reading            due no dueBy         Look at the handout about probability and sets.  [22:24] “we'll get into this more later, but you should also look at the handout later about probability and sets”
+    next_lecture_topic due Wed 30 Sep 10:00 Newton's material will probably be discussed in the next lecture.  [20:02] “we'll talk about some of Newton's stuff probably in the next lecture”
+    next_lecture_topic due Wed 30 Sep 10:00 The remaining sampling-table case will be proved next time.  [47:11] “We will prove this next time”
+    next_lecture_topic due Wed 30 Sep       A couple of loose ends will be covered on Wednesday.  [47:47] “There are a couple little things we'll get to on Wednesday”
+    assignment         due no dueBy         Start the homework already.  [48:08] “most of the homework you can do already, so you should start already”
+  actions (6):
+    prep     due Wed 30 Sep        20 min  Review recent lecture notes for loose ends
+    prep     due Wed 30 Sep 10:00  30 min  Preview Newton’s material for the next lecture
+    prep     due Wed 30 Sep 10:00  30 min  Review the remaining sampling-table case
+    resource due Wed 30 Sep 10:00  45 min  Review every section of the updated math handout
+    resource due Wed 30 Sep 10:00  30 min  Read the probability and sets handout
+    review   due Fri 16 Oct        60 min  Start the assigned homework before its deadline
+  → GET /threads/aarav/academic_coach
+  ← 200 in 0.0s
+  pipeline timings (trace on the 'handout ready' message):
+    class_companion.transcribe             0.0s  167 segments, 48.4 min (text fallback: ~40-word segments at sentence boundaries, synthetic timestamps)
+    class_companion.handout               73.7s  20 topic parts → vendored notes → 20 sections, every segment id verified; syllabus-mapped 0/20; exam hints 1 …
+    class_companion.coverage               0.0s  no handout section maps to the syllabus, so coverage was not computed  ERROR no handout section maps to the syllabus, so coverage was not computed
+    class_companion.commitments            3.1s  7 verified ({'assignment': 2, 'reading': 2, 'next_lecture_topic': 3}), 0 dropped (quote not verbatim)
+    class_companion.actions                5.0s  7 candidates from missed/emphasized/commitments/marks → 6 actions {'prep': 3, 'resource': 2, 'review': 1}; co…
+    class_companion.notify                 0.0s  message appended to academic_coach thread
+  ⏱ 0.0s  [PASS]
+
+── 14.7. accept first study + first prep
+  → POST /actions/act_f6dc75e721  {"status": "accepted"}
+  ← 200 in 0.0s
+  accepted prep “Review recent lecture notes for loose ends” (due Wed 30 Sep) → calendarItemId cal_be50c98a0b, planBlockId pb_de83aa2895
+  FAILED: no study action was proposed, so it can't be accepted (kinds proposed: ['prep', 'resource', 'review'])
+  ⏱ 0.0s  [FAIL]
+
+── 14.8. calendar, next 14 days
+  → GET /calendar/aarav?from=2026-09-26&to=2026-10-10
+  ← 200 in 0.0s
+  25 items: class 24, prep 1
+   Sat 26 Sep
+     18:00–18:20  prep        action        Review recent lecture notes for loose ends   ◀ accepted
+   Mon 28 Sep
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+   Tue 29 Sep
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Wed 30 Sep
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Thu 01 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Fri 02 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Mon 05 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     11:00–12:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+   Tue 06 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+   Wed 07 Oct
+     10:00–11:00  class       timetable     MATH F241 Probability and Statistics (C-301)
+     12:00–13:00  class       timetable     CS F351 Theory of Computation (A-202)
+     15:00–16:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Thu 08 Oct
+     09:00–10:00  class       timetable     CS F212 Database Systems (A-201)
+     14:00–15:00  class       timetable     HSS F235 Technology and Society (H-110)
+   Fri 09 Oct
+     09:00–10:00  class       timetable     CS F372 Operating Systems (B-105)
+     11:00–12:00  class       timetable     CS F303 Computer Networks (B-202)
+  [PASS] assert accepted prep cal_be50c98a0b is on the calendar: Sat 26 Sep 18:00
+  [PASS] assert accepted prep cal_be50c98a0b overlaps nothing
+  ⏱ 0.0s  [PASS]
+
+── 14.9. chat “What should I study this week?”
+  → POST /chat  {"studentId": "aarav", "agentId": "academic_coach", "text": "What should I study this week?"}
+  ← 200 in 29.2s
+  route: route → build_study_plan: The student asks what to study this week; no study plan exists yet.
+  agent reply (466 chars): This week, prioritize **Flow control** (150 min), **Random variables** (125 min), and **Conditional probability** (75 min), scheduled across the listed days after classes; the plan has 17 study blocks totaling 725 min, with at most 120 min a day. Flow control and the two probability topics are asse…
+  citations 8; cards ['study_plan', 'weak_topics']
+    trace academic_coach.route                  1.3s  route → build_study_plan: The student asks what to study this week; no study plan exists yet.
+    trace diagnose_performance                  0.0s  internal marks × last-3 end-sem past papers → 12 topics across 5 courses; top: Flow control 36, Ran…
+    trace build_study_plan.allocate            25.9s  10 closed-choice topics × 12 weeks (Week of Sep 21 → Week of Dec 7, capacity 6400 min); model alloc…
+    trace build_study_plan.place                0.0s  placed 95 blocks (3475 min; 28 in the next 3 weeks) after the last class of each day, none over a c…
+    trace academic_coach.compose                2.0s  reply written from 6 facts; 8/8 verified citations used
+    plan Week of Sep 21: 7 blocks, 220 min — Random variables, Deterministic finite automata, Technology adoption, A couple of loose ends will be covered on Wednesday., Flow control, Conditional probability, Relational model
+    plan Week of Sep 28: 12 blocks, 575 min — Flow control, Technology adoption, Random variables, Relational algebra, Conditional probability, Nondeterministic finite automata, Deterministic finite automata, Bayes theorem, Relational model, Institutions and incentives
+    plan Week of Oct 5: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Technology adoption, Deterministic finite automata, Bayes theorem, Relational algebra, Relational model, Institutions and incentives, Nondeterministic finite automata
+    plan Week of Oct 12: 4 blocks, 100 min — Flow control, Random variables, Deterministic finite automata, Relational algebra  [CS F212 Quiz 2 (Mon 12 Oct 2026); CS F351 Quiz 2 (Tue 13 Oct 2026); CS F372 Quiz 2 (Wed 14 Oct 2026); CS F303 Quiz 2 (Thu 15 Oct 2026); MATH F241 Quiz 2 (Fri 16 Oct 2026); HSS F235 Quiz 2 (Sat 17 Oct 2026)]
+    plan Week of Oct 19: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Relational algebra, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Institutions and incentives
+    plan Week of Oct 26: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Relational algebra, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Technology adoption
+    plan Week of Nov 2: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Relational algebra, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Institutions and incentives
+    plan Week of Nov 9: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Relational algebra, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Technology adoption
+    plan Week of Nov 16: 10 blocks, 350 min — Flow control, Random variables, Conditional probability, Relational algebra, Deterministic finite automata, Bayes theorem, Nondeterministic finite automata, Relational model, Institutions and incentives
+    plan Week of Nov 23: 8 blocks, 300 min — Flow control, Random variables, Conditional probability, Deterministic finite automata, Relational model, Technology adoption, Relational algebra
+    plan Week of Nov 30: 1 blocks, 50 min — Deterministic finite automata  [CS F212 End-sem (Mon 30 Nov 2026); CS F351 End-sem (Wed 2 Dec 2026); CS F372 End-sem (Fri 4 Dec 2026); CS F303 End-sem (Sun 6 Dec 2026)]
+    plan Week of Dec 7: 4 blocks, 150 min — Random variables, Conditional probability, Bayes theorem, Institutions and incentives  [MATH F241 End-sem (Tue 8 Dec 2026); HSS F235 End-sem (Thu 10 Dec 2026)]
+  ⏱ 29.2s  [PASS]
+
+── 14. meera vs aarav, same lecture
+  actions: meera 6 / aarav 6 (0 identical titles); by kind+topic only meera: ['prep The sampling-with-replacement and order-does-not-matter case will be proved next time.', 'resource Students should take a look at everything in the updated math review handout.', 'resource Students should look at the Probability and Sets handout later.', 'review Homework is due at the beginning of class in a week.']; only aarav: ['prep The remaining sampling-table case will be proved next time.', 'resource Take a look at everything in the updated math review handout.', 'resource Conditional probability', 'review The homework is due in a week.']; both: ['prep A couple of loose ends will be covered on Wednesday.', "prep Newton's material will probably be discussed in the next lecture."]
+  plan, top topics by minutes: meera CPU scheduling (CS F372) 650m, Normalization (CS F212) 625m, B+ trees (CS F212) 600m | aarav Flow control (CS F303) 675m, Random variables (MATH F241) 550m, Deterministic finite automata (CS F351) 500m
+
+══ Summary
+      1  PASS      0.0s  reset meera
+      2  PASS*    25.2s  simulate-week meera  — simulate-week refused (no plan blocks in the next 7 days); built the plan with POST /students/meera/plan, then retried
+      3  PASS      0.1s  create lecture (audio, MATH F241, 2026-09-26)
+      4  FAIL      0.0s  stuck marker at 120 s  — POST /lectures/lec_2e9b452ece/markers → HTTP 404: {"error": "Not Found"} (no such route on this server)
+      5  PASS*   263.1s  process and poll  — audio lecture lec_2e9b452ece not ready after 180 s (still processing); reran steps 3-5 on the transcript path (cached STT transcript of Lecture.mp3 (…
+      6  PASS      0.0s  handout + cards
+      7  FAIL      0.0s  accept first study + first prep  — no study action was proposed, so it can't be accepted (kinds proposed: ['prep', 'resource', 'review'])
+      8  PASS      0.0s  calendar, next 14 days
+      9  PASS     25.4s  chat “What should I study this week?”
+     10  PASS     48.5s  weekly 1:1 round trip
+     11  PASS      3.0s  chat “Can I get a fee extension for a medical issue?”
+     12  PASS      0.0s  advisor reply lands in the DM
+     13  FAIL      0.0s  Make it Relevant on the stuck section  — POST /relevant → HTTP 404: {"error": "Not Found"} (no such route on this server)
+   14.1  PASS      0.0s  reset aarav
+   14.3  PASS      0.0s  create lecture (transcript, MATH F241, 2026-09-26)
+   14.4  FAIL      0.0s  stuck marker at 120 s  — POST /lectures/lec_1e8cf722a7/markers → HTTP 404: {"error": "Not Found"} (no such route on this server)
+   14.5  PASS     82.5s  process and poll
+   14.6  PASS      0.0s  handout + cards
+   14.7  FAIL      0.0s  accept first study + first prep  — no study action was proposed, so it can't be accepted (kinds proposed: ['prep', 'resource', 'review'])
+   14.8  PASS      0.0s  calendar, next 14 days
+   14.9  PASS     29.2s  chat “What should I study this week?”
+  asserts: 7/7 passed
+  abandoned audio lecture lec_2e9b452ece (meera) is now ready
+    its pipeline: transcribe 138s, handout 53s, coverage 0s, commitments 5s, actions 4s, notify 0s; total 200s
+  exit 1
