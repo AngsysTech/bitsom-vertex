@@ -25,6 +25,6 @@ channel `cs-f212-dbms`, unless noted. Checked in the Browser pane on real data; 
 
 ## Mock mode
 
-`VITE_MOCK=true pnpm build` passes, and the built app loads with the Mock data badge (see the exit check below). Note:
+`VITE_MOCK=true pnpm build` passes (tsc + vite, 1.3 s). `vite preview` of that `dist/` loads with the **MOCK DATA** badge: Meera, all six class channels, the week plan in the right panel and the Weekly 1:1 dot, with **0** `/api` requests and no console errors. Note:
 `frontend/.env.local` (gitignored, set by the "Live video local storage" session) now defaults local dev servers to
 real mode, so pass `VITE_MOCK=true` or `?mock=1` to rehearse on mock data.
