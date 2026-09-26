@@ -1,9 +1,9 @@
 import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronsDownUp, ChevronsUpDown, Minus, Plus, Scan, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronsDownUp, ChevronsUpDown, Minus, Plus, Scan, Sparkles } from "@/components/LectureMindMapIcons";
 
 import { cn } from "@/lib/utils";
-import { nodeCounts, roleBadge } from "@/lib/mindMap";
-import { branchTones, layoutTree, visibleTree } from "@/lib/mindMapLayout";
+import { nodeCounts, roleBadge } from "./mindMap";
+import { branchTones, layoutTree, visibleTree } from "./mindMapLayout";
 import { createMindMapCanvas } from "./mindMapCanvas";
 import "./mindMap.css";
 

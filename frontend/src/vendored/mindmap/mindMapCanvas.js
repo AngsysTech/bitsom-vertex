@@ -4,7 +4,7 @@ import {
   cubicBezier,
   overviewTransform,
   revealTransform,
-} from "@/lib/mindMapLayout";
+} from "./mindMapLayout";
 
 /**
  * The mind map's motion: the pan/zoom viewport, and the animation that carries

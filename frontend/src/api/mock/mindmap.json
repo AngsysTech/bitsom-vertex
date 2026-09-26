@@ -1,0 +1,261 @@
+{
+  "mindmap": {
+    "lectureId": "lec_mock_cs_f212",
+    "courseCode": "CS F212",
+    "builtAt": "2026-09-26T09:00:00+00:00",
+    "nodes": [
+      {
+        "id": "root:lec_mock_cs_f212",
+        "kind": "root",
+        "label": "Database Transaction Management",
+        "flags": {},
+        "order": 0
+      },
+      {
+        "id": "sec:h1",
+        "kind": "section",
+        "label": "ACID Properties",
+        "parentId": "root:lec_mock_cs_f212",
+        "handoutSectionId": "h1",
+        "syllabusSectionId": "syllabus.cs-f212.3.2",
+        "segmentIds": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "flags": {},
+        "order": 0
+      },
+      {
+        "id": "pt:h1:0",
+        "kind": "point",
+        "label": "Treat multi-step changes as a unit so incomplete work cannot persist.",
+        "parentId": "sec:h1",
+        "handoutSectionId": "h1",
+        "flags": {},
+        "order": 0
+      },
+      {
+        "id": "pt:h1:1",
+        "kind": "point",
+        "label": "Preserve database validity across each correctly implemented transaction.",
+        "parentId": "sec:h1",
+        "handoutSectionId": "h1",
+        "flags": {},
+        "order": 1
+      },
+      {
+        "id": "pt:h1:2",
+        "kind": "point",
+        "label": "Use isolation to manage transactions that overlap in time.",
+        "parentId": "sec:h1",
+        "handoutSectionId": "h1",
+        "flags": {},
+        "order": 2
+      },
+      {
+        "id": "pt:h1:3",
+        "kind": "point",
+        "label": "Distinguish committed, acknowledged results from work not yet committed.",
+        "parentId": "sec:h1",
+        "handoutSectionId": "h1",
+        "flags": {},
+        "order": 3
+      },
+      {
+        "id": "pt:h1:4",
+        "kind": "point",
+        "label": "Consider concurrent invoice payments when evaluating why transaction guarantees matter.",
+        "parentId": "sec:h1",
+        "handoutSectionId": "h1",
+        "flags": {},
+        "order": 4
+      },
+      {
+        "id": "sec:h2",
+        "kind": "section",
+        "label": "Serializability and Precedence Graphs",
+        "parentId": "root:lec_mock_cs_f212",
+        "handoutSectionId": "h2",
+        "syllabusSectionId": "syllabus.cs-f212.3.3",
+        "segmentIds": [
+          "s4",
+          "s5",
+          "s6",
+          "s7",
+          "s8"
+        ],
+        "flags": {
+          "emphasized": {
+            "quote": "This part on serializability will definitely be on the end-sem, I'm telling you now",
+            "segmentId": "s7"
+          },
+          "reviewActionId": "act_e6210b8f94"
+        },
+        "order": 1
+      },
+      {
+        "id": "pt:h2:0",
+        "kind": "point",
+        "label": "Compare an interleaved schedule with possible serial orders rather than assuming isolation means only one transaction can run at a time.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 0
+      },
+      {
+        "id": "pt:h2:1",
+        "kind": "point",
+        "label": "Check that two operations access the same data item and that at least one is a write before treating them as conflicting.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 1
+      },
+      {
+        "id": "pt:h2:2",
+        "kind": "point",
+        "label": "Direct each precedence edge according to the order of the corresponding conflicting operations.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 2
+      },
+      {
+        "id": "pt:h2:3",
+        "kind": "point",
+        "label": "Reject conflict serializability when the precedence graph contains a cycle.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 3
+      },
+      {
+        "id": "pt:h2:4",
+        "kind": "point",
+        "label": "Use a topological order of an acyclic precedence graph to obtain an equivalent serial order.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 4
+      },
+      {
+        "id": "pt:h2:5",
+        "kind": "point",
+        "label": "Practise constructing the graph from a schedule to apply the test reliably.",
+        "parentId": "sec:h2",
+        "handoutSectionId": "h2",
+        "flags": {},
+        "order": 5
+      },
+      {
+        "id": "sec:h3",
+        "kind": "section",
+        "label": "Locking Basics",
+        "parentId": "root:lec_mock_cs_f212",
+        "handoutSectionId": "h3",
+        "syllabusSectionId": "syllabus.cs-f212.3.4",
+        "segmentIds": [
+          "s9",
+          "s10",
+          "s11",
+          "s12",
+          "s13"
+        ],
+        "flags": {
+          "stuck": {
+            "markerIds": [
+              "mk_mock_1"
+            ],
+            "atSec": [
+              158
+            ]
+          },
+          "reviewActionId": "act_mock_review_locking"
+        },
+        "order": 2
+      },
+      {
+        "id": "pt:h3:0",
+        "kind": "point",
+        "label": "Distinguish shared locks for compatible reads from exclusive locks that protect writes.",
+        "parentId": "sec:h3",
+        "handoutSectionId": "h3",
+        "flags": {},
+        "order": 0
+      },
+      {
+        "id": "pt:h3:1",
+        "kind": "point",
+        "label": "Use lock ownership and compatibility to understand why a transaction may proceed or wait.",
+        "parentId": "sec:h3",
+        "handoutSectionId": "h3",
+        "flags": {},
+        "order": 1
+      },
+      {
+        "id": "pt:h3:2",
+        "kind": "point",
+        "label": "Treat locks as mechanisms; assess correctness by examining the protocol that governs acquisition and release.",
+        "parentId": "sec:h3",
+        "handoutSectionId": "h3",
+        "flags": {},
+        "order": 2
+      },
+      {
+        "id": "pt:h3:3",
+        "kind": "point",
+        "label": "Connect an observed anomaly to the operations that were allowed to interleave and to a sensible order for those operations.",
+        "parentId": "sec:h3",
+        "handoutSectionId": "h3",
+        "flags": {},
+        "order": 3
+      },
+      {
+        "id": "pt:h3:4",
+        "kind": "point",
+        "label": "Trace conflicting operation pairs when reasoning about precedence-graph edges in a schedule.",
+        "parentId": "sec:h3",
+        "handoutSectionId": "h3",
+        "flags": {},
+        "order": 4
+      },
+      {
+        "id": "miss:syllabus.cs-f212.3.5",
+        "kind": "ghost_missed",
+        "label": "Two-phase locking",
+        "parentId": "root:lec_mock_cs_f212",
+        "syllabusSectionId": "syllabus.cs-f212.3.5",
+        "flags": {
+          "missed": {
+            "why": "The lecture introduced locking basics and said the locking story would be made more formal next session, but did not explain two-phase locking."
+          },
+          "reviewActionId": "act_63f96811af"
+        },
+        "order": 3
+      }
+    ],
+    "stats": {
+      "sections": 3,
+      "points": 16,
+      "stuck": 1,
+      "missed": 1,
+      "emphasized": 1
+    }
+  },
+  "segmentStarts": {
+    "s1": 0.0,
+    "s10": 151.6,
+    "s11": 171.6,
+    "s12": 190.4,
+    "s13": 208.0,
+    "s2": 16.4,
+    "s3": 32.4,
+    "s4": 52.4,
+    "s5": 72.4,
+    "s6": 87.2,
+    "s7": 103.6,
+    "s8": 119.2,
+    "s9": 130.8
+  }
+}
