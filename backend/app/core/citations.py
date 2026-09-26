@@ -19,8 +19,9 @@ MARKER = re.compile(r"\[C(\d+)\]")
 
 
 class CitationSet:
-    def __init__(self, agent_id: str):
+    def __init__(self, agent_id: str, allowed: set[str] | None = None):
         self.agent_id = agent_id
+        self.allowed = allowed          # narrower scope, e.g. a class channel's sections
         self.items: list[Citation] = []
         self.dropped: list[str] = []
 
@@ -30,7 +31,7 @@ class CitationSet:
             self.dropped.append(f"{section_id}: no such section")
             return None
         doc, sec = found
-        if not scope.allows(self.agent_id, section_id):
+        if not scope.allows(self.agent_id, section_id) or (self.allowed is not None and section_id not in self.allowed):
             self.dropped.append(f"{section_id}: outside {self.agent_id} scope")
             return None
         exact = find_verbatim(quote, sec.text, min_words=min_words)

@@ -22,6 +22,8 @@ Checks (from the build brief):
  5. /chat "What should I study this week?" → build_study_plan, >= 2 verified citations, a study_plan card
  6. /chat "Can I get a fee extension for a medical issue?" → escalate, ticket created, no policy claims
  7. /chat "When is the DBMS end-sem?" → answer_from_docs, cites exam_calendar, the right date
+ 8. /chat with courseCode CS F212 → the class thread, only CS F212 blocks and citations; another course's
+    question → "ask me in my DM"
 """
 from __future__ import annotations
 
@@ -485,6 +487,29 @@ def check_chat(client: httpx.Client) -> None:
           any(norm(f) in norm(m["text"]) for f in forms), m["text"][:200])
 
 
+def check_class_chat(client: httpx.Client) -> None:
+    print("\n== 8. /chat in a class channel (courseCode = CS F212)", flush=True)
+    r = client.post("/chat", json={"studentId": STUDENT, "agentId": "academic_coach", "courseCode": "CS F212",
+                                   "text": "What should I study this week?"}, timeout=240)
+    if not check("8a class chat answers", r.status_code == 200, f"{r.status_code} {r.text[:160]}"):
+        return
+    m = r.json()[-1]
+    plan = next((c for c in m["cards"] if c["type"] == "study_plan"), None)
+    courses = {b["course"] for w in (plan or {}).get("weeks", []) for b in w["blocks"]}
+    outside = [c["sectionId"] for c in m["citations"] if not re.match(r"^(syllabus|past_papers|exam_calendar|catalog)"
+                                                                      r"\.cs-f212(\.|$)", c["sectionId"])]
+    check("8b thread is <sid>:class:<courseCode>, route build_study_plan", m["threadId"] == f"{STUDENT}:class:CS F212"
+          and (routed(m) or "").startswith("build_study_plan"), f"thread={m['threadId']} route={routed(m)}")
+    check("8c plan card and every citation stay inside CS F212", courses == {"CS F212"} and m["citations"]
+          and not outside, f"plan courses={sorted(courses)}; {len(m['citations'])} citations; outside={outside}")
+    r = client.post("/chat", json={"studentId": STUDENT, "agentId": "academic_coach", "courseCode": "CS F212",
+                                   "text": "When is the Operating Systems end-sem?"}, timeout=120)
+    m = r.json()[-1]
+    check("8d another course's question → 'ask me in my DM', nothing cited",
+          (routed(m) or "") == "redirect_to_dm" and "DM" in m["text"] and not m["citations"],
+          f"route={routed(m)}; {m['text'][:120]}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url")
@@ -502,6 +527,7 @@ def main() -> int:
         check_calendar(client, server, study, use_companion=not args.no_companion)
         check_one_on_one(client)
         check_chat(client)
+        check_class_chat(client)
     finally:
         server.stop()
     failed = [n for n, ok, _ in results if not ok]

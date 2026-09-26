@@ -28,12 +28,14 @@ from pydantic import BaseModel, Field
 
 from app import escalation
 from app.core import llm, scope
+from app.core.academics import canonical_course_code, course_title
 from app.core.citations import CitationSet, check_markers, used
 from app.core.config import PROMPTS_DIR
 from app.core.models import Citation, Message, ToolTrace
-from app.core.records import load_records, load_student
+from app.core.records import load_records, load_student, registered_courses
 from app.core.state import get_state
-from app.core.threads import append_message, get_thread, thread_id
+from app.core.syllabus import course_slug
+from app.core.threads import append_message, class_thread_id, get_class_thread, get_thread, thread_id
 from app.core.verify import normalize_ws
 from app.tools import diagnose as dx
 from app.tools import lookback
@@ -60,6 +62,12 @@ class _Route(BaseModel):
     rebuild: bool = False
     escalationReason: Optional[Literal["out_of_scope", "needs_human"]] = None
     summaryForAdvisor: Optional[str] = None
+
+
+class _ClassRoute(BaseModel):
+    tool: Literal["diagnose_performance", "build_study_plan", "answer_from_docs", "redirect_to_dm"]
+    reason: str = ""
+    rebuild: bool = False
 
 
 class _Evidence(BaseModel):
@@ -114,6 +122,14 @@ def _scope_full() -> str:
     return "\n\n".join(parts)
 
 
+def _class_scope_full(course: str) -> str:
+    parts = []
+    for d, secs in scope.class_sections(course):
+        parts.append(f"=== DOCUMENT {d.id}: {d.title} ({d.kind}) ===")
+        parts += [f"[{s.id}] {s.heading}\n{s.text}" for s in secs]
+    return "\n\n".join(parts)
+
+
 def _state_summary(student_id: str) -> str:
     state = get_state(student_id)
     weak = (state.get("weakTopics") or {}).get("items") or []
@@ -161,13 +177,17 @@ def _grounded_point(point: str, quote: str, question: str) -> bool:
     return all(n in allowed for n in NUM.findall(point))
 
 
-def _answer_from_docs(student_id: str, student: dict[str, Any], question: str, history: str) -> ToolResult:
+def _answer_from_docs(student_id: str, student: dict[str, Any], question: str, history: str,
+                      course: str | None = None) -> ToolResult:
+    """``course``: a class channel. Its scope is that course's documents only, and when they don't answer,
+    the student is sent to the DM (which can escalate) instead of opening a ticket from the channel."""
+    docs = _class_scope_full(course) if course else _scope_full()
     with Stopwatch() as sw:
-        out = llm.json(f"{_scope_full()}\n\n=== STUDENT ===\n{student.get('name')}, semester "
+        out = llm.json(f"{docs}\n\n=== STUDENT ===\n{student.get('name')}, semester "
                        f"{student.get('semester')}, {student.get('program')}\n\n=== RECENT THREAD ===\n{history}\n\n"
                        f"=== QUESTION ===\n{question}", _Answer, system=_prompt("academic_coach_answer"),
                        max_tokens=6000)
-    cites = CitationSet(AGENT_ID)
+    cites = CitationSet(AGENT_ID, allowed=scope.class_section_ids(course) if course else None)
     facts = []
     for ev in out.evidence[:5]:
         c = cites.add(ev.sectionId.strip(), ev.quote, min_words=4)
@@ -178,12 +198,16 @@ def _answer_from_docs(student_id: str, student: dict[str, Any], question: str, h
             facts.append(f"{point} (source: “{c.quote}”) [{c.id}]")
         else:
             facts.append(f"{c.docTitle} › {c.sectionHeading}: “{c.quote}” [{c.id}]")
-    summary = (f"{out.status}: read {len(scope.doc_ids(AGENT_ID))} scoped documents; {len(cites.items)}/"
+    read = f"{course}'s documents" if course else f"{len(scope.doc_ids(AGENT_ID))} scoped documents"
+    summary = (f"{out.status}: read {read}; {len(cites.items)}/"
                f"{len(out.evidence[:5])} evidence quotes verified verbatim")
     if cites.dropped:
         summary += f"; dropped: {'; '.join(cites.dropped[:3])}"
     result = ToolResult(citations=cites.items, facts=facts, trace=[trace("answer_from_docs", summary, sw.ms)])
     if out.status == "answered" and cites.items:
+        return result
+    if course:  # a class channel never opens tickets; the DM coach can
+        result.data["redirect"] = True
         return result
     # the documents ran out, or they say a person decides: open a pre-cited ticket
     if out.status == "answered":
@@ -246,12 +270,14 @@ def _strip_markers(text: str) -> str:
     return re.sub(r"\[C\d+\]", "", text)
 
 
-def _compose(student: dict[str, Any], question: str, tool: str, result: ToolResult) -> tuple[str, ToolTrace]:
+def _compose(student: dict[str, Any], question: str, tool: str, result: ToolResult,
+             channel: str | None = None) -> tuple[str, ToolTrace]:
     first = (student.get("name") or "").split(" ")[0]
     facts = "\n".join(f"- {f}" for f in result.facts) or "- (none)"
     cites = CitationSet(AGENT_ID)
     cites.items = result.citations
-    base = (f"STUDENT: {student.get('name')} (first name {first})\nQUESTION: {question}\nTOOL: {tool}\n"
+    where = f"CHANNEL: class channel for {channel}; talk about this course only\n" if channel else ""
+    base = (f"{where}STUDENT: {student.get('name')} (first name {first})\nQUESTION: {question}\nTOOL: {tool}\n"
             f"FACTS:\n{facts}\nCITATIONS:\n{cites.listing()}")
     allowed = set(NUM.findall(base))
     prompt, text, bad, removed = base, "", [], []
@@ -288,8 +314,8 @@ def _compose(student: dict[str, Any], question: str, tool: str, result: ToolResu
 # ---------------------------------------------------------------------------------
 
 def _message(student_id: str, role: str, text: str, result: ToolResult | None, traces: list[ToolTrace],
-             esc: dict[str, Any] | None = None) -> Message:
-    msg = Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=thread_id(student_id, AGENT_ID), role=role,
+             esc: dict[str, Any] | None = None, thread: str | None = None) -> Message:
+    msg = Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=thread or thread_id(student_id, AGENT_ID), role=role,
                   agentId=AGENT_ID, createdAt=_utcnow(), text=text,
                   citations=result.citations if result else [], cards=result.all_cards() if result else [],
                   trace=traces, escalation=esc)
@@ -299,13 +325,15 @@ def _message(student_id: str, role: str, text: str, result: ToolResult | None, t
     return msg
 
 
-def handle(student_id: str, text: str) -> list[dict[str, Any]]:
+def handle(student_id: str, text: str, course_code: str | None = None) -> list[dict[str, Any]]:
     student = load_student(student_id)
     if student is None:
         raise LookupError(f"student {student_id} not found")
     question = (text or "").strip()
     if not question:
         raise ValueError("text is empty")
+    if course_code:
+        return _handle_class(student_id, student, question, canonical_course_code(course_code))
     history = _thread_tail(student_id)
     append_message(student_id, Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=thread_id(student_id, AGENT_ID),
                                        role="student", createdAt=_utcnow(), text=question))
@@ -353,3 +381,79 @@ def handle(student_id: str, text: str) -> list[dict[str, Any]]:
                                                "sources are attached.", result, traces,
                          result.data.get("escalation")).dump()]
     return [_message(student_id, "agent", reply, result, traces, result.data.get("escalation")).dump()]
+
+
+# ---------------------------------------------------------------------------------
+# class channel (contracts v3.5): the coach scoped to one course
+# ---------------------------------------------------------------------------------
+
+def _redirect_text(course: str) -> str:
+    title = course_title(course) or ""
+    return (f"That's outside {course} {title}".rstrip() + ", so ask me in my DM (Academic Coach). There I can "
+            "see all your courses, the handbook and circulars, and pass it to an advisor if it needs one.")
+
+
+def _handle_class(student_id: str, student: dict[str, Any], question: str, course: str) -> list[dict[str, Any]]:
+    if course_slug(course) not in (registered_courses(student_id) or set()):
+        raise ValueError(f"{student_id} is not registered in {course}")
+    tid = class_thread_id(student_id, course)
+    msgs = get_class_thread(student_id, course)["messages"][-6:]
+    history = "\n".join(f"{m['role']}: {normalize_ws(m['text'])[:300]}" for m in msgs) or "(new conversation)"
+    append_message(student_id, Message(id=f"msg_{uuid.uuid4().hex[:10]}", threadId=tid, role="student",
+                                       createdAt=_utcnow(), text=question))
+    label = f"{course} {course_title(course) or ''}".strip()
+    traces: list[ToolTrace] = []
+    with Stopwatch() as sw:
+        weak = [w for w in (get_state(student_id).get("weakTopics") or {}).get("items", []) if w["course"] == course]
+        toc = "; ".join(f"{d.title}: {len(secs)} section(s)" for d, secs in scope.class_sections(course))
+        context = (f"CLASS CHANNEL: {label}\nSCOPE: {toc}\n"
+                   f"STUDENT: {student.get('name')}; weak topics in this course: "
+                   f"{', '.join(w['topic'] for w in weak[:3]) or 'none computed'}\n\n"
+                   f"RECENT THREAD:\n{history}\n\nLATEST MESSAGE:\n{question}")
+        try:
+            route = llm.json(context, _ClassRoute, system=_prompt("academic_coach_class_route"), max_tokens=3000)
+            error = None
+        except llm.LLMError as exc:
+            route, error = None, str(exc)
+    if route is None:
+        traces.append(trace(f"{AGENT_ID}.route", "model call failed", sw.ms, error=error))
+        return [_message(student_id, "system", f"The coach couldn't process this message ({error}).", None, traces,
+                         thread=tid).dump()]
+    traces.append(trace(f"{AGENT_ID}.route", f"route → {route.tool} (class {course}): {normalize_ws(route.reason)[:200]}",
+                        sw.ms))
+    if route.tool == "redirect_to_dm":
+        return [_message(student_id, "agent", _redirect_text(course), None, traces, thread=tid).dump()]
+    try:
+        if route.tool == "diagnose_performance":
+            result = dx.diagnose(student_id, course=course)
+        elif route.tool == "build_study_plan":
+            ok, _ = planner.fresh(student_id)
+            built = planner.build_plan(student_id) if route.rebuild or not ok else None
+            if built is not None and (built.error or not built.card):
+                traces += built.trace
+                return [_message(student_id, "system", f"I couldn't build your study plan: {built.error}.", None,
+                                 traces, thread=tid).dump()]
+            result = planner.current(student_id, course=course)
+            if built is not None:
+                result.trace = built.trace + [trace(planner.TOOL, f"showing the {course} blocks of the new plan", 0)]
+        else:
+            result = _answer_from_docs(student_id, student, question, history, course=course)
+    except Exception as exc:  # reported, never papered over
+        log.exception("academic_coach class tool %s failed", route.tool)
+        traces.append(trace(route.tool, "tool failed", 0, error=f"{type(exc).__name__}: {str(exc)[:300]}"))
+        return [_message(student_id, "system", f"The {route.tool.replace('_', ' ')} step failed.", None, traces,
+                         thread=tid).dump()]
+    traces += result.trace
+    if result.data.get("redirect"):
+        return [_message(student_id, "agent", _redirect_text(course), None, traces, thread=tid).dump()]
+    try:
+        reply, compose_trace = _compose(student, question, route.tool, result, channel=label)
+    except llm.LLMError as exc:
+        traces.append(trace(f"{AGENT_ID}.compose", "model call failed", 0, error=str(exc)))
+        return [_message(student_id, "system", "The coach finished its tools but couldn't write a reply; the cards "
+                                               "and sources are attached.", result, traces, thread=tid).dump()]
+    traces.append(compose_trace)
+    if not reply:
+        return [_message(student_id, "system", "The coach's reply failed its grounding checks; the cards and "
+                                               "sources are attached.", result, traces, thread=tid).dump()]
+    return [_message(student_id, "agent", reply, result, traces, thread=tid).dump()]

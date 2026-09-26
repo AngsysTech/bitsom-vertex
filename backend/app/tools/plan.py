@@ -677,15 +677,29 @@ def fresh(student_id: str) -> tuple[bool, str]:
     return True, f"plan built {built:%a %d %b %H:%M}; weak topics and accepted actions unchanged since"
 
 
-def current(student_id: str) -> ToolResult:
-    """The existing plan as a ToolResult (no model call)."""
+def course_card(card: dict[str, Any] | None, course: str) -> dict[str, Any]:
+    """The plan narrowed to one course (a class channel's view); weeks without its blocks are dropped."""
+    weeks = []
+    for w in (card or {}).get("weeks", []):
+        blocks = [b for b in w.get("blocks", []) if same_course(b.get("course"), course)]
+        if blocks:
+            week = {"label": w["label"], "blocks": blocks}
+            note = "; ".join(p for p in (w.get("examNote") or "").split("; ") if same_course(p[:len(course)], course))
+            if note:
+                week["examNote"] = note
+            weeks.append(week)
+    return {"type": "study_plan", "weeks": weeks}
+
+
+def current(student_id: str, course: str | None = None) -> ToolResult:
+    """The existing plan as a ToolResult (no model call). ``course`` narrows it to one class."""
     with Stopwatch() as sw:
         state = get_state(student_id)
         now = clock.now(student_id)
-        blocks = upcoming(student_id, days=7)
+        blocks = [b for b in upcoming(student_id, days=7) if course is None or same_course(b["course"], course)]
         meta = db.get("plan_meta", student_id) or {}
         stats = {(course_slug(x["course"]), x["topic"]): x for x in meta.get("impacts", [])}
-    result = ToolResult(card=state.get("plan"))
+    result = ToolResult(card=course_card(state.get("plan"), course) if course else state.get("plan"))
     ok, why = fresh(student_id)
     result.trace.append(trace(TOOL, f"reused current plan: {why}", sw.ms))
     cites = CitationSet(AGENT_ID)

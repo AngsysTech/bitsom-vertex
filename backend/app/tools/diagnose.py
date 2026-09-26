@@ -156,7 +156,8 @@ def card_from(stats: list[TopicStat]) -> dict:
     return {"type": "weak_topics", "items": [s.dump() for s in stats]}
 
 
-def diagnose(student_id: str, *, persist: bool = True, cite_top: int = 3) -> ToolResult:
+def diagnose(student_id: str, *, persist: bool = True, cite_top: int = 3, course: str | None = None) -> ToolResult:
+    """``course`` narrows what is returned (a class channel); the full list is still written to state."""
     if load_student(student_id) is None:
         raise LookupError(f"student {student_id} not found")
     with Stopwatch() as sw:
@@ -167,6 +168,9 @@ def diagnose(student_id: str, *, persist: bool = True, cite_top: int = 3) -> Too
             state = get_state(student_id)
             state["weakTopics"] = card
             save_state(state)
+        if course:
+            stats = [s for s in stats if same_course(s.course, course)]
+            card = card_from(stats)
     heavy = heaviest_topic()
     top = ", ".join(f"{s.topic} {s.impact}" for s in stats[:3]) or "none"
     summary = (f"internal marks × last-3 end-sem past papers → {len(stats)} topics across "

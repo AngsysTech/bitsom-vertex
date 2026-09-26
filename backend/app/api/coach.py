@@ -54,7 +54,8 @@ async def chat(request: Request) -> list[dict[str, Any]]:
     if agent_id != academic_coach.AGENT_ID:
         raise HTTPException(400, f"agent '{agent_id}' is not available yet; only academic_coach is live")
     with _errors():
-        return academic_coach.handle(str(body.get("studentId") or ""), str(body.get("text") or ""))
+        return academic_coach.handle(str(body.get("studentId") or ""), str(body.get("text") or ""),
+                                     str(body.get("courseCode") or "") or None)
 
 
 # ---- coach tools, callable directly (contracts v3.8: return the bare card) ---------------
