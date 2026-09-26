@@ -42,8 +42,20 @@ Prompts are in `app/prompts/class_companion.md`.
 ### Endpoints
 
 `POST /lectures` · `POST /lectures/:id/process` · `GET /lectures/:id` · `GET /lectures/:id/transcript` ·
-`GET /lectures/:id/handout` · `GET /lectures/:id/cards` · `GET /lectures/:id/audio` · `POST /actions/:id` ·
-`GET /students/:id/lectures` · `GET /calendar/:studentId?from&to` · `GET /threads/:studentId/:agentId`
+`GET /lectures/:id/handout` · `GET /lectures/:id/cards` · `GET /lectures/:id/audio` ·
+`POST|GET /lectures/:id/markers` · `POST /actions/:id` · `GET /students/:id/lectures` ·
+`GET /calendar/:studentId?from&to&courseCode` · `GET /threads/:studentId/:agentId` ·
+`GET /threads/:studentId/class/:courseCode`
+
+The lecture-ready message, failures and stuck-marker notes land in the class thread
+`<studentId>:class:<courseCode>` (see `core/threads.py`).
+
+Stuck markers (`{atSec, note?}`) are accepted at any status. Code resolves each one to
+the segment covering `atSec`, then the section holding that segment (or the nearest
+section), then that section's topic. A new pipeline step turns them into
+`HandoutSection.stuck`, `CoverageCard.confusion` and a review action with
+`provenance.markerId`. A marker added after "ready" is applied at once: the cards
+recompute and a short note goes to the class thread. No model call is involved.
 
 ### Definition-of-done smoke test
 
