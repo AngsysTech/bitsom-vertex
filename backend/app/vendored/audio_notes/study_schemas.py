@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from core.schemas import SourceRef
+from app.vendored.audio_notes.schemas import SourceRef
 
 
 def utcnow() -> datetime:

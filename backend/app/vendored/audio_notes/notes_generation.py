@@ -8,9 +8,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
-from core.config import get_settings
-from core.llm_client import call_llm
-from core.study_schemas import (
+from app.tools.companion_bridge import get_settings
+from app.tools.companion_bridge import call_llm
+from app.vendored.audio_notes.study_schemas import (
     EvidenceChunk,
     NoteCode,
     NoteConceptNode,
@@ -28,7 +28,7 @@ from core.study_schemas import (
     StudyConcept,
     TopicRef,
 )
-from study.utils import clean_study_text, split_sentences, stable_hash, unique_preserve_order
+from app.vendored.audio_notes.utils import clean_study_text, split_sentences, stable_hash, unique_preserve_order
 
 logger = logging.getLogger(__name__)
 
