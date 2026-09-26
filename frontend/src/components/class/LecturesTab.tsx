@@ -21,17 +21,20 @@ const PILL: Record<Lecture['status'], string> = {
 
 function LectureRow({ l }: { l: Lecture }) {
   const flags = useWS((s) => s.markers[l.id]?.length ?? s.handouts[l.id]?.value?.sections.reduce((n, x) => n + (x.stuck?.markerIds.length ?? 0), 0))
+  const subject = useWS((s) => s.classes.find((c) => c.courseCode === l.courseCode)?.title)
   const busy = l.status !== 'ready' && l.status !== 'failed'
+  // Uploads and recordings arrive untitled: name them by subject and class date, and drop the date from the meta line.
+  const title = l.title ?? `${subject ?? l.courseCode} · ${fmtDayShort(l.date)}`
+  const meta = [l.title && fmtDayShort(l.date), l.durationSec && mmss(l.durationSec), l.source].filter(Boolean).join(' · ')
   return (
     <div className="flex items-center gap-3 rounded-lg border border-line px-4 py-3 hover:bg-soft">
       <span className="flex size-10 flex-none items-center justify-center rounded-lg bg-ink text-cyan">
         <Icon name={l.source === 'transcript' ? 'description' : l.source === 'upload' ? 'upload_file' : 'mic'} size={20} />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <b className="truncate text-[15px]">{l.title ?? (busy ? 'Processing…' : 'Untitled lecture')}</b>
+        <b className="truncate text-[15px]">{title}</b>
         <span className="flex flex-wrap items-center gap-1.5 text-xs text-ink-5">
-          {fmtDayShort(l.date)}
-          {l.durationSec ? ` · ${mmss(l.durationSec)}` : ''} · {l.source}
+          {meta}
           <span className={cn('flex items-center gap-1 rounded-full border px-2 py-px text-[11px] font-bold text-ink', PILL[l.status])}>
             {busy && <Spinner size={9} />}
             {LECTURE_STATUS_LABEL[l.status]}

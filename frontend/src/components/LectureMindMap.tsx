@@ -20,7 +20,7 @@ import { Icon } from '@/components/Icon'
 import { MakeRelevantButton, RelevantSlot } from '@/components/relevant/MakeRelevant'
 import { navigate } from '@/lib/route'
 import { cn } from '@/lib/utils'
-import { relevantKey, useWS } from '@/store/workspace'
+import { isLectureGone, relevantKey, useWS } from '@/store/workspace'
 import type { RelevantCard } from '@/types'
 // @ts-expect-error vendored JS (prior code, jury-approved) ships without type declarations
 import MindMapGraphJs from '@/vendored/mindmap/MindMapGraph.jsx'
@@ -185,7 +185,12 @@ export function LectureMindMap({
     setMir(null)
     getMindMap(lectureId).then(
       (m) => live && setMap(m),
-      (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => {
+        if (!live) return
+        const msg = e instanceof Error ? e.message : String(e)
+        setError(msg)
+        useWS.getState().lectureGone(lectureId, msg)
+      },
     )
     return () => {
       live = false
@@ -307,10 +312,13 @@ export function LectureMindMap({
   // ---- render ----
   if (error && !map) {
     const notReady = /not ready|404/i.test(error)
+    const gone = isLectureGone(error)
     return (
       <div className={cn('flex items-center gap-2 px-5 py-4 text-[13px] text-ink-5', className)}>
         <Icon name={notReady ? 'hourglass_top' : 'error'} size={16} className={notReady ? 'text-ink-4' : 'text-bad'} />
-        {notReady ? (
+        {gone ? (
+          <span>This lecture no longer exists: a demo reset removed it.</span>
+        ) : notReady ? (
           <span>The mind map appears once the handout is ready.</span>
         ) : (
           <>

@@ -9,7 +9,7 @@ import { classPath, navigate } from '@/lib/route'
 import { fmtDayShort, mmss } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { addLateMarker } from '@/store/companion'
-import { useWS } from '@/store/workspace'
+import { isLectureGone, useWS } from '@/store/workspace'
 import type { Handout, HandoutSection, Lecture, TranscriptSegment } from '@/types'
 
 const audioSrc = (url: string) => (/^(blob:|https?:)/.test(url) ? url : `${API_URL}${url}`)
@@ -247,7 +247,11 @@ export function HandoutView({ courseCode, lectureId, focus }: { courseCode: stri
           <Icon name="arrow_back" size={15} /> All lectures
         </button>
         {!h ? (
-          handout?.status === 'error' ? (
+          handout?.status === 'error' && isLectureGone(handout.error) ? (
+            <span className="flex items-center gap-2 text-sm text-ink-5">
+              <Icon name="error" size={16} className="text-bad" /> This lecture no longer exists: a demo reset removed it.
+            </span>
+          ) : handout?.status === 'error' ? (
             <span className="flex items-center gap-2 text-sm text-ink-5">
               <Icon name="error" size={16} className="text-bad" /> Couldn’t load the handout: {handout.error} —
               <button type="button" onClick={() => void loadHandout(lectureId)} className="cursor-pointer font-bold text-link">

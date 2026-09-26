@@ -221,6 +221,8 @@ interface Actions {
   loadLectures(): Promise<void>
   loadCards(lectureId: string, quiet?: boolean): Promise<void>
   loadHandout(lectureId: string, quiet?: boolean): Promise<void>
+  /** For a 404 seen outside the store (the mind map): resyncs once if the lecture is gone. */
+  lectureGone(lectureId: string, error: string): boolean
   loadTranscript(lectureId: string): Promise<void>
   loadMarkers(lectureId: string): Promise<void>
   setActionStatus(action: ActionItem, status: ActionItem['status']): Promise<void>
@@ -246,6 +248,11 @@ const emptyThread = (status: ThreadView['status']): ThreadView => ({ status, mes
 let generation = 0
 export const currentGeneration = () => generation
 
+/** The backend no longer has this lecture: POST /demo/reset removed it while this tab was open. */
+export const isLectureGone = (error?: string | null) => !!error && /\blecture \S+ not found\b/i.test(error)
+/** Lectures already resynced for, so a gone lecture reloads the student once, never in a loop. */
+const goneLectures = new Set<string>()
+
 /** Relevant cards are keyed by what they came from, so each section / block / topic shows its own. */
 export const relevantKey = (src: NonNullable<RelevantCard['source']>) =>
   src.type === 'handout_section' ? `hs:${src.lectureId}:${src.sectionId}` : src.type === 'plan_block' ? `pb:${src.planBlockId}` : `wt:${src.course}:${src.topic}`
@@ -257,6 +264,16 @@ const cardsFrom = (m: Message) => {
 }
 
 export const useWS = create<Store>()((set, get) => {
+  /** A 404 for a lecture this tab still lists: leave its handout for the lecture list and reload the
+   *  student (threads, cards, classes), as a page reload would. True when the error was handled. */
+  const lectureGone = (lectureId: string, error: string) => {
+    if (!isLectureGone(error) || goneLectures.has(lectureId)) return false
+    goneLectures.add(lectureId)
+    const { route, studentId } = get()
+    if (route.view === 'class' && route.lecture === lectureId) navigate(`/class/${route.id}/lectures`)
+    if (studentId) void get().selectStudent(studentId)
+    return true
+  }
   const patchThread = (key: ThreadKey, fn: (t: ThreadView) => Partial<ThreadView>) =>
     set((s) => {
       const t = s.threads[key] ?? emptyThread('loading')
@@ -307,6 +324,7 @@ export const useWS = create<Store>()((set, get) => {
     })
 
   return {
+    lectureGone,
     route: parseHash(window.location.hash),
     boot: { status: 'loading' },
     students: [],
@@ -640,7 +658,8 @@ export const useWS = create<Store>()((set, get) => {
         const value = await api.getLectureCards(lectureId)
         if (gen === generation) set((s) => ({ cards: { ...s.cards, [lectureId]: { status: 'ready', value } } }))
       } catch (e) {
-        if (gen === generation) set((s) => ({ cards: { ...s.cards, [lectureId]: { status: 'error', error: errText(e), value: s.cards[lectureId]?.value } } }))
+        if (gen !== generation || lectureGone(lectureId, errText(e))) return
+        set((s) => ({ cards: { ...s.cards, [lectureId]: { status: 'error', error: errText(e), value: s.cards[lectureId]?.value } } }))
       }
     },
 
@@ -651,7 +670,8 @@ export const useWS = create<Store>()((set, get) => {
         const value = await api.getHandout(lectureId)
         if (gen === generation) set((s) => ({ handouts: { ...s.handouts, [lectureId]: { status: 'ready', value } } }))
       } catch (e) {
-        if (gen === generation) set((s) => ({ handouts: { ...s.handouts, [lectureId]: { status: 'error', error: errText(e), value: s.handouts[lectureId]?.value } } }))
+        if (gen !== generation || lectureGone(lectureId, errText(e))) return
+        set((s) => ({ handouts: { ...s.handouts, [lectureId]: { status: 'error', error: errText(e), value: s.handouts[lectureId]?.value } } }))
       }
     },
 
