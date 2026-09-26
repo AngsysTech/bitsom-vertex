@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,400,0..1,0&amp;display=swap" rel="stylesheet">
+<script src="mock-data.js"></script>
+<style>
+html,body{margin:0;height:100%;background:#0F172A;font-family:Lato,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#0891B2;text-decoration:none}a:hover{text-decoration:underline}
+button,input,textarea{font-family:inherit}
+@keyframes dcdot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+</style>
+</helmet>
+
+<sc-if value="{{ notReady }}">
+  <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0F172A;color:#94A3B8;font-size:13px">Loading workspace…</div>
+</sc-if>
+
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ true }}">
+<div onMouseOver="{{ onOver }}" onClick="{{ onRootClick }}" style="height:100vh;display:flex;flex-direction:column;background:#0F172A;color:#0F172A;overflow:hidden;min-width:1180px;font-family:Lato,system-ui,sans-serif">
+
+  <!-- Top bar -->
+  <div style="height:40px;flex:none;background:#1E293B;display:grid;grid-template-columns:324px minmax(0,1fr) 324px;align-items:center;gap:12px;padding:0 12px">
+    <div style="display:flex;justify-content:flex-end;gap:2px;color:#CBD5E1">
+      <span data-tip="Coming soon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:default" style-hover="background:rgba(255,255,255,.08)"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">arrow_back</span></span>
+      <span data-tip="Coming soon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:default;opacity:.5"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">arrow_forward</span></span>
+      <span data-tip="Coming soon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:default" style-hover="background:rgba(255,255,255,.08)"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">schedule</span></span>
+    </div>
+    <div data-tip="Coming soon" style="justify-self:center;width:100%;max-width:640px;height:26px;border-radius:6px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;gap:8px;padding:0 10px;color:#CBD5E1;font-size:13px;cursor:not-allowed">
+      <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">search</span>
+      <span>Search handbook, courses, clubs…</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+      <span style="font-size:12px;color:#94A3B8">View as</span>
+      <div style="display:flex;background:rgba(255,255,255,.06);border-radius:6px;padding:2px;gap:2px">
+        <button onClick="{{ viewStudent }}" style="height:22px;padding:0 10px;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;background:{{ vaStudent.bg }};color:{{ vaStudent.color }}">Student</button>
+        <button onClick="{{ viewAdvisor }}" style="height:22px;padding:0 10px;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;background:{{ vaAdvisor.bg }};color:{{ vaAdvisor.color }}">Advisor</button>
+      </div>
+      <button onClick="{{ toggleSwitcher }}" data-tip="Switch student  ⌘K" style="position:relative;width:28px;height:28px;border-radius:6px;border:none;background:#475569;color:#fff;font-size:11px;font-weight:900;cursor:pointer;padding:0">{{ student.initials }}<span style="position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:5px;background:#10B981;border:2px solid #1E293B"></span></button>
+    </div>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+    <!-- Rail -->
+    <div style="width:64px;flex:none;background:#0F172A;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:12px">
+      <div style="width:36px;height:36px;border-radius:8px;background:#fff;color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;margin-bottom:4px">BC</div>
+      <sc-for list="{{ rail }}" as="r" hint-placeholder-count="4">
+        <button onClick="{{ r.onClick }}" style="position:relative;width:64px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:0;color:{{ r.color }}">
+          <span style="position:absolute;left:0;top:6px;width:3px;height:24px;border-radius:0 3px 3px 0;background:{{ r.bar }}"></span>
+          <span style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:{{ r.bg }}" style-hover="background:#1E293B"><span style="font-family:'Material Symbols Rounded';font-size:22px;width:22px;overflow:hidden;font-variation-settings:{{ r.fill }}">{{ r.icon }}</span></span>
+          <span style="font-size:11px;font-weight:700">{{ r.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Sidebar -->
+    <div style="width:260px;flex:none;background:#0F172A;border-left:1px solid #1E293B;display:flex;flex-direction:column;color:#CBD5E1;font-size:13px;min-height:0">
+      <div style="height:50px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px">
+        <span style="display:flex;align-items:center;gap:2px;color:#fff;font-size:17px;font-weight:900">{{ sidebarTitle }}<sc-if value="{{ sbHome }}"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">expand_more</span></sc-if></span>
+        <span data-tip="Coming soon" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;cursor:not-allowed"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">edit_square</span></span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding-bottom:16px">
+
+        <sc-if value="{{ sbHome }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 16px;margin-top:6px;color:#94A3B8;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_drop_down</span>Starred</div>
+          <sc-if value="{{ noStarred }}"><div style="padding:4px 16px 8px 36px;color:#94A3B8;font-size:12px;line-height:17px">Drag and drop important stuff here</div></sc-if>
+          <sc-for list="{{ starredRows }}" as="d">
+            <div onClick="{{ d.onClick }}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ d.bg }};color:{{ d.color }};font-weight:{{ d.weight }}" style-hover="background:#1E293B">
+              <span style="width:20px;height:20px;border-radius:5px;background:#1E293B;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none">{{ d.emoji }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</span>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 16px;margin-top:10px;color:#94A3B8;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_drop_down</span>Channels</div>
+          <div onClick="{{ ann.onClick }}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ ann.bg }};color:{{ ann.color }};font-weight:{{ ann.weight }}" style-hover="background:#1E293B">
+            <span style="width:20px;text-align:center;font-size:15px;opacity:.8">#</span><span style="flex:1">announcements</span>
+            <sc-if value="{{ ann.unread }}"><span style="width:8px;height:8px;border-radius:4px;background:#fff"></span></sc-if>
+          </div>
+          <sc-for list="{{ lockedChannels }}" as="c" hint-placeholder-count="3">
+            <div data-tip="Coming soon" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:not-allowed;opacity:.45">
+              <span style="width:20px;text-align:center;font-size:15px">#</span><span style="flex:1">{{ c }}</span><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden">lock</span>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 16px;margin-top:10px;color:#94A3B8;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_drop_down</span>Direct messages</div>
+          <sc-for list="{{ dmRows }}" as="d" hint-placeholder-count="7">
+            <div onClick="{{ d.onClick }}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ d.bg }};color:{{ d.color }};font-weight:{{ d.weight }}" style-hover="background:#1E293B">
+              <span style="position:relative;width:20px;height:20px;border-radius:5px;background:#1E293B;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none">{{ d.emoji }}<span style="position:absolute;right:-3px;bottom:-3px;width:9px;height:9px;border-radius:5px;background:#10B981;border:2px solid #0F172A"></span></span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</span>
+            </div>
+          </sc-for>
+          <div data-tip="Advisor replies arrive through escalations" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:default" style-hover="background:#1E293B">
+            <span style="position:relative;width:20px;height:20px;border-radius:5px;background:#475569;display:flex;align-items:center;justify-content:center;flex:none;color:#fff"><span style="font-family:'Material Symbols Rounded';font-size:15px;width:15px;overflow:hidden">person</span><span style="position:absolute;right:-3px;bottom:-3px;width:9px;height:9px;border-radius:5px;background:#0F172A;border:2px solid #94A3B8"></span></span>
+            <span>Human Advisor</span><span style="color:#94A3B8;font-size:12px">away</span>
+          </div>
+          <div data-tip="Coming soon" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:not-allowed;opacity:.55">
+            <span style="width:20px;height:20px;border-radius:5px;background:#1E293B;display:flex;align-items:center;justify-content:center;flex:none"><span style="font-family:'Material Symbols Rounded';font-size:15px;width:15px;overflow:hidden">add</span></span>Invite people
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ sbDms }}">
+          <div style="padding:4px 12px 8px">
+            <div style="height:30px;border-radius:6px;border:1px solid #334155;display:flex;align-items:center;gap:6px;padding:0 8px"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;color:#94A3B8">search</span><input value="{{ dmQuery }}" onChange="{{ onDmQuery }}" placeholder="Find a DM…" style="flex:1;min-width:0;background:none;border:none;outline:none;color:#fff;font-size:13px"></div>
+          </div>
+          <sc-for list="{{ dmFiltered }}" as="d" hint-placeholder-count="7">
+            <div onClick="{{ d.onClick }}" style="display:flex;gap:10px;padding:9px 12px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ d.bg }}" style-hover="background:#1E293B">
+              <span style="width:36px;height:36px;border-radius:8px;background:#1E293B;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none">{{ d.emoji }}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:700;color:{{ d.nameColor }}">{{ d.name }}</span><span style="font-size:11px;color:#94A3B8;flex:none">{{ d.time }}</span></div>
+                <span style="font-size:12px;color:#94A3B8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.preview }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </sc-if>
+
+        <sc-if value="{{ sbFiles }}">
+          <sc-for list="{{ fileNav }}" as="f" hint-placeholder-count="3">
+            <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ f.bg }};color:{{ f.color }};font-weight:{{ f.weight }}" style-hover="background:#1E293B"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">{{ f.icon }}</span>{{ f.label }}</div>
+          </sc-for>
+          <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 16px;margin-top:12px;color:#94A3B8;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_drop_down</span>Starred</div>
+          <div style="padding:4px 16px 8px 36px;color:#94A3B8;font-size:12px">Nothing starred yet</div>
+        </sc-if>
+
+        <sc-if value="{{ sbAgents }}">
+          <sc-for list="{{ agentsNav }}" as="f" hint-placeholder-count="2">
+            <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ f.bg }};color:{{ f.color }};font-weight:{{ f.weight }}" style-hover="background:#1E293B"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">{{ f.icon }}</span>{{ f.label }}</div>
+          </sc-for>
+        </sc-if>
+
+        <sc-if value="{{ sbAdvisor }}">
+          <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 16px;color:#94A3B8;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_drop_down</span>Tickets</div>
+          <sc-for list="{{ tickets }}" as="t" hint-placeholder-count="2">
+            <div onClick="{{ t.onClick }}" style="display:flex;flex-direction:column;gap:3px;padding:8px 12px;margin:0 8px;border-radius:6px;cursor:pointer;background:{{ t.bg }}" style-hover="background:#1E293B">
+              <div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:700;color:{{ t.nameColor }}">{{ t.studentName }}</span><span style="font-size:11px;color:#94A3B8">{{ t.age }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span style="font-size:12px;color:#94A3B8">{{ t.agentEmoji }} {{ t.agentName }} · #{{ t.id }}</span><span style="font-size:10px;font-weight:700;color:#fff;border:1px solid {{ t.pillBorder }};border-radius:8px;padding:1px 7px">{{ t.statusLabel }}</span></div>
+            </div>
+          </sc-for>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- Main pane -->
+    <div style="flex:1;min-width:0;background:#fff;display:flex;flex-direction:column;min-height:0">
+
+      <sc-if value="{{ showDM }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:none;border-bottom:1px solid #E2E8F0;padding:10px 20px 0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:32px;height:32px;border-radius:8px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none">{{ chat.emoji }}</span>
+            <div style="display:flex;flex-direction:column;min-width:0;flex:1">
+              <div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px;font-weight:900">{{ chat.name }}</span>
+                <button onClick="{{ chat.toggleStar }}" data-tip="{{ chat.starTip }}" style="background:none;border:none;padding:2px;cursor:pointer;color:#475569;display:flex"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden;font-variation-settings:{{ chat.starFill }}">star</span></button>
+              </div>
+              <span style="font-size:13px;color:#475569">{{ chat.tagline }}</span>
+            </div>
+            <sc-if value="{{ panelClosed }}"><button onClick="{{ togglePanel }}" data-tip="Show context" style="height:28px;padding:0 10px;border-radius:6px;border:1px solid #E2E8F0;background:#fff;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0F172A;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">view_sidebar</span>Context</button></sc-if>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span style="font-size:12px;color:#475569">Reads:</span>
+            <sc-for list="{{ chat.scope }}" as="s" hint-placeholder-count="3">
+              <button onClick="{{ s.onClick }}" style="height:22px;display:inline-flex;align-items:center;gap:4px;padding:0 8px;border-radius:11px;border:1px solid #E2E8F0;background:#F8FAFC;font-size:12px;color:#0F172A;cursor:pointer" style-hover="border-color:#475569"><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden;color:#475569">description</span>{{ s.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:20px;margin-top:6px">
+            <button onClick="{{ tabMessages.onClick }}" style="background:none;border:none;border-bottom:2px solid {{ tabMessages.border }};padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer;color:{{ tabMessages.color }}">Messages</button>
+            <button onClick="{{ tabCanvas.onClick }}" style="background:none;border:none;border-bottom:2px solid {{ tabCanvas.border }};padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer;color:{{ tabCanvas.color }};display:flex;align-items:center;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">dashboard</span>Canvas</button>
+          </div>
+        </div>
+
+        <sc-if value="{{ showMessages }}" hint-placeholder-val="{{ true }}">
+          <div ref="{{ msgRef }}" style="flex:1;overflow-y:auto;padding:12px 0 8px">
+            <sc-if value="{{ loading }}">
+              <sc-for list="{{ skeletonRows }}" as="k">
+                <div style="display:flex;gap:10px;padding:10px 20px">
+                  <div style="width:36px;height:36px;border-radius:8px;background:#E2E8F0;flex:none"></div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:2px"><div style="width:160px;height:12px;border-radius:4px;background:#E2E8F0"></div><div style="width:{{ k.w1 }};height:10px;border-radius:4px;background:#F1F5F9"></div><div style="width:{{ k.w2 }};height:10px;border-radius:4px;background:#F1F5F9"></div></div>
+                </div>
+              </sc-for>
+            </sc-if>
+
+            <sc-if value="{{ chat.showEmpty }}">
+              <div style="padding:28px 20px 16px;display:flex;flex-direction:column;gap:10px;max-width:720px">
+                <span style="width:72px;height:72px;border-radius:14px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:38px">{{ chat.emoji }}</span>
+                <span style="font-size:22px;font-weight:900;margin-top:4px">{{ chat.name }}</span>
+                <span style="font-size:15px;line-height:22px">This conversation is just between <b style="color:#0891B2">{{ chat.handle }}</b> and you.</span>
+                <span style="font-size:15px;line-height:22px;color:#475569">{{ chat.tagline }}.</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                  <sc-for list="{{ chat.starters }}" as="q" hint-placeholder-count="3">
+                    <button onClick="{{ q.onClick }}" style="height:32px;padding:0 14px;border-radius:16px;border:1px solid #E2E8F0;background:#fff;font-size:13px;font-weight:700;color:#0F172A;cursor:pointer" style-hover="background:#F8FAFC;border-color:#475569">{{ q.q }}</button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ chat.showDivider }}">
+              <div style="display:flex;align-items:center;gap:10px;padding:4px 20px 8px"><div style="flex:1;height:1px;background:#E2E8F0"></div><span style="font-size:12px;font-weight:700;border:1px solid #E2E8F0;border-radius:12px;padding:3px 12px">Today</span><div style="flex:1;height:1px;background:#E2E8F0"></div></div>
+            </sc-if>
+
+            <sc-for list="{{ rows }}" as="m" hint-placeholder-count="4">
+              <sc-if value="{{ m.isError }}">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 20px 8px 66px;font-size:13px;color:#475569">
+                  <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;color:#EF4444">error</span>
+                  <span>Something went wrong —</span><button onClick="{{ m.retry }}" style="background:none;border:none;padding:0;font-size:13px;font-weight:700;color:#0891B2;cursor:pointer">try again</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.isMsg }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;gap:10px;padding:{{ rowPad }} 20px;padding-left:{{ m.padLeft }};box-shadow:inset {{ m.inset }} 0 0 {{ m.border }}" style-hover="background:#F8FAFC">
+                  <sc-if value="{{ m.avIcon }}"><span style="width:{{ m.avSize }};height:{{ m.avSize }};border-radius:8px;background:#475569;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">{{ m.avText }}</span></span></sc-if>
+                  <sc-if value="{{ m.avEmoji }}"><span style="width:{{ m.avSize }};height:{{ m.avSize }};border-radius:8px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:{{ m.avFont }};flex:none">{{ m.avText }}</span></sc-if>
+                  <sc-if value="{{ m.avInitials }}"><span style="width:{{ m.avSize }};height:{{ m.avSize }};border-radius:8px;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">{{ m.avText }}</span></sc-if>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:baseline;gap:8px">
+                      <b style="font-size:15px">{{ m.name }}</b>
+                      <sc-if value="{{ m.hasBadge }}"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;color:#475569;background:#F1F5F9;border-radius:3px;padding:1px 4px">{{ m.badge }}</span></sc-if>
+                      <span style="font-size:12px;color:#475569">{{ m.time }}</span>
+                    </div>
+                    <sc-if value="{{ m.isReply }}"><div style="font-size:12px;color:#475569;margin:1px 0 2px;display:flex;align-items:center;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden">subdirectory_arrow_right</span>replied in thread</div></sc-if>
+                    <sc-if value="{{ m.hasTrace }}">
+                      <button onClick="{{ m.toggleTrace }}" style="display:flex;align-items:center;gap:6px;background:none;border:1px solid transparent;border-radius:6px;padding:3px 6px;margin:3px 0 4px -6px;cursor:pointer;font-size:13px;color:#475569" style-hover="background:#fff;border-color:#E2E8F0">
+                        <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;color:#0891B2">bolt</span><b style="color:#0891B2">{{ m.traceTime }}</b><span>· {{ m.traceTools }}</span><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">{{ m.traceIcon }}</span>
+                      </button>
+                      <sc-if value="{{ m.traceOpen }}">
+                        <div style="display:flex;flex-direction:column;gap:4px;border-left:2px solid #E2E8F0;padding:2px 0 2px 12px;margin:0 0 8px 2px">
+                          <sc-for list="{{ m.traceSteps }}" as="t"><div style="font-size:13px;line-height:19px"><b style="font-family:ui-monospace,Menlo,monospace;font-size:12px">{{ t.tool }}</b> <span style="color:#475569">— {{ t.summary }}</span> <span style="color:#94A3B8;font-size:12px">{{ t.dur }}</span></div></sc-for>
+                        </div>
+                      </sc-if>
+                    </sc-if>
+                    <div dangerouslySetInnerHTML="{{ m.html }}" style="font-size:15px;line-height:22px;color:#0F172A;text-wrap:pretty"></div>
+                    <sc-if value="{{ m.hasSources }}">
+                      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px;font-size:12px;color:#475569">
+                        <span style="display:flex;align-items:center;gap:4px;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden">link</span>{{ m.sourcesLabel }}</span>
+                        <sc-for list="{{ m.sources }}" as="s"><button onClick="{{ s.onClick }}" style="background:none;border:none;padding:0;font-size:12px;color:#475569;cursor:pointer;text-align:left" style-hover="color:#0F172A;text-decoration:underline"><b style="color:#0F172A">{{ s.id }}</b> {{ s.label }}</button></sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.hasEsc }}">
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 20px 10px 66px;font-size:13px;color:#475569">
+                  <div style="flex:none;display:flex;align-items:center;gap:8px;border:1px solid #E2E8F0;border-radius:6px;padding:5px 10px;background:#F8FAFC">
+                    <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">support_agent</span>
+                    <span>Escalated to <b style="color:#0F172A">Human Advisor</b> · Ticket #{{ m.escTicket }} ·</span>
+                    <span style="font-size:11px;font-weight:700;color:#0F172A;background:{{ m.escBg }};border:1px solid {{ m.escBorder }};border-radius:9px;padding:1px 8px">{{ m.escLabel }}</span>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-for>
+
+            <sc-if value="{{ thinking }}">
+              <div style="display:flex;gap:10px;align-items:center;padding:8px 20px">
+                <span style="width:36px;height:36px;border-radius:8px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none;opacity:.7">{{ chat.emoji }}</span>
+                <span style="font-size:13px;color:#475569;display:flex;align-items:center;gap:8px">{{ typingDots }}<span><b style="color:#0F172A">{{ chat.name }}</b> {{ thinkingText }}</span></span>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="flex:none;padding:0 20px 18px">
+            <div style="border:1px solid #CBD5E1;border-radius:8px;background:#F8FAFC;overflow:hidden">
+              <div style="display:flex;gap:2px;padding:4px 6px;color:#475569">
+                <sc-for list="{{ fmtButtons }}" as="f" hint-placeholder-count="4"><span data-tip="{{ f.tip }}" style="width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:default" style-hover="background:#E2E8F0"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">{{ f.icon }}</span></span></sc-for>
+              </div>
+              <textarea value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="{{ chat.placeholder }}" rows="2" style="display:block;width:100%;resize:none;border:none;outline:none;background:transparent;padding:4px 12px;font-size:15px;line-height:22px;color:#0F172A;min-height:48px"></textarea>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px 6px">
+                <div style="display:flex;gap:2px;color:#475569">
+                  <span data-tip="Coming soon" style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:not-allowed" style-hover="background:#E2E8F0"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">add</span></span>
+                  <span data-tip="Coming soon" style="width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:not-allowed" style-hover="background:#E2E8F0"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden">alternate_email</span></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="font-size:11px;color:#94A3B8">Enter to send · Shift+Enter for a new line</span>
+                  <button onClick="{{ sendDraft }}" style="width:32px;height:28px;border-radius:4px;border:none;background:{{ sendBg }};color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden;font-variation-settings:'FILL' 1">send</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showCanvasTab }}">
+          <div style="flex:1;overflow-y:auto;padding:20px">
+            <dc-import name="ContextCards" cards="{{ canvasCards }}" cols="repeat(auto-fill,minmax(340px,1fr))" hint-size="100%,400px"></dc-import>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ showChannel }}">
+        <div style="flex:none;border-bottom:1px solid #E2E8F0;padding:12px 20px">
+          <div style="font-size:18px;font-weight:900"># announcements</div>
+          <div style="font-size:13px;color:#475569;margin-top:2px">Circulars from the Academic Office · read-only</div>
+        </div>
+        <div ref="{{ msgRef }}" style="flex:1;overflow-y:auto;padding:12px 0">
+          <sc-for list="{{ circulars }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;gap:10px;padding:10px 20px" style-hover="background:#F8FAFC">
+              <span style="width:36px;height:36px;border-radius:8px;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">account_balance</span></span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:15px">Academic Office</b><span style="font-size:12px;color:#475569">Effective {{ c.effective }}</span></div>
+                <button onClick="{{ c.onClick }}" style="background:none;border:none;padding:0;text-align:left;font-size:15px;font-weight:700;color:#0F172A;cursor:pointer" style-hover="text-decoration:underline">{{ c.title }}</button>
+                <div style="font-size:15px;line-height:22px;text-wrap:pretty">{{ c.text }}</div>
+                <sc-if value="{{ c.affects }}"><span style="align-self:flex-start;margin-top:4px;height:22px;display:inline-flex;align-items:center;gap:4px;padding:0 9px;border-radius:11px;border:1px solid #F59E0B;background:#FFFBEB;font-size:12px;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden;color:#B45309">fact_check</span>Affects your audit</span></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:none;margin:0 20px 18px;border:1px solid #E2E8F0;border-radius:8px;background:#F8FAFC;padding:12px 14px;font-size:13px;color:#475569;display:flex;align-items:center;gap:8px"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">lock</span>This channel is read-only. Circulars are posted by the Academic Office.</div>
+      </sc-if>
+
+      <sc-if value="{{ showFiles }}">
+        <div style="flex:none;padding:16px 24px 12px;border-bottom:1px solid #E2E8F0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <span style="font-size:20px;font-weight:900">{{ filesTitle }}</span>
+            <div data-tip="Coming soon" style="width:280px;height:30px;border:1px solid #E2E8F0;border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;color:#475569;font-size:13px;cursor:not-allowed"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">search</span>Search files</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <sc-for list="{{ fileChips }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.onClick }}" style="height:28px;padding:0 12px;border-radius:14px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font-size:13px;font-weight:700;cursor:pointer">{{ f.label }}</button></sc-for>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:6px 12px">
+          <sc-for list="{{ fileRows }}" as="f" hint-placeholder-count="6">
+            <div onClick="{{ f.onClick }}" style="display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer" style-hover="background:#F8FAFC">
+              <span style="width:36px;height:36px;border-radius:8px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;color:#475569"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">{{ f.icon }}</span></span>
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <b style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.title }}</b>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;flex-wrap:wrap">
+                  <span>{{ f.connector }}</span>
+                  <sc-if value="{{ f.synthetic }}"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#0F172A;border:1px solid #22D3EE;border-radius:3px;padding:0 4px">Synthetic</span></sc-if>
+                  <sc-if value="{{ f.hasEffective }}"><span>· Effective {{ f.effective }}</span></sc-if>
+                </div>
+              </div>
+              <span style="font-size:12px;color:#475569">Updated {{ f.updated }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showDoc }}">
+        <div style="flex:none;padding:12px 24px;border-bottom:1px solid #E2E8F0;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:12px;color:#475569;display:flex;gap:4px;align-items:center"><button onClick="{{ backToFiles }}" style="background:none;border:none;padding:0;font-size:12px;color:#0891B2;cursor:pointer">Files</button><span>›</span><span>{{ doc.kindLabel }}</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Material Symbols Rounded';font-size:22px;width:22px;overflow:hidden;color:#475569">{{ doc.icon }}</span><span style="font-size:20px;font-weight:900">{{ doc.title }}</span></div>
+          <div style="display:flex;gap:6px;align-items:center;font-size:12px;color:#475569">
+            <span>{{ doc.connector }}</span>
+            <sc-if value="{{ doc.synthetic }}"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#0F172A;border:1px solid #22D3EE;border-radius:3px;padding:0 4px">Synthetic</span></sc-if>
+            <sc-if value="{{ doc.hasEffective }}"><span>· Effective {{ doc.effective }}</span></sc-if>
+            <span>· Updated {{ doc.updated }}</span>
+          </div>
+        </div>
+        <sc-if value="{{ doc.isCanvas }}">
+          <div style="flex:1;overflow-y:auto;padding:20px 24px">
+            <sc-if value="{{ doc.canvasEmpty }}"><div style="font-size:14px;color:#475569">{{ doc.canvasEmptyText }}</div></sc-if>
+            <div style="max-width:720px"><dc-import name="ContextCards" cards="{{ doc.cards }}" cols="1fr" hint-size="100%,400px"></dc-import></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ doc.isText }}">
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:240px;flex:none;border-right:1px solid #E2E8F0;padding:16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569;padding:0 8px 8px">Outline</span>
+              <sc-for list="{{ doc.outline }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="text-align:left;background:{{ o.bg }};border:none;border-radius:6px;padding:6px 8px;font-size:13px;line-height:18px;color:#0F172A;font-weight:{{ o.weight }};cursor:pointer" style-hover="background:#F8FAFC">{{ o.heading }}</button></sc-for>
+            </div>
+            <div ref="{{ docRef }}" style="position:relative;flex:1;overflow-y:auto;padding:16px 28px 120px">
+              <div style="max-width:720px;display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ doc.sections }}" as="s" hint-placeholder-count="4">
+                  <section id="{{ s.domId }}" style="padding:14px 16px;border-radius:8px;background:{{ s.bg }};border:1px solid {{ s.border }}">
+                    <h2 style="margin:0 0 6px;font-size:17px;font-weight:900">{{ s.heading }}</h2>
+                    <p dangerouslySetInnerHTML="{{ s.html }}" style="margin:0;font-size:15px;line-height:24px;text-wrap:pretty"></p>
+                  </section>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ showAgents }}">
+        <div style="flex:none;padding:16px 24px 0;border-bottom:1px solid #E2E8F0">
+          <span style="font-size:20px;font-weight:900">Agents &amp; tools</span>
+          <div style="display:flex;gap:20px;margin-top:10px">
+            <button onClick="{{ tabAgents.onClick }}" style="background:none;border:none;border-bottom:2px solid {{ tabAgents.border }};padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer;color:{{ tabAgents.color }}">Installed agents</button>
+            <button onClick="{{ tabConnectors.onClick }}" style="background:none;border:none;border-bottom:2px solid {{ tabConnectors.border }};padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer;color:{{ tabConnectors.color }}">Connectors</button>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:20px 24px">
+          <sc-if value="{{ showAgentCards }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+              <sc-for list="{{ agentCards }}" as="a" hint-placeholder-count="6">
+                <div style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff">
+                  <div style="display:flex;gap:12px;align-items:center"><span style="width:44px;height:44px;border-radius:10px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">{{ a.emoji }}</span><div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">{{ a.name }}</b><span style="font-size:13px;color:#475569;line-height:18px">{{ a.tagline }}</span></div></div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:12px;color:#475569">Reads:</span><sc-for list="{{ a.scope }}" as="s"><button onClick="{{ s.onClick }}" style="height:22px;padding:0 8px;border-radius:11px;border:1px solid #E2E8F0;background:#F8FAFC;font-size:12px;cursor:pointer;color:#0F172A">{{ s.label }}</button></sc-for></div>
+                  <button onClick="{{ a.open }}" style="align-self:flex-start;height:30px;padding:0 14px;border-radius:6px;border:none;background:#0F172A;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:auto">Open DM</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showConnectors }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+              <sc-for list="{{ connectors }}" as="c" hint-placeholder-count="6">
+                <div style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                    <div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">{{ c.name }}</b><span style="font-size:12px;color:#475569">{{ c.kind }}</span></div>
+                    <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;border:1px solid {{ c.badgeBorder }};background:{{ c.badgeBg }};font-size:11px;font-weight:700;color:{{ c.badgeColor }}"><span style="width:6px;height:6px;border-radius:3px;background:{{ c.badgeDot }}"></span>{{ c.label }}</span>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ c.provides }}" as="p"><span style="height:22px;display:inline-flex;align-items:center;padding:0 8px;border-radius:11px;background:#F8FAFC;border:1px solid #E2E8F0;font-size:12px">{{ p }}</span></sc-for></div>
+                  <sc-if value="{{ c.isAvailable }}"><span data-tip="Coming soon" style="align-self:flex-start;height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:6px;border:1px solid #E2E8F0;color:#94A3B8;font-size:13px;font-weight:700;cursor:not-allowed">Connect</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size:13px;color:#475569;margin:16px 0 0">Synthetic connectors are seeded with demo data. Real sync is not built.</p>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showAdvisor }}">
+        <sc-if value="{{ noTicket }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;color:#475569;font-size:14px">Select a ticket</div></sc-if>
+        <sc-if value="{{ hasTicket }}">
+          <div style="flex:none;border-bottom:1px solid #E2E8F0;padding:12px 24px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px;font-weight:900">Ticket #{{ ticket.id }}</span>
+            <span style="font-size:11px;font-weight:700;background:{{ ticket.pillBg }};border:1px solid {{ ticket.pillBorder }};border-radius:9px;padding:1px 8px">{{ ticket.statusLabel }}</span>
+            <span style="font-size:13px;color:#475569">{{ ticket.studentName }} · via {{ ticket.agentEmoji }} {{ ticket.agentName }} · {{ ticket.age }} ago</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px;max-width:820px">
+            <div style="display:flex;gap:10px">
+              <span style="width:36px;height:36px;border-radius:8px;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">{{ ticket.initials }}</span>
+              <div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:15px">{{ ticket.studentName }}</b><span style="font-size:12px;color:#475569">{{ ticket.program }}</span></div><span style="font-size:15px;line-height:22px">{{ ticket.question }}</span></div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">{{ ticket.agentEmoji }} Agent summary</span>
+              <span style="font-size:15px;line-height:22px;text-wrap:pretty">{{ ticket.agentSummary }}</span>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px">
+                <sc-for list="{{ ticket.cites }}" as="c"><span data-cite="{{ c.key }}" style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 4px;border-radius:12px;background:#fff;border:1px solid #E2E8F0;font-size:12px;cursor:pointer"><span style="height:18px;display:inline-flex;align-items:center;padding:0 6px;border-radius:9px;background:#ECFEFF;border:1px solid #22D3EE;font-size:11px;font-weight:700">{{ c.label }}</span>{{ c.title }}</span></sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ ticket.isAnswered }}">
+              <div style="display:flex;gap:10px">
+                <span style="width:36px;height:36px;border-radius:8px;background:#475569;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">person</span></span>
+                <div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:15px">{{ advisorName }}</b><span style="font-size:12px;color:#475569">{{ ticket.answeredTime }}</span></div><span style="font-size:15px;line-height:22px">{{ ticket.reply }}</span></div>
+              </div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ ticket.isOpen }}">
+            <div style="flex:none;padding:0 24px 18px;max-width:868px">
+              <div style="border:1px solid #CBD5E1;border-radius:8px;background:#F8FAFC;overflow:hidden">
+                <textarea value="{{ advisorDraft }}" onChange="{{ onAdvisorDraft }}" onKeyDown="{{ onAdvisorKey }}" placeholder="{{ ticket.replyPlaceholder }}" rows="3" style="display:block;width:100%;resize:none;border:none;outline:none;background:transparent;padding:10px 12px;font-size:15px;line-height:22px;color:#0F172A"></textarea>
+                <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 8px">
+                  <span style="font-size:11px;color:#94A3B8">Reply goes to the student’s DM and closes the ticket</span>
+                  <button onClick="{{ advisorSend }}" style="height:30px;padding:0 14px;border-radius:6px;border:none;background:#0F172A;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Send reply</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+      </sc-if>
+    </div>
+
+    <!-- Right panel -->
+    <sc-if value="{{ showPanel }}" hint-placeholder-val="{{ true }}">
+      <div style="width:380px;flex:none;background:#fff;border-left:1px solid #E2E8F0;display:flex;flex-direction:column;min-height:0">
+        <div style="height:50px;flex:none;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px">
+          <sc-if value="{{ panelCitation }}"><button onClick="{{ panelBack }}" data-tip="Back to context" style="background:none;border:none;padding:2px;cursor:pointer;display:flex;color:#475569"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">arrow_back</span></button></sc-if>
+          <span style="flex:1;font-size:15px"><b>{{ panelTitle }}</b> <span style="color:#475569">{{ panelSub }}</span></span>
+          <button onClick="{{ togglePanel }}" data-tip="Hide panel" style="width:28px;height:28px;border-radius:6px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569" style-hover="background:#F8FAFC"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden">chevron_right</span></button>
+        </div>
+        <div ref="{{ panelRef }}" style="position:relative;flex:1;overflow-y:auto;padding:16px">
+          <sc-if value="{{ loading }}">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="height:18px;width:60%;border-radius:4px;background:#E2E8F0"></div>
+              <sc-for list="{{ skeletonRows }}" as="k"><div style="display:flex;flex-direction:column;gap:6px"><div style="height:10px;width:{{ k.w1 }};border-radius:4px;background:#F1F5F9"></div><div style="height:6px;border-radius:3px;background:#E2E8F0"></div></div></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ panelContext }}" hint-placeholder-val="{{ true }}">
+            <dc-import name="ContextCards" cards="{{ panelCards }}" cols="1fr" hint-size="100%,500px"></dc-import>
+          </sc-if>
+          <sc-if value="{{ panelCitation }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Source {{ citeView.id }}</span>
+              <b style="font-size:16px;line-height:22px">{{ citeView.docTitle }}</b>
+              <span style="font-size:13px;color:#475569">{{ citeView.sectionHeading }}</span>
+              <div dangerouslySetInnerHTML="{{ citeView.html }}" style="font-size:14px;line-height:23px;margin-top:6px;padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;text-wrap:pretty"></div>
+              <button onClick="{{ citeView.open }}" style="align-self:flex-start;background:none;border:none;padding:4px 0;font-size:13px;font-weight:700;color:#0891B2;cursor:pointer;display:flex;align-items:center;gap:4px">Open in Files<span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden">arrow_outward</span></button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Student switcher -->
+  <sc-if value="{{ switcherOpen }}">
+    <div onClick="{{ closeSwitcher }}" style="position:fixed;inset:0;z-index:900"></div>
+    <div style="position:fixed;top:44px;right:12px;width:340px;z-index:901;background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.25);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #E2E8F0"><b style="font-size:15px">Switch student</b><span style="font-size:11px;color:#475569;border:1px solid #E2E8F0;border-radius:4px;padding:1px 6px">⌘K</span></div>
+      <sc-for list="{{ studentRows }}" as="s" hint-placeholder-count="3">
+        <div onClick="{{ s.onClick }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;background:{{ s.bg }}" style-hover="background:#F8FAFC">
+          <span style="width:36px;height:36px;border-radius:8px;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">{{ s.initials }}</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:14px">{{ s.name }}</b><span style="font-size:12px;color:#475569">{{ s.program }} · Sem {{ s.semester }}</span></div>
+          <sc-if value="{{ s.active }}"><span style="font-family:'Material Symbols Rounded';font-size:20px;width:20px;overflow:hidden;color:#0F172A">check</span></sc-if>
+        </div>
+      </sc-for>
+      <div style="padding:10px 16px;border-top:1px solid #E2E8F0;font-size:12px;color:#475569">Switching reloads the workspace with that student’s data.</div>
+    </div>
+  </sc-if>
+
+  <!-- Citation popover -->
+  <sc-if value="{{ pop.show }}">
+    <div style="position:fixed;left:{{ pop.x }};top:{{ pop.y }};transform:{{ pop.transform }};width:320px;z-index:1000;background:#fff;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:10px 12px;display:flex;flex-direction:column;gap:6px;pointer-events:none">
+      <span style="font-size:12px;font-weight:700;color:#475569">{{ pop.title }}</span>
+      <span style="font-size:13px;line-height:19px;color:#0F172A">“{{ pop.quote }}”</span>
+      <span style="font-size:11px;color:#94A3B8">Click to open the source</span>
+    </div>
+  </sc-if>
+
+  <!-- Tooltip -->
+  <sc-if value="{{ tip.show }}">
+    <div style="position:fixed;left:{{ tip.x }};top:{{ tip.y }};transform:translateX(-50%);z-index:1001;background:#0F172A;color:#fff;font-size:12px;font-weight:700;padding:5px 9px;border-radius:6px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(15,23,42,.25)">{{ tip.text }}</div>
+  </sc-if>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;compact&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chat&quot;},&quot;traceExpanded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chat&quot;},&quot;thinkingSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:2.4,&quot;min&quot;:0.5,&quot;max&quot;:6,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Chat&quot;}}">
+const C = { ink: '#0F172A', cyan: '#22D3EE', i7: '#1E293B', i5: '#475569', i2: '#E2E8F0', s2: '#F8FAFC', ok: '#10B981', warn: '#F59E0B', bad: '#EF4444', side: '#CBD5E1', link: '#0891B2' };
+const PILL = 'display:inline-flex;align-items:center;height:18px;padding:0 6px;margin:0 2px;border-radius:9px;background:#ECFEFF;border:1px solid #22D3EE;color:#0F172A;font-size:11px;font-weight:700;line-height:1;cursor:pointer;vertical-align:1px';
+const ORDER = ['audit', 'weak_topics', 'study_plan', 'courses', 'skills_gap', 'picks', 'resources', 'relevant'];
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fmtTime = iso => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const fmtDate = d => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const strip = t => String(t || '').replace(/\[C\d+\]/g, '').replace(/[*`]/g, '').replace(/\n- /g, ' · ').replace(/\s+/g, ' ').trim();
+const age = iso => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 1 ? 'now' : m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
+const statusPill = s => s === 'open' ? { label: 'Open', border: C.warn, bg: '#FFFBEB' } : { label: 'Answered', border: C.ok, bg: '#ECFDF5' };
+function md(text, key) {
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\[(C\d+)\]/g, (m, c) => `<span data-cite="${key}:${c}" style="${PILL}">${c}</span>`);
+  let out = '', list = false;
+  for (const l of String(text || '').split('\n')) {
+    if (/^- /.test(l)) { if (!list) { out += '<ul style="margin:4px 0 2px;padding-left:22px">'; list = true; } out += `<li style="margin:2px 0">${inline(l.slice(2))}</li>`; }
+    else { if (list) { out += '</ul>'; list = false; } if (l.trim()) out += `<p style="margin:0 0 4px">${inline(l)}</p>`; }
+  }
+  if (list) out += '</ul>';
+  return { __html: out };
+}
+
+class Component extends DCLogic {
+  state = { ready: false, studentId: 's1', route: { view: 'dm', id: 'academic_coach' }, rail: 'home', threads: null, tickets: [], pending: null,
+    draft: '', panelOpen: true, panelMode: 'context', cite: null, tab: 'messages', traceOpen: {}, switcherOpen: false, loading: true,
+    tip: null, pop: null, filesFilter: 'all', agentsTab: 'agents', advisorSel: null, advisorDraft: '', dmQuery: '', annRead: {}, starred: [], planWeek: 0 };
+  msgRef = React.createRef(); docRef = React.createRef(); panelRef = React.createRef();
+  cites = {};
+
+  componentDidMount() {
+    const boot = () => {
+      if (!window.MOCK) { this._b = setTimeout(boot, 40); return; }
+      this.M = window.MOCK;
+      const threads = {}; this.M.students.forEach(s => threads[s.id] = this.M.threadsFor(s.id));
+      this.setState({ ready: true, threads, tickets: JSON.parse(JSON.stringify(this.M.tickets)), ...this.parse() }, this.afterRoute);
+      this._l = setTimeout(() => this.setState({ loading: false }, this.afterRoute), 700);
+    };
+    boot();
+    this._hc = () => this.setState(this.parse(), this.afterRoute);
+    window.addEventListener('hashchange', this._hc);
+    this._kd = e => {
+      if (e.key === 'Escape') this.setState({ switcherOpen: false, pop: null, tip: null });
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.setState(s => ({ switcherOpen: !s.switcherOpen })); }
+    };
+    document.addEventListener('keydown', this._kd);
+    this._poll = setInterval(() => this.poll(), 3000);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._b); clearTimeout(this._l); clearTimeout(this._t); clearInterval(this._poll);
+    window.removeEventListener('hashchange', this._hc); document.removeEventListener('keydown', this._kd);
+  }
+  componentDidUpdate() {
+    const st = this.state; if (!st.ready) return;
+    const th = st.route.view === 'dm' ? (st.threads[st.studentId][st.route.id] || []).length : 0;
+    const k = [st.studentId, st.route.view, st.route.id, th, st.pending && st.pending.step, st.loading, st.tab].join('|');
+    if (k !== this._key) { this._key = k; this.scrollBottom(); }
+  }
+  scrollBottom() { requestAnimationFrame(() => { const el = this.msgRef.current; if (el && this.state.route.view === 'dm') el.scrollTop = el.scrollHeight; }); }
+
+  parse() {
+    const h = (location.hash || '').replace(/^#\/?/, ''); const [v, a, b] = h.split('/');
+    const agents = this.M ? this.M.agents : [];
+    let route;
+    if (v === 'dm' && agents.some(x => x.id === a)) route = { view: 'dm', id: a };
+    else if (v === 'channel') route = { view: 'channel', id: a || 'announcements' };
+    else if (v === 'files' && a) route = { view: 'doc', id: a, sec: b ? decodeURIComponent(b) : null };
+    else if (v === 'files') route = { view: 'files' };
+    else if (v === 'agents') route = { view: 'agents' };
+    else if (v === 'advisor') route = { view: 'advisor' };
+    else route = { view: 'dm', id: 'academic_coach' };
+    const cur = this.state.rail; let rail = cur;
+    if (route.view === 'doc' || route.view === 'files') rail = 'files';
+    else if (route.view === 'agents') rail = 'agents';
+    else if ((route.view === 'dm' || route.view === 'channel') && cur !== 'home' && cur !== 'dms') rail = 'home';
+    if (route.view === 'dm') this.lastDm = route.id;
+    const prev = this.state.route, changed = prev.view !== route.view || prev.id !== route.id;
+    const out = { route, rail, pop: null, tip: null };
+    if (changed) Object.assign(out, { tab: 'messages', panelMode: route.view === 'dm' || route.view === 'channel' ? 'context' : this.state.panelMode, planWeek: 0 });
+    if (route.view === 'channel') out.annRead = { ...this.state.annRead, [this.state.studentId]: true };
+    return out;
+  }
+  go(p) { if (location.hash === '#' + p) this.setState(this.parse(), this.afterRoute); else location.hash = p; }
+  afterRoute = () => {
+    const r = this.state.route;
+    if (r.view === 'doc') requestAnimationFrame(() => {
+      const c = this.docRef.current; if (!c) return;
+      const el = r.sec && document.getElementById('sec-' + r.sec);
+      c.scrollTop = el ? el.offsetTop - 16 : 0;
+    });
+    this.scrollBottom();
+  };
+
+  railClick(id) {
+    if (id === 'files') return this.go('/files');
+    if (id === 'agents') return this.go('/agents');
+    this.setState({ rail: id });
+    const v = this.state.route.view;
+    if (v !== 'dm' && v !== 'channel') this.go('/dm/' + (this.lastDm || 'academic_coach'));
+  }
+  switchStudent(id) {
+    clearTimeout(this._t); clearTimeout(this._l);
+    this.setState({ studentId: id, switcherOpen: false, loading: true, pending: null, panelMode: 'context', panelOpen: true, traceOpen: {}, draft: '', advisorSel: null });
+    if (this.state.route.view !== 'advisor') { this.setState({ rail: 'home' }); this.go('/dm/academic_coach'); }
+    this._l = setTimeout(() => this.setState({ loading: false }, this.afterRoute), 650);
+  }
+  pushMsgs(sid, aid, msgs) {
+    this.setState(st => ({ threads: { ...st.threads, [sid]: { ...st.threads[sid], [aid]: [...st.threads[sid][aid], ...msgs] } } }));
+  }
+  send(text) {
+    const st = this.state, t = String(text ?? st.draft).trim();
+    if (!t || st.pending || st.route.view !== 'dm') return;
+    const aid = st.route.id, sid = st.studentId, M = this.M, s = M.students.find(x => x.id === sid);
+    this.pushMsgs(sid, aid, [{ id: 'u' + Date.now(), role: 'student', ts: new Date().toISOString(), text: t, citations: [], cards: [] }]);
+    const res = M.replyFor(aid, t, s, st.tickets.length);
+    this.setState({ draft: '', tab: 'messages', pending: { agentId: aid, sid, step: -1, tools: res.tools } });
+    const stepMs = (this.props.thinkingSeconds ?? 2.4) * 1000 / (res.tools.length + 1);
+    let i = 0;
+    const tick = () => {
+      i++;
+      if (i <= res.tools.length) { this.setState(p => ({ pending: p.pending && { ...p.pending, step: i - 1 } })); this._t = setTimeout(tick, stepMs); }
+      else {
+        this.pushMsgs(sid, aid, res.msgs);
+        this.setState(p => ({ pending: null, tickets: res.ticket ? [res.ticket, ...p.tickets] : p.tickets, panelMode: 'context' }));
+      }
+    };
+    this._t = setTimeout(tick, stepMs);
+  }
+  retry(errId) {
+    const st = this.state, sid = st.studentId, aid = st.route.id, msgs = st.threads[sid][aid];
+    const i = msgs.findIndex(m => m.id === errId); if (i < 0) return;
+    const prevQ = msgs.slice(0, i).reverse().find(m => m.role === 'student');
+    const next = msgs.filter((m, j) => j !== i && m !== prevQ);
+    this.setState({ threads: { ...st.threads, [sid]: { ...st.threads[sid], [aid]: next } } }, () => prevQ && this.send(prevQ.text.replace(/\b(fail|error)\b/gi, 'check')));
+  }
+  poll() {
+    const st = this.state; if (!st.ready) return;
+    let changed = false; const threads = { ...st.threads };
+    for (const sid of Object.keys(threads)) {
+      const tmap = { ...threads[sid] };
+      for (const aid of Object.keys(tmap)) {
+        let out = null;
+        tmap[aid].forEach(m => {
+          if (!m.escalation || m.escalation.status !== 'open') return;
+          const t = st.tickets.find(x => x.id === m.escalation.ticketId);
+          if (!t || t.status !== 'answered') return;
+          out = out || [...tmap[aid]];
+          const idx = out.findIndex(x => x.id === m.id);
+          out[idx] = { ...m, escalation: { ...m.escalation, status: 'answered' } };
+          out.splice(idx + 1, 0, { id: 'adv-' + t.id, role: 'advisor', ts: t.answeredAt, text: t.reply, citations: [], cards: [] });
+        });
+        if (out) { tmap[aid] = out; changed = true; }
+      }
+      threads[sid] = tmap;
+    }
+    if (changed) this.setState({ threads });
+  }
+  openCite(key) {
+    const c = this.cites[key]; if (!c) return;
+    const v = this.state.route.view;
+    if (v !== 'dm' && v !== 'channel') return this.go(`/files/${c.docId}/${c.sectionId}`);
+    this.setState({ panelOpen: true, panelMode: 'citation', cite: key, pop: null }, () => requestAnimationFrame(() => {
+      const p = this.panelRef.current, m = document.getElementById('cite-mark');
+      if (p && m) p.scrollTop = Math.max(0, m.offsetTop - 120);
+    }));
+  }
+  onOver = e => {
+    const t = e.target.closest && e.target.closest('[data-tip],[data-cite]');
+    const st = this.state;
+    if (!t) { if (st.tip || st.pop) this.setState({ tip: null, pop: null }); return; }
+    const r = t.getBoundingClientRect();
+    if (t.dataset.cite) {
+      if (!st.pop || st.pop.key !== t.dataset.cite) {
+        const below = r.bottom < window.innerHeight - 170;
+        this.setState({ tip: null, pop: { key: t.dataset.cite, x: Math.min(r.left, window.innerWidth - 332), y: below ? r.bottom + 6 : r.top - 6, up: !below } });
+      }
+    } else {
+      const text = t.dataset.tip;
+      if (!st.tip || st.tip.text !== text || st.tip.x !== r.left + r.width / 2) {
+        const x = Math.min(Math.max(r.left + r.width / 2, 90), window.innerWidth - 90);
+        this.setState({ pop: null, tip: { text, x, y: r.bottom + 6 } });
+      }
+    }
+  };
+  onRootClick = e => {
+    const t = e.target.closest && e.target.closest('[data-cite]');
+    if (t) { e.stopPropagation(); this.openCite(t.dataset.cite); }
+  };
+
+  cardsVals(latest, reg) {
+    const g = k => latest[k] && latest[k].card, mk = k => latest[k] && latest[k].msgId;
+    const o = { empty: !Object.keys(latest).length };
+    const a = g('audit');
+    if (a) o.hasAudit = true, o.audit = { headline: a.headline, units: `${a.earned} / ${a.total} units`,
+      buckets: a.buckets.map(b => ({ name: b.name, label: `${b.done}/${b.required}`, pct: Math.min(100, Math.round(b.done / b.required * 100)) + '%', color: C[b.status],
+        statusLabel: { ok: 'On track', warn: 'Needs attention', bad: 'Blocked' }[b.status], hasNote: !!b.note, note: b.note,
+        cites: (b.noteCitations || []).map(c => reg(`${mk('audit')}~${b.id}:${c.id}`, c)) })),
+      hasPrereqs: !!(a.unmetPrereqs && a.unmetPrereqs.length), prereqs: a.unmetPrereqs || [] };
+    const w = g('weak_topics');
+    if (w) o.hasWeak = true, o.weak = [...w.topics].sort((x, y) => y.impact - x.impact).map(t => ({ ...t, scoreLabel: t.score + '%', weightLabel: t.examWeight + '% of paper', impactPct: Math.round(t.impact * 100) + '%' }));
+    const p = g('study_plan');
+    if (p) { const wi = Math.min(this.state.planWeek, p.weeks.length - 1);
+      o.hasPlan = true; o.plan = { title: p.title, weeks: p.weeks.map((x, i) => ({ label: x.label, bg: i === wi ? C.ink : '#fff', color: i === wi ? '#fff' : C.ink, border: i === wi ? C.ink : C.i2, onClick: () => this.setState({ planWeek: i }) })),
+        blocks: p.weeks[wi].blocks.map(b => ({ ...b, mins: b.minutes + ' min' })) }; }
+    const c = g('courses');
+    if (c) o.hasCourses = true, o.courses = c.courses.map(x => ({ ...x, creditsLabel: x.credits + ' units', hasClash: !!x.clashesWith, clash: 'Clashes with ' + x.clashesWith }));
+    const s = g('skills_gap');
+    if (s) o.hasSkills = true, o.skills = { role: s.role, groups: [{ title: 'Covered', items: s.covered, color: C.ok }, { title: 'Covered after plan', items: s.afterPlan, color: C.warn }, { title: 'Missing', items: s.missing, color: C.bad }].map(x => ({ ...x, count: x.items.length })) };
+    const k = g('picks'); if (k) o.hasPicks = true, o.picks = k.picks;
+    const r = g('resources');
+    if (r) o.hasRes = true, o.resources = r.items.map(x => ({ ...x, icon: { book: 'menu_book', paper: 'quiz', video: 'play_circle', room: 'meeting_room' }[x.kind] || 'bookmark', hasCourse: !!x.forCourse }));
+    const v = g('relevant'); if (v) o.hasRel = true, o.rel = { ...v, throughLabel: 'Through ' + v.interest };
+    return o;
+  }
+  latestCards(msgs) {
+    const latest = {};
+    (msgs || []).forEach(m => (m.cards || []).forEach(c => { latest[c.type] = { card: c, msgId: m.id }; }));
+    const ordered = {}; ORDER.forEach(k => { if (latest[k]) ordered[k] = latest[k]; });
+    return ordered;
+  }
+
+  renderVals() {
+    const st = this.state, M = this.M;
+    if (!st.ready || !M) return { ready: false, notReady: true };
+    const cites = {}; this.cites = cites;
+    const reg = (key, c) => { cites[key] = c; return { key, label: c.id, title: `${c.docTitle} › ${c.sectionHeading}` }; };
+    const s = M.students.find(x => x.id === st.studentId), r = st.route, th = st.threads[s.id];
+    const agentById = id => M.agents.find(a => a.id === id);
+    const isAdv = r.view === 'advisor';
+    const sideRow = on => ({ bg: on ? C.i7 : 'transparent', color: on ? C.cyan : C.side, weight: on ? 700 : 400 });
+
+    const rail = [['home', 'home', 'Home'], ['dms', 'chat_bubble', 'DMs'], ['files', 'description', 'Files'], ['agents', 'apps', 'Agents & tools']].map(([id, icon, label]) => {
+      const on = !isAdv && st.rail === id;
+      return { id, icon, label, color: on ? C.cyan : C.side, bar: on ? C.cyan : 'transparent', bg: on ? C.i7 : 'transparent', fill: on ? "'FILL' 1" : "'FILL' 0", onClick: () => this.railClick(id) };
+    });
+
+    const dmBase = M.agents.map(a => {
+      const msgs = th[a.id] || [], last = msgs[msgs.length - 1], on = r.view === 'dm' && r.id === a.id;
+      return { id: a.id, name: a.name, emoji: a.emoji, ...sideRow(on), nameColor: on ? C.cyan : '#fff',
+        preview: last ? (last.role === 'student' ? 'You: ' : '') + (strip(last.text) || 'Something went wrong') : a.tagline, time: last ? fmtTime(last.ts) : '', onClick: () => this.go('/dm/' + a.id) };
+    });
+    const q = st.dmQuery.toLowerCase();
+    const annUnread = M.docs.some(d => d.kind === 'circular' && (d.affects || []).includes(s.id)) && !st.annRead[s.id];
+    const annOn = r.view === 'channel';
+    const sidebarTitle = isAdv ? 'Advisor desk' : { home: 'BITS Campus', dms: 'Direct messages', files: 'Files', agents: 'Agents & tools' }[st.rail];
+
+    const fileNav = [['all', 'folder', 'All files'], ['document', 'description', 'Documents'], ['canvas', 'dashboard', 'Canvases']].map(([id, icon, label]) =>
+      ({ icon, label, ...sideRow(r.view === 'files' && st.filesFilter === id), onClick: () => { this.setState({ filesFilter: id }); this.go('/files'); } }));
+    const agentsNav = [['agents', 'smart_toy', 'All agents'], ['connectors', 'hub', 'Connectors']].map(([id, icon, label]) =>
+      ({ icon, label, ...sideRow(r.view === 'agents' && st.agentsTab === id), onClick: () => { this.setState({ agentsTab: id }); this.go('/agents'); } }));
+
+    const out = {
+      ready: true, notReady: false, student: s, rail, sidebarTitle, loading: st.loading,
+      sbHome: !isAdv && st.rail === 'home', sbDms: !isAdv && st.rail === 'dms', sbFiles: !isAdv && st.rail === 'files', sbAgents: !isAdv && st.rail === 'agents', sbAdvisor: isAdv,
+      dmRows: dmBase, dmFiltered: dmBase.filter(x => x.name.toLowerCase().includes(q)), dmQuery: st.dmQuery, onDmQuery: e => this.setState({ dmQuery: e.target.value }),
+      starredRows: dmBase.filter(x => st.starred.includes(x.id)), noStarred: !st.starred.length,
+      ann: { ...sideRow(annOn), weight: annOn || annUnread ? 700 : 400, color: annOn ? C.cyan : annUnread ? '#fff' : C.side, unread: annUnread && !annOn, onClick: () => this.go('/channel/announcements') },
+      lockedChannels: ['dbms-sem5', 'placement-cell', 'data-science-club'],
+      fileNav, agentsNav,
+      vaStudent: { bg: isAdv ? 'transparent' : 'rgba(255,255,255,.16)', color: isAdv ? '#94A3B8' : '#fff' },
+      vaAdvisor: { bg: isAdv ? 'rgba(255,255,255,.16)' : 'transparent', color: isAdv ? '#fff' : '#94A3B8' },
+      viewStudent: () => { if (isAdv) this.go('/dm/' + (this.lastDm || 'academic_coach')); },
+      viewAdvisor: () => this.go('/advisor'),
+      toggleSwitcher: () => this.setState(p => ({ switcherOpen: !p.switcherOpen })), closeSwitcher: () => this.setState({ switcherOpen: false }), switcherOpen: st.switcherOpen,
+      studentRows: M.students.map(x => ({ ...x, active: x.id === s.id, bg: x.id === s.id ? C.s2 : '#fff', onClick: () => this.switchStudent(x.id) })),
+      showDM: r.view === 'dm', showChannel: r.view === 'channel', showFiles: r.view === 'files', showDoc: r.view === 'doc', showAgents: r.view === 'agents', showAdvisor: isAdv,
+      skeletonRows: [{ w1: '82%', w2: '64%' }, { w1: '70%', w2: '48%' }, { w1: '90%', w2: '58%' }],
+      onOver: this.onOver, onRootClick: this.onRootClick, msgRef: this.msgRef, docRef: this.docRef, panelRef: this.panelRef,
+      rowPad: this.props.compact ? '4px' : '8px', advisorName: M.advisor.name,
+      togglePanel: () => this.setState(p => ({ panelOpen: !p.panelOpen })),
+    };
+
+    // DM
+    let latest = {};
+    if (r.view === 'dm') {
+      const a = agentById(r.id), msgs = th[a.id] || [], starred = st.starred.includes(a.id);
+      const pend = st.pending && st.pending.agentId === a.id && st.pending.sid === s.id ? st.pending : null;
+      out.chat = { name: a.name, emoji: a.emoji, tagline: a.tagline, handle: '@' + a.name, placeholder: 'Message ' + a.name,
+        showEmpty: !st.loading && !msgs.length, showDivider: !st.loading && msgs.length > 0,
+        scope: a.scope.map(x => ({ label: x.label, onClick: () => this.go('/files/' + x.docId) })),
+        starters: a.starters.map(qq => ({ q: qq, onClick: () => this.send(qq) })),
+        starFill: starred ? "'FILL' 1" : "'FILL' 0", starTip: starred ? 'Remove from Starred' : 'Star conversation',
+        toggleStar: () => this.setState(p => ({ starred: p.starred.includes(a.id) ? p.starred.filter(x => x !== a.id) : [...p.starred, a.id] })) };
+      const byId = {}; msgs.forEach(m => byId[m.id] = m);
+      out.rows = st.loading ? [] : msgs.map(m => {
+        (m.citations || []).forEach(c => reg(m.id + ':' + c.id, c));
+        const role = m.role, open = st.traceOpen[m.id] ?? !!this.props.traceExpanded;
+        const trace = m.trace || [], ms = trace.reduce((x, t) => x + (t.ms || 0), 0);
+        const esc2 = m.escalation && statusPill(m.escalation.status);
+        const av = role === 'student' ? { avInitials: true, avText: s.initials, name: s.name }
+          : role === 'advisor' ? { avIcon: true, avText: 'person', name: M.advisor.name, hasBadge: true, badge: 'ADVISOR' }
+          : role === 'club' ? { avEmoji: true, avText: m.avatar, name: m.authorName, hasBadge: true, badge: 'CLUB' }
+          : { avEmoji: true, avText: a.emoji, name: a.name, hasBadge: true, badge: 'AGENT' };
+        const reply = !!m.replyToId;
+        return { id: m.id, isError: role === 'error', isMsg: role !== 'error', retry: () => this.retry(m.id), time: fmtTime(m.ts), html: md(m.text, m.id), ...av,
+          avSize: reply ? '28px' : '36px', avFont: reply ? '15px' : '19px',
+          border: role === 'agent' ? C.i2 : 'transparent', inset: role === 'agent' ? '3px' : '0', padLeft: reply ? '66px' : '20px', isReply: reply,
+          hasTrace: trace.length > 0, traceOpen: open, traceIcon: open ? 'expand_less' : 'expand_more', traceTime: `Worked for ${(ms / 1000).toFixed(1)}s`,
+          traceTools: trace.map(t => t.tool).join(', '), traceSteps: trace.map(t => ({ ...t, dur: t.ms ? (t.ms / 1000).toFixed(1) + 's' : '' })),
+          toggleTrace: () => this.setState(p => ({ traceOpen: { ...p.traceOpen, [m.id]: !open } })),
+          hasSources: (m.citations || []).length > 0, sourcesLabel: `${m.citations.length} source${m.citations.length > 1 ? 's' : ''}`,
+          sources: (m.citations || []).map(c => ({ id: c.id, label: `${c.docTitle} › ${c.sectionHeading}`, onClick: () => this.openCite(m.id + ':' + c.id) })),
+          hasEsc: !!m.escalation, escTicket: m.escalation && m.escalation.ticketId, escLabel: esc2 && esc2.label, escBorder: esc2 && esc2.border, escBg: esc2 && esc2.bg };
+      });
+      out.thinking = !!pend;
+      out.thinkingText = pend ? (pend.step >= 0 ? `is running ${pend.tools[pend.step]}…` : 'is thinking…') : '';
+      out.typingDots = React.createElement('span', { style: { display: 'inline-flex', gap: 3 } }, [0, 1, 2].map(i => React.createElement('span', { key: i, style: { width: 5, height: 5, borderRadius: 3, background: C.i5, animation: `dcdot 1.2s ${i * 0.16}s infinite` } })));
+      out.draft = st.draft; out.onDraft = e => this.setState({ draft: e.target.value });
+      out.onDraftKey = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.send(); } };
+      out.sendDraft = () => this.send(); out.sendBg = st.draft.trim() && !pend ? C.ink : '#94A3B8';
+      out.fmtButtons = [['format_bold', 'Bold'], ['format_italic', 'Italic'], ['link', 'Link'], ['format_list_bulleted', 'List']].map(([icon, t]) => ({ icon, tip: t + ' · coming soon' }));
+      const tabOn = x => ({ border: st.tab === x ? C.ink : 'transparent', color: st.tab === x ? C.ink : C.i5, onClick: () => this.setState({ tab: x }) });
+      out.tabMessages = tabOn('messages'); out.tabCanvas = tabOn('canvas');
+      out.showMessages = st.tab === 'messages'; out.showCanvasTab = st.tab === 'canvas';
+      latest = this.latestCards(msgs);
+      if (!latest.audit && (a.id === 'academic_coach' || !Object.keys(latest).length)) latest = { audit: { card: M.state[s.id].audit, msgId: 'state-' + s.id }, ...latest };
+      out.canvasCards = this.cardsVals(this.latestCards(msgs), reg);
+      out.panelTitle = a.name;
+    }
+    if (r.view === 'channel') {
+      latest = { audit: { card: M.state[s.id].audit, msgId: 'state-' + s.id } };
+      out.circulars = M.docs.filter(d => d.kind === 'circular').sort((x, y) => x.effectiveDate.localeCompare(y.effectiveDate))
+        .map(d => ({ title: d.title, effective: fmtDate(d.effectiveDate), text: d.sections[0].text, affects: (d.affects || []).includes(s.id), onClick: () => this.go('/files/' + d.id) }));
+      out.panelTitle = 'Your audit';
+    }
+    out.showPanel = (r.view === 'dm' || r.view === 'channel') && st.panelOpen;
+    out.panelClosed = !st.panelOpen;
+    out.panelCards = this.cardsVals(latest, reg);
+
+    // Files
+    const docIcon = d => ({ document: 'description', circular: 'campaign', canvas: 'dashboard' }[d.kind]);
+    if (r.view === 'files') {
+      const f = st.filesFilter;
+      out.filesTitle = { all: 'All files', document: 'Documents', canvas: 'Canvases' }[f];
+      out.fileChips = [['all', 'All'], ['document', 'Documents'], ['canvas', 'Canvases']].map(([id, label]) => ({ label, bg: f === id ? C.ink : '#fff', color: f === id ? '#fff' : C.ink, border: f === id ? C.ink : C.i2, onClick: () => this.setState({ filesFilter: id }) }));
+      out.fileRows = M.docs.filter(d => f === 'all' || (f === 'canvas' ? d.kind === 'canvas' : d.kind !== 'canvas'))
+        .map(d => ({ title: d.title, icon: docIcon(d), connector: d.kind === 'canvas' ? 'Canvas · ' + d.connector : d.connector, synthetic: !!d.synthetic,
+          hasEffective: !!d.effectiveDate, effective: d.effectiveDate && fmtDate(d.effectiveDate), updated: fmtDate(d.updatedAt), onClick: () => this.go('/files/' + d.id) }));
+    }
+    if (r.view === 'doc') {
+      const d = M.docs.find(x => x.id === r.id) || M.docs[0];
+      const doc = { title: d.title, icon: docIcon(d), kindLabel: { document: 'Documents', circular: 'Circulars', canvas: 'Canvases' }[d.kind], connector: d.connector, synthetic: !!d.synthetic,
+        hasEffective: !!d.effectiveDate, effective: d.effectiveDate && fmtDate(d.effectiveDate), updated: fmtDate(d.updatedAt), isCanvas: d.kind === 'canvas', isText: d.kind !== 'canvas' };
+      if (doc.isCanvas) {
+        let lc = this.latestCards(th[d.sourceAgent]);
+        let pick = lc[d.cardType];
+        if (!pick && d.cardType === 'audit') pick = { card: M.state[s.id].audit, msgId: 'state-' + s.id };
+        doc.cards = this.cardsVals(pick ? { [d.cardType]: pick } : {}, reg);
+        doc.canvasEmpty = !pick; doc.cards.empty = false;
+        doc.canvasEmptyText = `No canvas yet — ask ${agentById(d.sourceAgent).name} to create one.`;
+      } else {
+        const hit = r.sec;
+        const quotes = Object.values(cites).filter(c => c.docId === d.id);
+        doc.outline = d.sections.map(x => ({ heading: x.heading, bg: x.id === hit ? C.s2 : 'transparent', weight: x.id === hit ? 700 : 400, onClick: () => this.go(`/files/${d.id}/${x.id}`) }));
+        doc.sections = d.sections.map(x => {
+          let h = esc(x.text);
+          if (x.id === hit) { const qq = quotes.find(c => c.sectionId === x.id); if (qq) h = h.replace(esc(qq.quote), `<mark style="background:#CFFAFE;color:inherit;border-radius:3px;padding:1px 2px">${esc(qq.quote)}</mark>`); }
+          return { domId: 'sec-' + x.id, heading: x.heading, html: { __html: h }, bg: x.id === hit ? '#ECFEFF' : '#fff', border: x.id === hit ? C.cyan : 'transparent' };
+        });
+      }
+      out.doc = doc; out.backToFiles = () => this.go('/files');
+    }
+
+    // Agents
+    if (r.view === 'agents') {
+      const tabOn = x => ({ border: st.agentsTab === x ? C.ink : 'transparent', color: st.agentsTab === x ? C.ink : C.i5, onClick: () => this.setState({ agentsTab: x }) });
+      out.tabAgents = tabOn('agents'); out.tabConnectors = tabOn('connectors');
+      out.showAgentCards = st.agentsTab === 'agents'; out.showConnectors = st.agentsTab === 'connectors';
+      out.agentCards = M.agents.map(a => ({ ...a, scope: a.scope.map(x => ({ label: x.label, onClick: () => this.go('/files/' + x.docId) })), open: () => { this.setState({ rail: 'home' }); this.go('/dm/' + a.id); } }));
+      const B = { synthetic: { label: 'Synthetic', badgeBorder: C.cyan, badgeBg: '#fff', badgeColor: C.ink, badgeDot: C.cyan },
+        connected: { label: 'Connected', badgeBorder: C.ok, badgeBg: '#ECFDF5', badgeColor: C.ink, badgeDot: C.ok },
+        available: { label: 'Available', badgeBorder: C.i2, badgeBg: C.s2, badgeColor: C.i5, badgeDot: '#94A3B8' } };
+      out.connectors = M.connectors.map(c => ({ ...c, ...B[c.status], isAvailable: c.status === 'available' }));
+    }
+
+    // Advisor
+    if (isAdv) {
+      const selId = st.advisorSel || (st.tickets.find(t => t.status === 'open') || st.tickets[0] || {}).id;
+      out.tickets = st.tickets.map(t => {
+        const stu = M.students.find(x => x.id === t.studentId), ag = agentById(t.agentId), sp = statusPill(t.status), on = t.id === selId;
+        return { ...t, studentName: stu.name, initials: stu.initials, program: `${stu.program} · Sem ${stu.semester}`, agentName: ag.name, agentEmoji: ag.emoji, age: age(t.createdAt),
+          statusLabel: sp.label, pillBorder: sp.border, pillBg: sp.bg, bg: on ? C.i7 : 'transparent', nameColor: on ? C.cyan : '#fff',
+          onClick: () => this.setState({ advisorSel: t.id, advisorDraft: '' }) };
+      });
+      const t = out.tickets.find(x => x.id === selId);
+      out.hasTicket = !!t; out.noTicket = !t;
+      if (t) out.ticket = { ...t, isOpen: t.status === 'open', isAnswered: t.status === 'answered', answeredTime: t.answeredAt ? fmtTime(t.answeredAt) : '',
+        replyPlaceholder: `Reply to ${t.studentName.split(' ')[0]}…`, cites: (t.citations || []).map(c => reg(`ticket-${t.id}:${c.id}`, c)) };
+      out.advisorDraft = st.advisorDraft; out.onAdvisorDraft = e => this.setState({ advisorDraft: e.target.value });
+      const sendAdv = () => { const txt = st.advisorDraft.trim(); if (!txt || !t) return;
+        this.setState(p => ({ advisorDraft: '', tickets: p.tickets.map(x => x.id === t.id ? { ...x, status: 'answered', reply: txt, answeredAt: new Date().toISOString() } : x) })); };
+      out.advisorSend = sendAdv; out.onAdvisorKey = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdv(); } };
+    }
+
+    // Panel mode + citation viewer
+    const cv = st.panelMode === 'citation' && cites[st.cite];
+    out.panelCitation = !st.loading && !!cv; out.panelContext = !st.loading && !cv;
+    out.panelSub = cv ? '' : 'Context';
+    if (cv) {
+      out.panelTitle = 'Citation';
+      const d = M.docs.find(x => x.id === cv.docId), sec = d && d.sections.find(x => x.id === cv.sectionId);
+      const text = esc(sec ? sec.text : cv.quote);
+      out.citeView = { ...cv, html: { __html: text.replace(esc(cv.quote), `<mark id="cite-mark" style="background:#CFFAFE;color:inherit;border-radius:3px;padding:1px 2px">${esc(cv.quote)}</mark>`) },
+        open: () => this.go(`/files/${cv.docId}/${cv.sectionId}`) };
+    }
+    out.panelBack = () => this.setState({ panelMode: 'context' });
+
+    // Overlays
+    const pc = st.pop && cites[st.pop.key];
+    out.pop = pc ? { show: true, x: st.pop.x + 'px', y: st.pop.y + 'px', transform: st.pop.up ? 'translateY(-100%)' : 'none', title: `${pc.docTitle} › ${pc.sectionHeading}`, quote: pc.quote } : { show: false };
+    out.tip = st.tip ? { show: true, text: st.tip.text, x: st.tip.x + 'px', y: st.tip.y + 'px' } : { show: false };
+    return out;
+  }
+}
+</script>
+</body>
+</html>

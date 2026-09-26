@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:grid;grid-template-columns:{{ cols }};gap:12px;align-items:start;font-family:Lato,system-ui,sans-serif;color:#0F172A">
+  <sc-if value="{{ cards.empty }}">
+    <div style="padding:24px 8px;text-align:center;color:#475569;font-size:13px;line-height:20px">Context from this conversation appears here — audits, plans, courses and sources.</div>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasAudit }}" hint-placeholder-val="{{ true }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Degree audit</span>
+        <span style="font-size:12px;color:#475569">{{ cards.audit.units }}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;line-height:21px;text-wrap:pretty">{{ cards.audit.headline }}</div>
+      <sc-for list="{{ cards.audit.buckets }}" as="b" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px">
+            <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:{{ b.color }}"></span>{{ b.name }}</span>
+            <span style="color:#475569"><b style="color:#0F172A">{{ b.label }}</b> · {{ b.statusLabel }}</span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:#E2E8F0;overflow:hidden"><div style="height:100%;border-radius:3px;width:{{ b.pct }};background:{{ b.color }}"></div></div>
+          <sc-if value="{{ b.hasNote }}">
+            <div style="display:flex;gap:8px;align-items:flex-start;background:#fff;border:1px solid #E2E8F0;border-radius:6px;padding:8px 10px;font-size:13px;line-height:19px">
+              <span style="font-family:'Material Symbols Rounded';font-size:16px;line-height:19px;width:16px;overflow:hidden;flex:none;color:{{ b.color }}">info</span>
+              <span style="flex:1">{{ b.note }}</span>
+              <span style="display:flex;gap:4px;flex:none">
+                <sc-for list="{{ b.cites }}" as="c"><span data-cite="{{ c.key }}" style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:9px;background:#ECFEFF;border:1px solid #22D3EE;font-size:11px;font-weight:700;cursor:pointer">{{ c.label }}</span></sc-for>
+              </span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ cards.audit.hasPrereqs }}">
+        <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #E2E8F0;padding-top:10px">
+          <span style="font-size:12px;font-weight:700;color:#0F172A;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:#EF4444"></span>Unmet prerequisites</span>
+          <sc-for list="{{ cards.audit.prereqs }}" as="p">
+            <div style="font-size:13px;line-height:19px;padding-left:14px"><b>{{ p.course }}</b> <span style="color:#475569">needs {{ p.needs }}</span></div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasWeak }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Weak topics · by impact</span>
+      <sc-for list="{{ cards.weak }}" as="t" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span><span style="color:#475569">{{ t.course }} ·</span> <b>{{ t.topic }}</b></span><b>{{ t.scoreLabel }}</b></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:4px;border-radius:2px;background:#E2E8F0;overflow:hidden"><div style="height:100%;width:{{ t.impactPct }};background:#0F172A"></div></div>
+            <span style="font-size:11px;color:#475569;flex:none">{{ t.weightLabel }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasPlan }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Study plan</span>
+        <span style="font-size:12px;color:#475569">{{ cards.plan.title }}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <sc-for list="{{ cards.plan.weeks }}" as="w"><button onClick="{{ w.onClick }}" style="height:26px;padding:0 12px;border-radius:13px;border:1px solid {{ w.border }};background:{{ w.bg }};color:{{ w.color }};font-size:12px;font-weight:700;cursor:pointer">{{ w.label }}</button></sc-for>
+      </div>
+      <sc-for list="{{ cards.plan.blocks }}" as="k" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;padding:8px 0;border-top:1px solid #E2E8F0;font-size:13px;line-height:19px">
+          <span style="font-weight:700;color:#475569">{{ k.day }}</span>
+          <span style="display:flex;flex-direction:column;gap:2px"><b>{{ k.title }}</b><span style="color:#475569;font-size:12px">{{ k.why }}</span></span>
+          <span style="color:#475569;font-size:12px">{{ k.mins }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasCourses }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569;margin-bottom:6px">Courses</span>
+      <sc-for list="{{ cards.courses }}" as="c" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:5px;padding:9px 0;border-top:1px solid #E2E8F0">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span><b>{{ c.code }}</b> {{ c.title }}</span><span style="color:#475569;flex:none">{{ c.creditsLabel }}</span></div>
+          <div style="font-size:12px;color:#475569">{{ c.slot }} · {{ c.faculty }}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:10px;border:1px solid #E2E8F0;background:#fff">fills: {{ c.fills }}</span>
+            <sc-if value="{{ c.hasClash }}"><span style="font-size:11px;height:20px;display:inline-flex;align-items:center;gap:4px;padding:0 8px;border-radius:10px;border:1px solid #EF4444;background:#fff"><span style="font-family:'Material Symbols Rounded';font-size:13px;width:13px;overflow:hidden;color:#EF4444">warning</span>{{ c.clash }}</span></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasSkills }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Skills gap</span></div>
+      <div style="font-size:15px;font-weight:700">{{ cards.skills.role }}</div>
+      <sc-for list="{{ cards.skills.groups }}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:{{ g.color }}"></span>{{ g.title }} <span style="color:#475569;font-weight:400">{{ g.count }}</span></span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:14px">
+            <sc-for list="{{ g.items }}" as="it"><span style="font-size:12px;height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:11px;background:#fff;border:1px solid {{ g.color }}">{{ it }}</span></sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasPicks }}">
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Picks for you</span>
+      <sc-for list="{{ cards.picks }}" as="p" hint-placeholder-count="3">
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#475569;border:1px solid #E2E8F0;background:#fff;border-radius:4px;padding:2px 6px">{{ p.kind }}</span>
+            <sc-if value="{{ p.wildcard }}"><span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#0F172A;background:#22D3EE;border-radius:4px;padding:2px 6px">Wildcard</span></sc-if>
+          </div>
+          <b style="font-size:14px">{{ p.name }}</b>
+          <span style="font-size:12px;color:#475569">{{ p.when }}</span>
+          <span style="font-size:13px;line-height:19px">{{ p.why }}</span>
+          <span style="font-size:13px;line-height:19px;font-style:italic;color:#475569">{{ p.anecdote }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasRes }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:2px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569;margin-bottom:6px">Resources</span>
+      <sc-for list="{{ cards.resources }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #E2E8F0">
+          <span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:20px;width:18px;overflow:hidden;flex:none;color:#475569">{{ r.icon }}</span>
+          <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:19px;min-width:0">
+            <b>{{ r.name }}</b>
+            <span style="color:#475569;font-size:12px"><sc-if value="{{ r.hasCourse }}">{{ r.forCourse }} · </sc-if>{{ r.where }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ cards.hasRel }}">
+    <section style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#475569">Make it relevant · {{ cards.rel.concept }}</span>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;font-size:13px;line-height:19px">
+        <div style="display:flex;flex-direction:column;gap:6px"><b>Standard</b><sc-for list="{{ cards.rel.standard }}" as="x"><span style="color:#475569">{{ x }}</span></sc-for></div>
+        <div style="display:flex;flex-direction:column;gap:6px;border-left:1px solid #E2E8F0;padding-left:12px"><b>{{ cards.rel.throughLabel }}</b><sc-for list="{{ cards.rel.through }}" as="x"><span>{{ x }}</span></sc-for></div>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:380,&quot;height&quot;:700},&quot;cards&quot;:{&quot;editor&quot;:null,&quot;default&quot;:{},&quot;tsType&quot;:&quot;object&quot;},&quot;cols&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;1fr&quot;,&quot;tsType&quot;:&quot;string&quot;}}"></script>
+</body>
+</html>
