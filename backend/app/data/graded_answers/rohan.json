@@ -1,0 +1,159 @@
+{
+  "connectorId": "exam_system",
+  "rows": [
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q1a",
+      "topic": "Relational model",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: identified {rollNo} and {email} as the candidate keys and explained why {rollNo, hostel} is only a superkey.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q1b",
+      "topic": "Relational model",
+      "scored": 3,
+      "max": 4,
+      "rubricFeedback": "Mapped every entity and relationship correctly but drew the foreign-key arrow from Enrolment to Course without naming the referencing attribute courseId.",
+      "gapTag": "diagram-unlabelled",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q2a",
+      "topic": "Relational algebra",
+      "scored": 2,
+      "max": 3,
+      "rubricFeedback": "Wrote a correct expression but did not show the relation it produces on the sample instance, which the question asked for.",
+      "gapTag": "working-not-shown",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q2b",
+      "topic": "Relational algebra",
+      "scored": 3,
+      "max": 3,
+      "rubricFeedback": "Full marks: pushed σ dept = 'CS' below the Student ⋈ Enrolment join and justified it by the predicate using only Student's attributes.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3a",
+      "topic": "Functional dependencies",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: derived A → D in two justified transitivity steps, A → C from A → B and B → C, then A → D from C → D.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3b",
+      "topic": "Functional dependencies",
+      "scored": 1,
+      "max": 2,
+      "rubricFeedback": "Wrote {B}+ = {B, C}, missing D because C → D was never applied after B → C had added C.",
+      "gapTag": "closure-incomplete",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3c",
+      "topic": "Functional dependencies",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: listed AE, BE, CE and DE as the candidate keys and noted that E is in every key because no dependency derives it.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q1a",
+      "topic": "Process states",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: gave the timer interrupt for Running → Ready, an I/O request for Running → Waiting and process exit for Running → Terminated.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q1b",
+      "topic": "Process states",
+      "scored": 3,
+      "max": 4,
+      "rubricFeedback": "Drew every state and arc of the five-state model but left the admit and exit arcs unlabelled, losing the mark for naming each transition.",
+      "gapTag": "diagram-unlabelled",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q2a",
+      "topic": "Threads",
+      "scored": 3,
+      "max": 3,
+      "rubricFeedback": "Full marks: separated per-thread state (stack, registers, program counter) from process-wide state (heap, globals, open files).",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q2b",
+      "topic": "Threads",
+      "scored": 2,
+      "max": 3,
+      "rubricFeedback": "Said a blocking read stalls the whole process without stating that this holds only for the many-to-one threading model, which the question left open.",
+      "gapTag": "assumption-not-stated",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3a",
+      "topic": "Context switching",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: saved state to the outgoing PCB, ran the scheduler, restored the incoming PCB and noted that a system call alone is only a mode switch.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3b",
+      "topic": "Context switching",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: computed the switching overhead as 0.5 / (10 + 0.5), about 4.8 percent of CPU time.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3c",
+      "topic": "Context switching",
+      "scored": 1,
+      "max": 2,
+      "rubricFeedback": "Stated that halving the quantum roughly doubles the overhead but gave no 0.5 / 5.5 calculation to support it, so the method mark was withheld.",
+      "gapTag": "working-not-shown",
+      "date": "2026-09-10"
+    }
+  ]
+}

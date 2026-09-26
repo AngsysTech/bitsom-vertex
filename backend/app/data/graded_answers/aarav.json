@@ -1,0 +1,159 @@
+{
+  "connectorId": "exam_system",
+  "rows": [
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q1a",
+      "topic": "Relational model",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: showed that {rollNo} and {email} are both candidate keys and that {rollNo, name} is a superkey but not a minimal one.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q1b",
+      "topic": "Relational model",
+      "scored": 3,
+      "max": 4,
+      "rubricFeedback": "Mapped Advises into Student as an advisorId column, which is only valid if every student has exactly one advisor, and never stated that cardinality assumption.",
+      "gapTag": "assumption-not-stated",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q2a",
+      "topic": "Relational algebra",
+      "scored": 3,
+      "max": 3,
+      "rubricFeedback": "Full marks: π name(σ courseId = 'CS F212'(Student ⋈ Enrolment)) returns exactly the names of the students enrolled in CS F212.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q2b",
+      "topic": "Relational algebra",
+      "scored": 2,
+      "max": 3,
+      "rubricFeedback": "Pushed σ dept = 'CS' below the join correctly but gave only the final tree, without the equivalence rule behind each rewrite, so the justification mark was withheld.",
+      "gapTag": "working-not-shown",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3a",
+      "topic": "Functional dependencies",
+      "scored": 1,
+      "max": 2,
+      "rubricFeedback": "Derived A → D correctly but cited transitivity only once, although getting there from A → B, B → C and C → D takes two transitivity steps, so the second justification mark was withheld.",
+      "gapTag": "working-not-shown",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3b",
+      "topic": "Functional dependencies",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: computed {B}+ = {B, C, D} and showed the order in which B → C and C → D were applied.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3c",
+      "topic": "Functional dependencies",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: found all four candidate keys AE, BE, CE and DE and used closures to show that none of them contains a smaller key.",
+      "gapTag": "none",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q1a",
+      "topic": "Process states",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: named Running → Ready on a timer interrupt, Running → Waiting on an I/O request and Running → Terminated on exit.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q1b",
+      "topic": "Process states",
+      "scored": 3,
+      "max": 4,
+      "rubricFeedback": "Drew all five states and every transition but left the Waiting → Ready arc without its trigger, I/O completion, and the rubric marks each arc's label.",
+      "gapTag": "diagram-unlabelled",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q2a",
+      "topic": "Threads",
+      "scored": 2,
+      "max": 3,
+      "rubricFeedback": "Listed the heap as private to each thread, but the heap and global variables are shared across the process and only the stack, registers and program counter are per-thread.",
+      "gapTag": "thread-shared-vs-private-state-confused",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q2b",
+      "topic": "Threads",
+      "scored": 3,
+      "max": 3,
+      "rubricFeedback": "Full marks: explained that one blocking call in a many-to-one user-level library stalls every thread of the process and that one-to-one kernel threads avoid it.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3a",
+      "topic": "Context switching",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: listed saving the outgoing registers and program counter to its PCB, choosing the next process and restoring that process's saved state.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3b",
+      "topic": "Context switching",
+      "scored": 1,
+      "max": 2,
+      "rubricFeedback": "Computed 0.5 / 10.5 correctly but reported the bare number 0.048 without saying it is the fraction of CPU time lost to switching.",
+      "gapTag": "units-omitted",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3c",
+      "topic": "Context switching",
+      "scored": 2,
+      "max": 2,
+      "rubricFeedback": "Full marks: showed that halving the quantum to 5 ms raises the overhead to 0.5 / 5.5, about 9.1 percent, roughly double.",
+      "gapTag": "none",
+      "date": "2026-09-10"
+    }
+  ]
+}

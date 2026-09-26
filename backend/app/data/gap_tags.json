@@ -1,0 +1,101 @@
+{
+  "connectorId": "exam_system",
+  "note": "Rubric gap vocabulary of the synthetic Smart Exam grading system. kind: concept = the idea was missing or wrong; presentation = the idea was right but a method, label, unit or stated-assumption mark was lost; none = full marks.",
+  "tags": [
+    {
+      "tag": "none",
+      "kind": "none",
+      "label": "No gap: full marks on this question"
+    },
+    {
+      "tag": "foreign-key-not-declared",
+      "kind": "concept",
+      "label": "Foreign key to the referenced relation never declared"
+    },
+    {
+      "tag": "selection-not-pushed-down",
+      "kind": "concept",
+      "label": "Selection left above the join instead of pushed below it"
+    },
+    {
+      "tag": "closure-incomplete",
+      "kind": "concept",
+      "label": "Attribute closure stopped before every dependency in the chain was applied"
+    },
+    {
+      "tag": "partial-dependency-missed",
+      "kind": "concept",
+      "label": "Partial dependency on part of the key missed, so 2NF was misjudged"
+    },
+    {
+      "tag": "transitive-dependency-not-removed",
+      "kind": "concept",
+      "label": "Transitive dependency left in 3NF decomposition"
+    },
+    {
+      "tag": "bcnf-vs-3nf-confused",
+      "kind": "concept",
+      "label": "3NF's prime-attribute exception taken as proof of BCNF"
+    },
+    {
+      "tag": "split-propagation-missed",
+      "kind": "concept",
+      "label": "B+ tree leaf split not propagated to the full parent"
+    },
+    {
+      "tag": "leaf-chain-range-scan-missed",
+      "kind": "concept",
+      "label": "Range query answered by repeated searches instead of walking the linked leaves"
+    },
+    {
+      "tag": "ready-state-skipped-after-io",
+      "kind": "concept",
+      "label": "I/O completion drawn as Waiting → Running instead of returning to Ready"
+    },
+    {
+      "tag": "thread-shared-vs-private-state-confused",
+      "kind": "concept",
+      "label": "Process-wide state (heap, globals, open files) listed as private to a thread"
+    },
+    {
+      "tag": "mode-switch-vs-context-switch-confused",
+      "kind": "concept",
+      "label": "System-call mode switch counted as a process context switch"
+    },
+    {
+      "tag": "waiting-vs-turnaround-confused",
+      "kind": "concept",
+      "label": "Turnaround time reported as waiting time"
+    },
+    {
+      "tag": "rr-quantum-context-switch-ignored",
+      "kind": "concept",
+      "label": "Round Robin schedule ignores the context-switch cost between quanta"
+    },
+    {
+      "tag": "srtf-preemption-missed",
+      "kind": "concept",
+      "label": "Preemptive SJF (SRTF) scheduled as non-preemptive"
+    },
+    {
+      "tag": "working-not-shown",
+      "kind": "presentation",
+      "label": "Right answer, but the steps the rubric awards were not written out"
+    },
+    {
+      "tag": "assumption-not-stated",
+      "kind": "presentation",
+      "label": "Answer depends on an assumption that was never stated"
+    },
+    {
+      "tag": "diagram-unlabelled",
+      "kind": "presentation",
+      "label": "Diagram correct, but arcs or keys left unlabelled"
+    },
+    {
+      "tag": "units-omitted",
+      "kind": "presentation",
+      "label": "Number given without its unit or what it measures"
+    }
+  ]
+}

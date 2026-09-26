@@ -1,0 +1,159 @@
+{
+  "connectorId": "exam_system",
+  "rows": [
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q1",
+      "topic": "Relational model",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Chose correct primary keys for Student, Course and Enrolment but never declared Enrolment.courseId as a foreign key referencing Course, so the referential-integrity mark was lost.",
+      "gapTag": "foreign-key-not-declared",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q2",
+      "topic": "Relational algebra",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Produced a correct expression, but σ dept = 'CS' stayed above the Student ⋈ Enrolment join instead of being pushed below it as the optimised form required.",
+      "gapTag": "selection-not-pushed-down",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q3",
+      "topic": "Functional dependencies",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Computed {B}+ as {B, C} and stopped before applying C → D, so D was missing from the closure.",
+      "gapTag": "closure-incomplete",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q4a",
+      "topic": "Normalization",
+      "scored": 2,
+      "max": 4,
+      "rubricFeedback": "Took {studentId, courseId} as the key but missed the partial dependency studentId → studentName, so the relation was placed in 2NF when it is only in 1NF.",
+      "gapTag": "partial-dependency-missed",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q4b",
+      "topic": "Normalization",
+      "scored": 1,
+      "max": 4,
+      "rubricFeedback": "Decomposed into R1(studentId, courseId, grade) and R2(studentId, studentName, advisorId, advisorOffice), leaving the transitive dependency studentId → advisorId → advisorOffice inside R2, so the result is not in 3NF.",
+      "gapTag": "transitive-dependency-not-removed",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q4c",
+      "topic": "Normalization",
+      "scored": 1,
+      "max": 4,
+      "rubricFeedback": "Called Teaches(student, course, instructor) BCNF because every attribute is prime, but instructor → course has a determinant that is not a superkey, which 3NF allows and BCNF does not.",
+      "gapTag": "bcnf-vs-3nf-confused",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q5a",
+      "topic": "B+ trees",
+      "scored": 2,
+      "max": 6,
+      "rubricFeedback": "Split the overflowing leaf when 42 was inserted but did not copy the new separator key up into the already-full parent, so the parent split and the new root were missing from the final tree.",
+      "gapTag": "split-propagation-missed",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F212",
+      "exam": "Mid-sem",
+      "question": "Q5b",
+      "topic": "B+ trees",
+      "scored": 1,
+      "max": 4,
+      "rubricFeedback": "Answered the range query 20 ≤ key ≤ 45 with a separate root-to-leaf search for every key instead of one search for 20 followed by a walk along the linked leaf level.",
+      "gapTag": "leaf-chain-range-scan-missed",
+      "date": "2026-09-08"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q1",
+      "topic": "Process states",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Drew the five-state diagram with an arc straight from Waiting to Running, but a process whose I/O completes goes back to Ready and has to be dispatched again.",
+      "gapTag": "ready-state-skipped-after-io",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q2",
+      "topic": "Threads",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Listed the open-file table as private to each thread, but open files, the heap and global variables are shared by every thread of the process.",
+      "gapTag": "thread-shared-vs-private-state-confused",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q3",
+      "topic": "Context switching",
+      "scored": 5,
+      "max": 6,
+      "rubricFeedback": "Counted every system call as a context switch, but a system call is a user-to-kernel mode switch within the same process unless the scheduler then picks a different process.",
+      "gapTag": "mode-switch-vs-context-switch-confused",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q4a",
+      "topic": "CPU scheduling",
+      "scored": 3,
+      "max": 4,
+      "rubricFeedback": "Built the FCFS Gantt chart correctly but filled the waiting-time column with turnaround times (completion minus arrival), so the average waiting time was overstated.",
+      "gapTag": "waiting-vs-turnaround-confused",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q4b",
+      "topic": "CPU scheduling",
+      "scored": 1,
+      "max": 6,
+      "rubricFeedback": "Drew the Round Robin Gantt chart with the 4 ms quantum but added no 1 ms context-switch slot between slices, so every completion time after the first slice and the average turnaround time came out too low.",
+      "gapTag": "rr-quantum-context-switch-ignored",
+      "date": "2026-09-10"
+    },
+    {
+      "courseCode": "CS F372",
+      "exam": "Mid-sem",
+      "question": "Q4c",
+      "topic": "CPU scheduling",
+      "scored": 1,
+      "max": 4,
+      "rubricFeedback": "Ran SJF non-preemptively although the question asked for SRTF, so P2 (2 ms burst, arriving at t = 1) never preempted P1 and every later start time was wrong.",
+      "gapTag": "srtf-preemption-missed",
+      "date": "2026-09-10"
+    }
+  ]
+}
