@@ -95,12 +95,26 @@ no study block is placed on those days. No time is invented.
 
 ### Endpoints
 
-`POST /chat {studentId, agentId: "academic_coach", text}` · `POST /calendar/items/:id/status {status}` ·
+`POST /chat {studentId, agentId: "academic_coach", text, courseCode?}` · `POST /calendar/items/:id/status {status}` ·
 `GET /one-on-one/:studentId/current` · `POST /one-on-one/:id/answer {questionId, answer}` ·
 `POST /one-on-one/:id/complete {shareWithAdvisor}` · `GET /advisor/inbox` · `POST /advisor/reply {ticketId, text}` ·
-`GET /documents/:docId` · `GET /documents/:docId/sections/:secId`.
-Not in contracts §10: `POST /students/:id/diagnose` and `POST /students/:id/plan` (tool
-endpoints; return `{card, citations, trace}`) and the demo fixture below.
+`GET /documents/:docId` · `GET /documents/:docId/sections/:secId` ·
+`POST /students/:id/diagnose` (→ WeakTopicsCard) · `POST /students/:id/plan` (→ StudyPlanCard) ·
+`POST /relevant {studentId, interest?, source}` · `GET /relevant/:studentId`.
+
+Workspace boot reads (`app/workspace.py`, `app/api/workspace.py`): `GET /students` · `GET /workspace/:id` ·
+`GET /classes/:id` · `GET /students/:id/state` (weak topics computed on first load; no audit yet) ·
+`GET /students/:id/records` · `GET /files/:id` · `GET /connectors`.
+
+**Class channels.** `POST /chat` with `courseCode` writes to the thread `<sid>:class:<courseCode>`
+and scopes the coach, in code, to that course's syllabus, exam-calendar entry, past papers and
+catalog entry (`core/scope.class_sections`, `prompts/academic_coach_class_route.md`). Anything
+about other courses or program rules gets "ask me in my DM"; a class channel never opens tickets.
+
+**Make it Relevant** (`tools/relevant.py`, `prompts/make_it_relevant.md`). Code resolves the
+source (handout section, plan block, weak topic, graded-answer gap) to its concept, course,
+facts and citations; one LLM call writes `standard` and `reframed` from those facts only. Use it on
+a handout section: the synthetic syllabus text is generic, so a bare weak-topic card can say little.
 
 ### Demo setup step (disclosed): simulate a week
 
