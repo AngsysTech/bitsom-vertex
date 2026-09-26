@@ -17,6 +17,7 @@ from app.tools import calendar as cal
 from app.tools import diagnose as dx
 from app.tools import lookback
 from app.tools import plan as planner
+from app.tools import relevant
 
 router = APIRouter()
 
@@ -114,6 +115,21 @@ async def one_on_one_complete(one_id: str, request: Request) -> dict[str, Any]:
 def simulate_week(student_id: str) -> dict[str, Any]:
     with _errors():
         return lookback.simulate_week(student_id)
+
+
+# ---- Make it Relevant ------------------------------------------------------------------
+
+@router.post("/relevant")
+async def make_relevant(request: Request) -> dict[str, Any]:
+    body = await _body(request)
+    with _errors():
+        return relevant.make(str(body.get("studentId") or ""), body.get("source"), body.get("interest"))
+
+
+@router.get("/relevant/{student_id}")
+def relevant_history(student_id: str) -> list[dict[str, Any]]:
+    with _errors():
+        return relevant.history(student_id)
 
 
 # ---- advisor ---------------------------------------------------------------------------

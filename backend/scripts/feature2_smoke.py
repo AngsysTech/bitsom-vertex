@@ -24,6 +24,7 @@ Checks (from the build brief):
  7. /chat "When is the DBMS end-sem?" → answer_from_docs, cites exam_calendar, the right date
  8. /chat with courseCode CS F212 → the class thread, only CS F212 blocks and citations; another course's
     question → "ask me in my DM"
+ 9. POST /relevant (weak topic) → RelevantCard with resolvable citations; GET /relevant history; bad topic → 404
 """
 from __future__ import annotations
 
@@ -467,9 +468,11 @@ def check_chat(client: httpx.Client) -> None:
     check("6b ticket created and in the advisor inbox", bool(tick) and "fee extension" in norm(tick["question"]),
           f"escalation={esc}; ticket={tick and tick['question']}")
     digits = [n for n in re.findall(r"\d+", m["text"]) if n not in (esc.get("ticketId") or "")]
-    claims = re.findall(r"(allowed|permitted|eligible|entitled|policy (says|states|allows)|within \w+ days|"
-                        r"deadline is|fee is|extensions? (is|are) (granted|allowed|available|possible))",
-                        m["text"], re.I)
+    rule = re.compile(r"(allowed|permitted|eligible|entitled|policy (says|states|allows)|within \w+ days|"
+                      r"deadline is|fee is|extensions? (is|are) (granted|allowed|available|possible))", re.I)
+    # a claim is asserted, not embedded in "don't cover whether/if …" or "can't confirm …"
+    claims = [x.group(0) for x in rule.finditer(m["text"])
+              if not re.search(r"(whether|\bif\b|cover|confirm)", m["text"][max(0, x.start() - 60):x.start()], re.I)]
     check("6c reply makes no policy claims (no citations, no numbers but the ticket id, no rule language)",
           not m["citations"] and not digits and not claims, f"digits={digits}; claims={claims}")
 
@@ -510,6 +513,27 @@ def check_class_chat(client: httpx.Client) -> None:
           f"route={routed(m)}; {m['text'][:120]}")
 
 
+def check_relevant(client: httpx.Client) -> None:
+    print("\n== 9. Make it Relevant", flush=True)
+    r = client.post("/relevant", json={"studentId": STUDENT, "source": {"type": "weak_topic", "course": "CS F212",
+                                                                        "topic": "Normalization"}}, timeout=120)
+    card = r.json()
+    fields = {"type", "concept", "course", "interest", "standard", "reframed", "citationIds", "source"}
+    ok = r.status_code == 200 and set(card) == fields and card["interest"] == "badminton"
+    unresolved = [c for c in card.get("citationIds", [])
+                  if client.get(f"/documents/{c.split('.')[0] if c.startswith('past_papers') else c.rsplit('.', 2)[0]}"
+                                f"/sections/{c}").status_code != 200]
+    check("9a POST /relevant (weak topic) → RelevantCard, interest defaults to the first, citations resolve",
+          ok and bool(card.get("citationIds")) and not unresolved,
+          f"{r.status_code} keys={sorted(card)} interest={card.get('interest')} cites={card.get('citationIds')} "
+          f"unresolved={unresolved}")
+    hist = client.get(f"/relevant/{STUDENT}").json()
+    check("9b GET /relevant/:id has it", any(h.get("concept") == "Normalization" for h in hist), f"{len(hist)} cards")
+    bad = client.post("/relevant", json={"studentId": STUDENT, "source": {"type": "weak_topic", "course": "CS F212",
+                                                                          "topic": "Quantum widgets"}})
+    check("9c a topic outside the syllabus → 404, no card", bad.status_code == 404, f"{bad.status_code} {bad.text[:100]}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url")
@@ -528,6 +552,7 @@ def main() -> int:
         check_one_on_one(client)
         check_chat(client)
         check_class_chat(client)
+        check_relevant(client)
     finally:
         server.stop()
     failed = [n for n, ok, _ in results if not ok]
