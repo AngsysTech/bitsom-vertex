@@ -1,0 +1,36 @@
+{
+  "_stub": "STUB for companion testing; replace with the generated dataset",
+  "connectorId": "academic_office",
+  "papers": [
+    { "id": "cs-f212-endsem-2023", "courseCode": "CS F212", "exam": "End-sem", "year": 2023, "totalMarks": 100,
+      "topics": [
+        { "topic": "Two-phase locking", "marks": 14 },
+        { "topic": "Conflict serializability and precedence graphs", "marks": 12 },
+        { "topic": "B+ trees", "marks": 10 },
+        { "topic": "Normalization", "marks": 12 },
+        { "topic": "Deadlock detection and prevention", "marks": 8 }
+      ] },
+    { "id": "cs-f212-endsem-2024", "courseCode": "CS F212", "exam": "End-sem", "year": 2024, "totalMarks": 100,
+      "topics": [
+        { "topic": "Two-phase locking", "marks": 18 },
+        { "topic": "Conflict serializability and precedence graphs", "marks": 10 },
+        { "topic": "B+ trees", "marks": 12 },
+        { "topic": "Recoverable and cascadeless schedules", "marks": 6 },
+        { "topic": "Log-based recovery", "marks": 10 }
+      ] },
+    { "id": "cs-f212-endsem-2025", "courseCode": "CS F212", "exam": "End-sem", "year": 2025, "totalMarks": 100,
+      "topics": [
+        { "topic": "Two-phase locking", "marks": 16 },
+        { "topic": "Conflict serializability and precedence graphs", "marks": 14 },
+        { "topic": "ACID properties", "marks": 4 },
+        { "topic": "Hashing", "marks": 8 },
+        { "topic": "Deadlock detection and prevention", "marks": 10 }
+      ] },
+    { "id": "cs-f212-midsem-2025", "courseCode": "CS F212", "exam": "Mid-sem", "year": 2025, "totalMarks": 60,
+      "topics": [
+        { "topic": "SQL queries and joins", "marks": 20 },
+        { "topic": "Normalization", "marks": 15 },
+        { "topic": "Schedules and serializability", "marks": 10 }
+      ] }
+  ]
+}

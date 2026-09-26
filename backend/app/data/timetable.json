@@ -1,0 +1,13 @@
+{
+  "_stub": "STUB for companion testing; replace with the generated dataset",
+  "connectorId": "erp_sap",
+  "timezone": "Asia/Kolkata",
+  "term": { "start": "2026-08-03", "end": "2026-11-27" },
+  "sessions": [
+    { "id": "tt-cs-f212-tue", "courseCode": "CS F212", "title": "Database Systems", "kind": "lecture", "day": "Tue", "start": "11:00", "end": "12:50", "room": "F-105" },
+    { "id": "tt-cs-f211-mon", "courseCode": "CS F211", "title": "Data Structures and Algorithms", "kind": "lecture", "day": "Mon", "start": "09:00", "end": "09:50", "room": "F-102" },
+    { "id": "tt-cs-f211-wed", "courseCode": "CS F211", "title": "Data Structures and Algorithms", "kind": "lecture", "day": "Wed", "start": "09:00", "end": "09:50", "room": "F-102" },
+    { "id": "tt-cs-f213-thu", "courseCode": "CS F213", "title": "Object Oriented Programming", "kind": "lecture", "day": "Thu", "start": "14:00", "end": "15:50", "room": "G-201" },
+    { "id": "tt-cs-f214-fri", "courseCode": "CS F214", "title": "Logic in Computer Science", "kind": "lecture", "day": "Fri", "start": "10:00", "end": "10:50", "room": "F-201" }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "_stub": "STUB for companion testing; replace with the generated dataset",
+  "student": {
+    "id": "meera",
+    "name": "Meera Nair",
+    "program": "B.E. Computer Science",
+    "semester": 5,
+    "careerGoal": "Backend Engineer",
+    "interests": [
+      "music production",
+      "badminton"
+    ],
+    "avatarEmoji": "🎧"
+  },
+  "records": {
+    "studentId": "meera",
+    "transcript": {
+      "connectorId": "erp_sap",
+      "rows": []
+    },
+    "internalMarks": {
+      "connectorId": "lms_moodle",
+      "rows": [
+        {
+          "courseCode": "CS F212",
+          "component": "Quiz 1",
+          "topic": "Schedules and serializability",
+          "scored": 3,
+          "max": 10,
+          "date": "2026-09-08"
+        },
+        {
+          "courseCode": "CS F212",
+          "component": "Quiz 1",
+          "topic": "ACID properties",
+          "scored": 4,
+          "max": 10,
+          "date": "2026-09-08"
+        }
+      ]
+    },
+    "registrations": {
+      "connectorId": "erp_sap",
+      "rows": [
+        {
+          "courseCode": "CS F212",
+          "semester": 5,
+          "status": "registered"
+        },
+        {
+          "courseCode": "CS F211",
+          "semester": 5,
+          "status": "registered"
+        },
+        {
+          "courseCode": "CS F213",
+          "semester": 5,
+          "status": "registered"
+        },
+        {
+          "courseCode": "CS F214",
+          "semester": 5,
+          "status": "registered"
+        }
+      ]
+    }
+  }
+}

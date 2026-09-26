@@ -1,0 +1,10 @@
+{
+  "_stub": "STUB for companion testing; replace with the generated dataset",
+  "connectorId": "academic_office",
+  "exams": [
+    { "id": "cs-f212-quiz2", "courseCode": "CS F212", "kind": "quiz", "component": "Quiz 2", "title": "CS F212 Quiz 2", "date": "2026-10-06", "start": "11:00", "end": "11:30" },
+    { "id": "cs-f212-midsem", "courseCode": "CS F212", "kind": "exam", "component": "Mid-sem", "title": "CS F212 Mid-semester examination", "date": "2026-10-14", "start": "14:00", "end": "15:30" },
+    { "id": "cs-f212-endsem", "courseCode": "CS F212", "kind": "exam", "component": "End-sem", "title": "CS F212 End-semester examination", "date": "2026-12-04", "start": "09:00", "end": "12:00" },
+    { "id": "cs-f211-midsem", "courseCode": "CS F211", "kind": "exam", "component": "Mid-sem", "title": "CS F211 Mid-semester examination", "date": "2026-10-12", "start": "09:00", "end": "10:30" }
+  ]
+}
