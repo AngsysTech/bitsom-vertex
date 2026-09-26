@@ -3,8 +3,8 @@
 Clears one student's demo state so a run starts clean: lectures and everything stored under
 them (transcript, handout, coverage, commitments, trace, markers, uploaded audio), actions,
 the plan (StudentState.plan, plan blocks, block slots, plan meta), stored calendar items and
-their statuses, weekly 1:1s, tickets, the demo clock and interest edits (back to the
-connector's list). Timetable classes and exams are
+their statuses, weekly 1:1s, tickets, Make it Relevant cards, the demo clock and interest edits
+(back to the connector's list). Timetable classes and exams are
 computed from the dataset, so they stay. The student's DM threads are cleared too: their
 cards and escalations point at the lectures and tickets removed here. Records, the dataset
 and other students are never touched. Built 26 Sep 2026 for the demo dry run.
@@ -28,7 +28,7 @@ router = APIRouter()
 # kinds stored with this student's id (every db.put call site passes student_id for these)
 STUDENT_KINDS = ("lecture", "transcript", "handout", "coverage", "commitments", "action", "plan_block",
                  "plan_meta", "block_slot", "calendar_item", "calendar_status", "one_on_one", "ticket",
-                 "clock", "message", "interests")
+                 "clock", "message", "interests", "relevant")
 
 
 def _keys(conn: Any, sql: str, args: list[str]) -> set[tuple[str, str]]:

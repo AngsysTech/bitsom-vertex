@@ -69,7 +69,8 @@ https://www.youtube.com/watch?v=W5FFiI5ALTc · **cut 1:01:22–1:12:23 (11:01)**
 - Stuck tap: **3:20**, the swapping test (*"everyone's eyes are glazing … this probably doesn't make any sense"*).
 - The existing `backend/data/stage/dbms_demo.mp3` (1:02:20–1:17:05) also works: ACID covered, 3 missed, 1 emphasis
   quote, stuck ~2:20, 2PL line 5:04. It is on disk already, so it is the zero-effort fallback.
-- Known nit: the 2PL prep says "Tue 29 Sep, 00:00". It uses CMU's weekday, not CS F212's Mon/Thu slot.
+- Since `4d86dfe`: "on Tuesday next week" resolves to CS F212's next session, so the 2PL prep is due **Thu 01 Oct
+  09:00**. Checked with a real upload of A at 16:52.
 
 ### B. CS F212 · Unit 2 Storage and indexing — CMU 15-445 F23 #08 B+Tree Indexes · CC BY
 https://www.youtube.com/watch?v=5gXn5fLkbM0 · **cut 0:15:22–0:26:19 (10:57)**
