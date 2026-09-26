@@ -1,0 +1,15 @@
+# Python virtualenvs
+/backend_dataset/venv/
+.venv
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
