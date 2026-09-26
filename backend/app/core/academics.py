@@ -310,7 +310,7 @@ MONTHS = ["january", "february", "march", "april", "may", "june", "july", "augus
 
 
 def resolve_when(when: dict[str, Any], course_code: str, lecture_at: datetime, quote: str,
-                 context: str = "") -> tuple[str | None, str]:
+                 context: str = "", *, session: bool = False) -> tuple[str | None, str]:
     """Turn a model-extracted time expression into an ISO date/datetime.
 
     Returns (dueBy or None, how). The expression must be visible in the quote (or,
@@ -356,6 +356,11 @@ def resolve_when(when: dict[str, Any], course_code: str, lecture_at: datetime, q
             return None, "weekday not visible in quote; left empty"
         delta = (idx - lecture_at.weekday()) % 7 or 7
         d = (lecture_at + timedelta(days=delta)).date()
+        s = next_session(course_code, datetime.combine(d, time.min, TZ) - timedelta(minutes=1)) if session else None
+        if s:  # a topic or reading "for Tuesday" is due by this course's session that day, or its first one after
+            how = f"{course_code} session on {s.start:%a %d %b %H:%M}" if s.start.date() == d else \
+                f"the lecturer said {DAYS[idx].title()} ({d:%d %b}); {course_code} next meets {s.start:%a %d %b %H:%M}"
+            return iso(s.start), how
         return d.isoformat(), f"next {DAYS[idx].title()} after the lecture ({d:%d %b})"
     if kind == "exam":
         if not re.search(r"exam|end-?sem|mid-?sem|quiz|compre|test|paper", q):

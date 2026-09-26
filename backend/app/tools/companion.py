@@ -747,7 +747,8 @@ def step_commitments(ctx: Ctx) -> str:
             dropped += 1
             continue
         due, how = (None, "no time said") if c.when.type == "none" else \
-            resolve_when(c.when.model_dump(), lec.courseCode, lecture_at, exact, context=seg[c.segmentId].text)
+            resolve_when(c.when.model_dump(), lec.courseCode, lecture_at, exact, context=seg[c.segmentId].text,
+                         session=c.kind in ("next_lecture_topic", "reading"))
         if c.when.type != "none" and not due:
             unresolved.append(f"{c.kind}: {how}")
         out.append(LectureCommitment(id=f"cm_{lec.id[4:]}_{len(out) + 1}", lectureId=lec.id, kind=c.kind,
@@ -1065,7 +1066,7 @@ def _candidates(ctx: Ctx, needs: dict[str, _Need], exam: Exam | None,
         due_dt = cal.parse_iso(due)
         facts = []
         if due_dt and kind in ("prep", "resource"):
-            facts.append(f"next {course} lecture: {due_dt:%a %d %b, %H:%M}")
+            facts.append(f"{course} lecture: {due_dt:%a %d %b, %H:%M}")  # the one it is due by, not always the next
         elif due_dt and kind == "deadline":
             facts.append(f"due {due_dt:%a %d %b} as said in class")
         prov = {"segmentId": cm.segmentId, "commitmentId": cm.id}
