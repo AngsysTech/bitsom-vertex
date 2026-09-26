@@ -49,7 +49,7 @@ function PlusMenu({ items }: { items: PlusItem[] }) {
         type="button"
         aria-label="Add"
         aria-expanded={open}
-        data-tip={open ? undefined : 'Upload audio or paste a transcript'}
+        data-tip={open ? undefined : items.map((it) => it.label).join(' · ')}
         onClick={() => setOpen(!open)}
         className={cn('flex size-7 cursor-pointer items-center justify-center rounded-full bg-mist text-ink-5 transition-colors hover:bg-line hover:text-ink', open && 'bg-ink text-white hover:bg-ink hover:text-white')}
       >
@@ -141,7 +141,8 @@ export function Composer({ threadKey, placeholder, tools, plus, starters }: { th
           rows={1}
           className="block max-h-[200px] min-h-[38px] w-full resize-none border-none bg-transparent px-3 py-2 text-[15px] leading-[22px] text-ink outline-none placeholder:text-ink-4"
         />
-        <div className="flex items-center gap-1 px-1.5 pb-1.5">
+        {/* A size container, so labelled tools can shorten when the pane is narrow. */}
+        <div className="@container flex items-center gap-1 px-1.5 pb-1.5">
           {plus ? <PlusMenu items={plus} /> : <Soon icon="add" tip="Attach" round />}
           <Soon icon="alternate_email" tip="Mention" />
           {tools && (
@@ -152,7 +153,7 @@ export function Composer({ threadKey, placeholder, tools, plus, starters }: { th
           )}
           <div className="ml-auto flex items-center gap-2.5">
             {draft && (
-              <span className="hidden text-[11px] text-ink-4 sm:inline">
+              <span className={cn('hidden text-[11px] whitespace-nowrap text-ink-4', tools ? '@2xl:inline' : 'sm:inline')}>
                 <b className="text-ink-5">Shift + Enter</b> for a new line
               </span>
             )}

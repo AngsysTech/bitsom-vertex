@@ -150,7 +150,7 @@ export function ClassContext({ courseCode }: { courseCode: string }) {
         <CardShell className="gap-1.5">
           <CardLabel>Latest lecture</CardLabel>
           <span className="text-[13px] leading-5 text-ink-5">
-            No lecture yet. Hit <b className="text-ink">● Record lecture</b> (or press <kbd className="rounded border border-line bg-white px-1 font-mono text-[11px]">R</kbd>) when class starts; coverage and actions land here.
+            No lecture yet. Hit <b className="text-ink">● Record lecture</b> (or press <kbd className="rounded border border-line bg-white px-1 font-mono text-[11px]">R</kbd>) when class starts, or <b className="text-ink">Upload</b> a recording you already have; coverage and actions land here.
           </span>
         </CardShell>
       )}

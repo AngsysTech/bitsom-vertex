@@ -100,6 +100,8 @@ export interface LectureJob {
   id: string
   courseCode: string
   source: Lecture['source']
+  /** The picked or dropped file's name (source "upload"), so several clips can be told apart. */
+  filename?: string
   createdAt: string
   phase: 'uploading' | 'upload_failed' | 'processing' | 'ready' | 'failed'
   lecture?: Lecture
@@ -153,6 +155,8 @@ interface State {
   jobs: Record<string, LectureJob>
   recording: RecordingSession | null
   recordingError: string | null
+  /** Files a pick or drop couldn't add (not audio the pipeline reads, or empty). */
+  uploadError: string | null
   localMarkers: LocalMarker[]
   actionBusy: Record<string, boolean>
   actionError: Record<string, string>
@@ -325,6 +329,7 @@ export const useWS = create<Store>()((set, get) => {
     jobs: {},
     recording: null,
     recordingError: null,
+    uploadError: null,
     localMarkers: [],
     actionBusy: {},
     actionError: {},
@@ -425,6 +430,7 @@ export const useWS = create<Store>()((set, get) => {
         markers: {},
         jobs: {},
         localMarkers: [],
+        uploadError: null,
         actionBusy: {},
         actionError: {},
         paste: null,

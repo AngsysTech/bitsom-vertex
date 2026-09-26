@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { CalendarView } from '@/components/calendar/CalendarView'
 import { Composer } from '@/components/chat/Composer'
 import { Messages, type ExtraRow } from '@/components/chat/Messages'
@@ -6,9 +5,10 @@ import { Icon } from '@/components/Icon'
 import { classPath, navigate, type ClassTab } from '@/lib/route'
 import { fmtDayShort, fmtHM, inDays } from '@/lib/time'
 import { cn } from '@/lib/utils'
-import { startRecording, uploadAudio } from '@/store/companion'
+import { startRecording } from '@/store/companion'
 import { classKey, useWS, type LocalMarker } from '@/store/workspace'
 import type { Agent, ClassChannel as ClassChannelT } from '@/types'
+import { AudioDropZone, UploadButton, useAudioPicker } from './AudioUpload'
 import { HandoutView } from './HandoutView'
 import { LecturesTab } from './LecturesTab'
 import { JobRow, MarkerGroupRow } from './LectureRows'
@@ -154,7 +154,9 @@ function RecordButton({ courseCode, disabled }: { courseCode: string; disabled?:
       <span className="flex size-5 items-center justify-center rounded-full bg-bad text-white">
         <Icon name="mic" size={14} fill />
       </span>
-      Record lecture
+      <span className="whitespace-nowrap">
+        Record<span className="hidden @md:inline"> lecture</span>
+      </span>
       <kbd className="rounded border border-line bg-white px-1 font-mono text-[10px] font-bold text-ink-5">R</kbd>
     </button>
   )
@@ -163,15 +165,17 @@ function RecordButton({ courseCode, disabled }: { courseCode: string; disabled?:
 function ClassComposer({ courseCode }: { courseCode: string }) {
   const recording = useWS((s) => s.recording)
   const recordingError = useWS((s) => s.recordingError)
+  const uploadError = useWS((s) => s.uploadError)
   const set = useWS((s) => s.set)
-  const file = useRef<HTMLInputElement>(null)
+  const picker = useAudioPicker(courseCode)
   if (recording?.courseCode === courseCode) return <RecordingBar />
   const elsewhere = recording && recording.courseCode !== courseCode ? recording.courseCode : null
+  const notice = recordingError ?? uploadError
   return (
     <>
-      {(recordingError || elsewhere) && (
+      {(notice || elsewhere) && (
         <div className="mx-5 mb-2 flex items-center gap-2 rounded-md border border-line bg-soft px-3 py-2 text-[13px] text-ink-5">
-          <Icon name={elsewhere ? 'mic' : 'mic_off'} size={16} className={elsewhere ? 'text-bad' : 'text-ink-4'} />
+          <Icon name={elsewhere ? 'mic' : recordingError ? 'mic_off' : 'error'} size={16} className={elsewhere ? 'text-bad' : 'text-ink-4'} />
           {elsewhere ? (
             <>
               Recording in progress in {elsewhere} —
@@ -181,31 +185,26 @@ function ClassComposer({ courseCode }: { courseCode: string }) {
             </>
           ) : (
             <>
-              <span className="flex-1">{recordingError}</span>
-              <button type="button" onClick={() => set({ recordingError: null })} className="cursor-pointer text-xs font-bold text-link">
+              <span className="flex-1">{notice}</span>
+              <button type="button" onClick={() => set({ recordingError: null, uploadError: null })} className="cursor-pointer text-xs font-bold text-link">
                 dismiss
               </button>
             </>
           )}
         </div>
       )}
-      <input
-        ref={file}
-        type="file"
-        hidden
-        accept="audio/*,.mp3,.m4a,.wav,.webm,.ogg,.opus,.flac,.aac"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) void uploadAudio(courseCode, f)
-          e.target.value = ''
-        }}
-      />
+      {picker.input}
       <Composer
         threadKey={classKey(courseCode)}
         placeholder={`Message Academic Coach about ${courseCode}`}
-        tools={<RecordButton courseCode={courseCode} disabled={!!elsewhere} />}
+        tools={
+          <>
+            <RecordButton courseCode={courseCode} disabled={!!elsewhere} />
+            <UploadButton onClick={picker.open} />
+          </>
+        }
         plus={[
-          { icon: 'upload_file', label: 'Upload audio', hint: 'A recording of the class (mp3, m4a, wav, webm)', onClick: () => file.current?.click() },
+          { icon: 'upload', label: 'Upload recording', hint: 'Audio you already have: mp3, m4a, wav, webm… (or drop the files here)', onClick: picker.open },
           { icon: 'description', label: 'Paste transcript', hint: 'Text fallback: same pipeline, no transcription', onClick: () => set({ paste: { courseCode } }) },
         ]}
       />
@@ -219,7 +218,7 @@ function Empty({ channelName, courseCode }: { channelName: string; courseCode: s
       <span className="flex size-[64px] items-center justify-center rounded-[14px] border border-line bg-soft text-[32px]">📘</span>
       <span className="mt-1 text-[22px] font-black">This is the start of #{channelName}</span>
       <span className="text-[15px] leading-[22px] text-ink-5">
-        The Academic Coach here reads only {courseCode}: its syllabus, lectures, past papers and exam dates. Record the next class and tap <b className="text-ink">I’m stuck</b> when you get lost; the handout, coverage and actions land here.
+        The Academic Coach here reads only {courseCode}: its syllabus, lectures, past papers and exam dates. Record the next class and tap <b className="text-ink">I’m stuck</b> when you get lost, or upload a recording you already have (you can flag moments on its handout afterwards); the handout, coverage and actions land here.
       </span>
     </div>
   )
@@ -259,7 +258,7 @@ export function ClassChannel({ courseCode, tab, lecture, seg }: { courseCode: st
   const loading = useWS((s) => s.loadingStudent)
   if (!cls) return <div className="flex flex-1 items-center justify-center text-sm text-ink-5">{loading ? 'Loading…' : `${courseCode} isn’t one of your registered classes.`}</div>
   return (
-    <>
+    <AudioDropZone courseCode={courseCode}>
       <Header cls={cls} tab={tab} />
       {tab === 'messages' && (
         <>
@@ -273,6 +272,6 @@ export function ClassChannel({ courseCode, tab, lecture, seg }: { courseCode: st
           <CalendarView courseCode={courseCode} hideCourseFilter />
         </div>
       )}
-    </>
+    </AudioDropZone>
   )
 }

@@ -5,8 +5,10 @@ import { LECTURE_STATUS_LABEL } from '@/lib/labels'
 import { classPath, navigate } from '@/lib/route'
 import { fmtDayShort, mmss } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import { startRecording } from '@/store/companion'
 import { useWS } from '@/store/workspace'
 import type { Lecture } from '@/types'
+import { useAudioPicker } from './AudioUpload'
 
 const PILL: Record<Lecture['status'], string> = {
   uploaded: 'border-line bg-white',
@@ -48,11 +50,19 @@ function LectureRow({ l }: { l: Lecture }) {
   )
 }
 
-/** This course's lectures (GET /students/:id/lectures, filtered). */
+/** This course's lectures (GET /students/:id/lectures, filtered), and the two ways to add one. */
 export function LecturesTab({ courseCode }: { courseCode: string }) {
   const entry = useWS((s) => s.lectures)
   const loadMarkers = useWS((s) => s.loadMarkers)
   const loadLectures = useWS((s) => s.loadLectures)
+  const recording = useWS((s) => !!s.recording)
+  const set = useWS((s) => s.set)
+  // Progress rows, then the coach's coverage and actions, show in Messages: go there once files are picked.
+  const picker = useAudioPicker(courseCode, () => navigate(classPath(courseCode)))
+  const record = () => {
+    navigate(classPath(courseCode))
+    void startRecording(courseCode)
+  }
   const list = (entry.value ?? []).filter((l) => l.courseCode === courseCode)
   const ids = list.filter((l) => l.status === 'ready').map((l) => l.id).join(',')
   useEffect(() => {
@@ -60,7 +70,27 @@ export function LecturesTab({ courseCode }: { courseCode: string }) {
   }, [ids, loadMarkers])
   return (
     <div className="flex-1 overflow-y-auto px-6 py-5">
+      {picker.input}
       <div className="flex max-w-[860px] flex-col gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={picker.open} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-ink px-3 text-[13px] font-bold text-white hover:bg-ink-7">
+            <Icon name="upload" size={18} />
+            Upload recording
+          </button>
+          <button
+            type="button"
+            onClick={record}
+            disabled={recording}
+            data-tip={recording ? 'A recording is already in progress' : 'Record this class live · R'}
+            className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[13px] font-bold text-ink hover:bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="flex size-4 items-center justify-center rounded-full bg-bad text-white">
+              <Icon name="mic" size={12} fill />
+            </span>
+            Record lecture
+          </button>
+          <span className="text-xs text-ink-4">mp3, m4a, wav, webm… or drop audio files anywhere here</span>
+        </div>
         {entry.status === 'loading' && !entry.value && (
           <span className="flex items-center gap-2 text-sm text-ink-5">
             <Spinner size={13} /> Loading lectures…
@@ -77,7 +107,17 @@ export function LecturesTab({ courseCode }: { courseCode: string }) {
         {entry.value && !list.length && (
           <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-line px-5 py-6 text-sm text-ink-5">
             <b className="text-ink">No lectures for {courseCode} yet</b>
-            Record the next class from the Messages tab (or press <kbd className="rounded border border-line px-1 font-mono text-xs">R</kbd>), upload audio, or paste a transcript.
+            <span>
+              Record the next class (or press <kbd className="rounded border border-line px-1 font-mono text-xs">R</kbd>),{' '}
+              <button type="button" onClick={picker.open} className="cursor-pointer font-bold text-link">
+                upload a recording
+              </button>{' '}
+              you already have, or{' '}
+              <button type="button" onClick={() => set({ paste: { courseCode } })} className="cursor-pointer font-bold text-link">
+                paste a transcript
+              </button>
+              .
+            </span>
           </div>
         )}
         {list.map((l) => (

@@ -86,8 +86,13 @@ export function JobRow({ job }: { job: LectureJob }) {
       >
         <div className="flex items-center gap-2 text-[13px]">
           <Icon name={icon} size={17} className="text-ink-5" />
-          <b>{what}</b>
-          <span className="text-ink-5">
+          <b className="flex-none">{what}</b>
+          {job.filename && (
+            <span className="min-w-0 truncate text-ink-5" data-tip={job.filename}>
+              · <span className="text-ink">{job.filename}</span>
+            </span>
+          )}
+          <span className="flex-none text-ink-5">
             · {job.courseCode}
             {lec?.durationSec ? ` · ${mmss(lec.durationSec)}` : ''}
           </span>

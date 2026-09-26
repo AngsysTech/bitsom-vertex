@@ -42,7 +42,7 @@ export function elapsedSec() {
 export async function startRecording(courseCode: string) {
   if (get().recording) return
   if (!canRecord()) {
-    set({ recordingError: 'This browser can’t record audio here. Use Upload audio or Paste transcript in the + menu.' })
+    set({ recordingError: 'This browser can’t record audio here. Upload a recording instead, or paste a transcript from the + menu.' })
     return
   }
   set({ recording: { courseCode, startedAt: Date.now(), status: 'starting', noteFor: null }, recordingError: null })
@@ -56,7 +56,7 @@ export async function startRecording(courseCode: string) {
     set({ recording: { courseCode, startedAt: Date.now(), status: 'recording', noteFor: null } })
   } catch (e) {
     release()
-    set({ recording: null, recordingError: `Microphone unavailable (${errText(e)}). Use Upload audio or Paste transcript in the + menu.` })
+    set({ recording: null, recordingError: `Microphone unavailable (${errText(e)}). Upload a recording instead, or paste a transcript from the + menu.` })
   }
 }
 
@@ -194,9 +194,11 @@ export async function submitLecture(courseCode: string, input: Input, markerIds:
   const studentId = get().studentId
   if (!studentId) return
   const job: LectureJob = {
-    id: `job-${Date.now().toString(36)}`,
+    // Several dropped files are submitted within the same millisecond: the suffix keeps their ids apart.
+    id: `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     courseCode,
     source: input.kind === 'audio' ? input.source : 'transcript',
+    ...(input.kind === 'audio' && input.source === 'upload' ? { filename: input.filename } : {}),
     createdAt: new Date().toISOString(),
     phase: 'uploading',
   }
@@ -205,7 +207,23 @@ export async function submitLecture(courseCode: string, input: Input, markerIds:
   await upload(job.id)
 }
 
-export const uploadAudio = (courseCode: string, file: File) => submitLecture(courseCode, { kind: 'audio', blob: file, filename: file.name, source: 'upload' })
+// What the backend's pipeline accepts: it goes by the file extension (AUDIO_EXTS in backend/app/tools/companion.py).
+export const AUDIO_EXTS = ['.mp3', '.m4a', '.wav', '.aac', '.ogg', '.oga', '.opus', '.webm', '.flac', '.mp4', '.mpeg', '.mpga', '.aiff', '.aif', '.caf']
+export const AUDIO_ACCEPT = ['audio/*', ...AUDIO_EXTS].join(',')
+const extOf = (name: string) => (name.includes('.') ? name.slice(name.lastIndexOf('.')).toLowerCase() : '')
+
+/** Recordings the student already has (file picker or drop): one lecture per file, uploaded in order. */
+export async function uploadAudioFiles(courseCode: string, files: File[]) {
+  const why = (f: File) => (!AUDIO_EXTS.includes(extOf(f.name)) ? 'not an audio format the companion reads' : !f.size ? 'empty file' : null)
+  const skipped = files.filter((f) => why(f))
+  set({ uploadError: skipped.length ? `Didn’t add ${skipped.map((f) => `${f.name} (${why(f)})`).join(', ')}. Recordings can be mp3, m4a, wav, webm, ogg, flac or aac.` : null })
+  const gen = currentGeneration()
+  for (const f of files) {
+    if (gen !== currentGeneration()) return // student switched: the rest aren't theirs
+    if (!why(f)) await submitLecture(courseCode, { kind: 'audio', blob: f, filename: f.name, source: 'upload' })
+  }
+}
+
 export const pasteTranscript = (courseCode: string, text: string) => submitLecture(courseCode, { kind: 'transcript', text })
 
 async function upload(jobId: string) {
