@@ -11,6 +11,7 @@ Expected shape (front matter optional):
     ## Unit 4: Transactions and Concurrency Control
     - 4.1 ACID properties            (or "### 4.1 ACID properties")
     Builds on: Serializability.      (optional: earlier topics this one needs)
+    Reading: <book>, Ch. 18 ...       (optional: the university's recommended reading for the topic)
 
 A topic's section id is ``<docId>.<unit>.<n>`` (``syllabus.cs-f212.4.4``), stable across
 runs. Topics are the closed list every model call picks from; a model never names
@@ -33,6 +34,7 @@ class Topic:
     unit_id: str
     unit_title: str
     builds_on: list[str] = field(default_factory=list)  # canonical titles from its "Builds on:" line
+    reading: str | None = None  # its "Reading:" line, without the label: the syllabus reading list
 
 
 @dataclass
@@ -84,6 +86,7 @@ def _front_matter(text: str) -> tuple[dict[str, str], str]:
 
 _NUM = re.compile(r"^(\d+(?:\.\d+)*)[.)]?\s+")
 _BUILDS_ON = re.compile(r"^builds on:\s*(.+?)\.?$", re.I)
+_READING = re.compile(r"^reading:\s*(.+)$", re.I)
 
 
 def _parse(text: str, fallback_code: str, slug: str) -> Syllabus:
@@ -104,6 +107,10 @@ def _parse(text: str, fallback_code: str, slug: str) -> Syllabus:
             number = num.group(1) if num else str(len(units) + 1)
             current = Unit(id=f"{doc_id}.{number}", number=number, title=heading)
             units.append(current)
+            continue
+        reading = _READING.match(line)
+        if reading and current is not None and current.topics:
+            current.topics[-1].reading = reading.group(1).strip()
             continue
         dep = _BUILDS_ON.match(line)
         if dep and current is not None and current.topics:

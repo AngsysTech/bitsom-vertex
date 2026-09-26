@@ -476,9 +476,10 @@ function readyMessage(ml: MockLecture, at: string) {
     if (c) citations.push(c)
   }
   const s1 = `Your handout for **${lec.courseCode} · ${b.handout.title}** (${dowdm(parse(lec.date))}) is ready: ${b.handout.sections.length} sections.`
+  // we don't grade the lecture: other unit topics are framed as what to study next (same wording as the backend)
   const s2 = b.coverage.missed.length
-    ? `Compared with ${b.coverage.unit}, the lecture did not cover ${b.coverage.missed.map((m, i) => `**${m.topic}**${citations[i] ? ` [${citations[i]!.id}]` : ''}`).join(', ')}.`
-    : `It covered every topic listed for ${b.coverage.unit}.`
+    ? `It maps to ${b.coverage.unit}. Also on that unit's syllabus: ${b.coverage.missed.map((m, i) => `**${m.topic}**${citations[i] ? ` [${citations[i]!.id}]` : ''}`).join(', ')}, on your actions list to study.`
+    : `It maps to ${b.coverage.unit}.`
   const s2b = b.coverage.confusion.length ? ` You flagged ${b.coverage.confusion.length === 1 ? 'one moment' : `${b.coverage.confusion.length} moments`} — marked in the handout.` : ''
   const firstA = b.actions[0]
   const s3 = firstA ? `I've proposed ${b.actions.length} actions; the first, “${firstA.title}”, is due ${firstA.dueBy ? dowdm(parse(firstA.dueBy)) : 'soon'}.` : 'Nothing in this lecture needs a follow-up action.'
@@ -797,7 +798,7 @@ function coachReply(s: DStudent, text: string, courseCode?: string): Reply {
       const c = m && cite('C1', m.syllabusSectionId)
       return {
         message: agentMsg(
-          m ? `In your last ${courseCode} lecture (${dowdm(parse(ml.lecture.date))}) the lecturer didn’t cover **${m.topic}**${c ? ' [C1]' : ''}. It’s on your actions list as self-study.` : `Your last ${courseCode} lecture covered everything listed for ${ml.built!.coverage.unit}.`,
+          m ? `Next on your ${courseCode} syllabus after your last lecture (${dowdm(parse(ml.lecture.date))}): **${m.topic}**${c ? ' [C1]' : ''}. It’s on your actions list as self-study.` : `Your last ${courseCode} lecture maps to ${ml.built!.coverage.unit}.`,
           { citations: c ? [c] : [], trace: [{ tool: 'class_companion.coverage', summary: `read the coverage of ${ml.lecture.id}`, durationMs: 200 }] },
         ),
       }
@@ -813,7 +814,7 @@ function coachReply(s: DStudent, text: string, courseCode?: string): Reply {
       }
     }
     if (/weak|struggl|how am i|marks/.test(t)) return diagnoseReply(s, courseCode)
-    return topicAnswer([courseCode], text) ?? { message: agentMsg(`I only answer from ${courseCode}’s syllabus, lectures, past papers and exam calendar, and I didn’t find that in them. Try a topic from the syllabus, or ask what the last lecture missed.`, { trace: [{ tool: 'answer_from_docs', summary: 'no section in scope covers this', durationMs: 700 }] }) }
+    return topicAnswer([courseCode], text) ?? { message: agentMsg(`I only answer from ${courseCode}’s syllabus, lectures, past papers and exam calendar, and I didn’t find that in them. Try a topic from the syllabus.`, { trace: [{ tool: 'answer_from_docs', summary: 'no section in scope covers this', durationMs: 700 }] }) }
   }
   if (OUT_OF_SCOPE.test(t))
     return {

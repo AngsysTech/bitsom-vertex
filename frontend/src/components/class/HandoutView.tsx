@@ -4,6 +4,7 @@ import { Icon } from '@/components/Icon'
 import { HandoutViewToggle, LectureMindMap, type HandoutPaneView } from '@/components/LectureMindMap'
 import { MakeRelevantButton, RelevantSlot } from '@/components/relevant/MakeRelevant'
 import { Spinner } from '@/components/Spinner'
+import { StudySourceRow } from '@/components/StudySources'
 import { API_URL } from '@/lib/config'
 import { classPath, navigate } from '@/lib/route'
 import { fmtDayShort, mmss } from '@/lib/time'
@@ -172,6 +173,7 @@ function SectionCard({ s, lecture, segments, focused, onSeg }: { s: HandoutSecti
           </span>
         </div>
       ))}
+      {s.studyFrom && <StudySourceRow src={s.studyFrom} className="rounded-md border border-line bg-mist px-3 py-2" />}
       <div className="flex flex-wrap items-center gap-1.5">
         {segs.slice(0, 6).map((x) => (
           <button key={x.id} type="button" onClick={() => onSeg(x.id)} data-tip={x.text.slice(0, 140) + (x.text.length > 140 ? '…' : '')} className="h-[22px] cursor-pointer rounded-full border border-line bg-soft px-2 font-mono text-[11px] font-bold hover:border-ink-5">

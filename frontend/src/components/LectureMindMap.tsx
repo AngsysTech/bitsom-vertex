@@ -1,6 +1,6 @@
 // Lecture mind map (contracts.ts v3.9, AGENTS.md §9.6): the handout as a tree, with the coverage
-// overlay drawn on it. That means stuck flags, exam hints, skipped syllabus topics as dashed ghost
-// nodes, and a tick where a review already exists. It renders the jury-approved vendored
+// overlay drawn on it. That means stuck flags, exam hints and a tick where a review already exists
+// (ghost nodes for skipped syllabus topics are filtered out: the map doesn't grade the lecture). It renders the jury-approved vendored
 // component (src/vendored/mindmap/, see its NOTICE) and restyles it from the outside. Everything
 // in this file was written 26 Sep 2026. It shows only what GET /lectures/:id/mindmap returns.
 import {
@@ -26,6 +26,10 @@ import type { RelevantCard } from '@/types'
 import MindMapGraphJs from '@/vendored/mindmap/MindMapGraph.jsx'
 // @ts-expect-error vendored JS (prior code, jury-approved) ships without type declarations
 import { expandedForPath, indexProjection, initialExpanded, retainState, searchNodes } from '@/vendored/mindmap/mindMap.js'
+
+/** The map shows what the lecture taught. We don't grade the lecture, so syllabus topics it left out
+ *  (ghost nodes) stay off the UI; they still become study actions in the Actions card. */
+const taught = (m: MindMap): MindMap => ({ ...m, nodes: m.nodes.filter((n) => n.kind !== 'ghost_missed') })
 
 // ---- the vendored component's shapes, as far as this file uses them ------------------------
 
@@ -184,7 +188,7 @@ export function LectureMindMap({
     setError(null)
     setMir(null)
     getMindMap(lectureId).then(
-      (m) => live && setMap(m),
+      (m) => live && setMap(taught(m)),
       (e: unknown) => {
         if (!live) return
         const msg = e instanceof Error ? e.message : String(e)
@@ -300,7 +304,7 @@ export function LectureMindMap({
   const rebuild = async () => {
     setRebuilding(true)
     try {
-      setMap(await rebuildMindMap(lectureId))
+      setMap(taught(await rebuildMindMap(lectureId)))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -347,10 +351,9 @@ export function LectureMindMap({
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-4 py-2 text-[12.5px] text-ink-6">
         <span data-testid="mindmap-stats">
-          {plural(s.sections, 'section')} · {s.missed} skipped · {s.stuck} stuck · {plural(s.emphasized, 'exam hint')}
+          {plural(s.sections, 'section')} · {s.stuck} stuck · {plural(s.emphasized, 'exam hint')}
         </span>
         <span className="flex items-center gap-2.5 text-[11px] text-ink-5">
-          <span className="rounded-full border border-dashed border-warn px-1.5 text-warn-ink">not covered</span>
           <span className="rounded-full border border-red-200 bg-red-50 px-1.5 text-red-700">🚩 stuck</span>
           <span className="rounded-full border border-cyan bg-cyan-soft px-1.5 text-cyan-800">exam hint</span>
         </span>

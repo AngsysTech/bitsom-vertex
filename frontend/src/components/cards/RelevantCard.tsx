@@ -1,6 +1,7 @@
 import { CitePills } from '@/components/CitePill'
 import { Icon } from '@/components/Icon'
 import { Markdown } from '@/components/Markdown'
+import { StudySources } from '@/components/StudySources'
 import { cn } from '@/lib/utils'
 import { relevantKey, useWS } from '@/store/workspace'
 import type { Citation, RelevantCard as RelevantCardT } from '@/types'
@@ -55,6 +56,7 @@ export function RelevantCard({ card, citations, onClose, className }: { card: Re
           <Markdown text={card.reframed} citations={citations} className="text-ink [&_ul]:pl-4" />
         </div>
       </div>
+      <StudySources sources={card.studySources} note={card.studySourcesNote} />
       <span className="flex items-center gap-1 text-[11px] text-ink-5">
         <Icon name="verified" size={13} />
         Same facts, reframed through {card.interest} — nothing new is added.

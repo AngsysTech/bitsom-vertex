@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { SectionChip } from '@/components/CitePill'
 import { Icon } from '@/components/Icon'
 import { classPath, navigate } from '@/lib/route'
 import { fmtDayShort, mmss } from '@/lib/time'
@@ -8,7 +7,6 @@ import type { Citation, CoverageCard as CoverageCardT } from '@/types'
 import { CardLabel, CardShell, Dot } from './shared'
 
 const GREEN = '#10B981'
-const AMBER = '#F59E0B'
 const CYAN = '#22D3EE'
 
 /** Segment id → "mm:ss" chip that opens the handout at that transcript segment. */
@@ -41,7 +39,8 @@ function Group({ color, icon, title, count, children }: { color: string; icon?: 
   )
 }
 
-/** What the lecture covered against its syllabus unit: covered, skipped, emphasized, and where you got lost. */
+/** What the lecture covered against its syllabus unit: covered, emphasized, and where you got lost.
+ *  Topics the lecture left out are not listed: we don't grade the lecture. They still arrive as study actions. */
 export function CoverageCard({ card }: { card: CoverageCardT; citations: Citation[] }) {
   const lecture = useWS((s) => s.lectures.value?.find((l) => l.id === card.lectureId) ?? Object.values(s.jobs).find((j) => j.lecture?.id === card.lectureId)?.lecture)
   const loadTranscript = useWS((s) => s.loadTranscript)
@@ -71,17 +70,6 @@ export function CoverageCard({ card }: { card: CoverageCardT; citations: Citatio
             </button>
           ))}
         </div>
-      </Group>
-      <Group color={AMBER} title="Skipped" count={card.missed.length}>
-        {card.missed.map((m) => (
-          <div key={m.topic} className="flex flex-col gap-0.5 rounded-md border border-warn bg-warn-soft px-2.5 py-1.5 text-[13px] leading-[18px]">
-            <span className="flex flex-wrap items-center gap-1">
-              <b>{m.topic}</b>
-              <SectionChip sectionId={m.syllabusSectionId} className="mx-0" />
-            </span>
-            <span className="text-xs text-ink-5">{m.why}</span>
-          </div>
-        ))}
       </Group>
       <Group color={CYAN} title="Emphasized" count={card.emphasized.length}>
         {card.emphasized.map((e) => (

@@ -114,6 +114,17 @@ class HandoutDefinition(Model):
     definition: str
 
 
+class StudySource(Model):
+    """Where to study a topic (contracts v3.13). university: the syllabus reading list, cited;
+    web: suggested by the model, kept only after its link loaded live and the page named the topic."""
+    kind: Literal["university", "web"]
+    title: str
+    url: Optional[str] = None
+    publisher: Optional[str] = None
+    why: Optional[str] = None
+    citationId: Optional[str] = None
+
+
 class HandoutSection(Model):
     id: str
     heading: str
@@ -125,6 +136,7 @@ class HandoutSection(Model):
     syllabusTopic: Optional[str] = None
     syllabusSectionId: Optional[str] = None
     stuck: Optional["StuckFlag"] = None  # student flagged this part in class
+    studyFrom: Optional[StudySource] = None  # the syllabus reading for its topic, looked up on read (v3.13)
 
 
 class StuckFlag(Model):

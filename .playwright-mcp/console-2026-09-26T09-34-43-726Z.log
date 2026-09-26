@@ -77,3 +77,5 @@
 [ 6283780ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5601/node_modules/.vite/deps/react-dom_client.js?v=b8077869:22164
 [ 7452346ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5601/src/components/calendar/CalendarView.tsx?t=1790422735444:0
 [ 7452367ms] [ERROR] [vite] Failed to reload /src/components/calendar/CalendarView.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5601/@vite/client:881
+[ 8255621ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5601/node_modules/.vite/deps/react-dom_client.js?v=b8077869:22164
+[ 8319011ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5601/node_modules/.vite/deps/react-dom_client.js?v=b8077869:22164

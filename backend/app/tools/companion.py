@@ -38,13 +38,14 @@ from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
 from app.core.models import (ActionItem, ActionProvenance, ActionsCard, CalendarItem, Citation, CoverageCard,
                              CoverageCovered, CoverageEmphasized, CoverageMissed, Handout, HandoutDefinition,
                              HandoutSection, Lecture, LectureCommitment, Message, ToolTrace, Transcript,
-                             TranscriptSegment, CoverageConfusion, StuckFlag, StuckMarker)
+                             TranscriptSegment, CoverageConfusion, StuckFlag, StuckMarker, StudySource)
 from app.core.records import load_student, topic_marks
 from app.core.state import add_plan_block, remove_plan_block
 from app.core.syllabus import Syllabus, Topic, load_syllabus
 from app.core.threads import append_message, class_thread_id
 from app.core.verify import find_verbatim, normalize_ws
 from app.tools import calendar as cal
+from app.tools import study_sources
 from app.vendored.audio_notes.notes_generation import NotesGenerationService
 
 log = logging.getLogger("companion")
@@ -124,7 +125,11 @@ def get_handout(lecture_id: str) -> Handout:
     body = db.get("handout", lecture_id)
     if lec.status != "ready" or not body:
         raise NotFound(f"handout for {lecture_id} not ready (status {lec.status})")
-    return Handout.model_validate(body)
+    handout = Handout.model_validate(body)
+    for sec in handout.sections:  # the syllabus reading list, looked up on read so every handout gets it
+        found = study_sources.university(handout.courseCode, sec.syllabusTopic, sec.syllabusSectionId)
+        sec.studyFrom = StudySource.model_validate(found) if found else None
+    return handout
 
 
 def _actions_for(lecture_id: str) -> list[ActionItem]:
@@ -818,7 +823,7 @@ class _Actions(BaseModel):
     asks: list[_AskOut] = Field(default_factory=list)
 
 
-_KIND_FACT = {"study": "Not taught in this lecture", "review": "The lecturer stressed it",
+_KIND_FACT = {"study": "On your syllabus for this unit", "review": "The lecturer stressed it",
               "prep": "It is the next lecture's topic", "deadline": "Set by the lecturer",
               "resource": "Named by the lecturer", "ask": "Worth clarifying in class"}
 
@@ -947,7 +952,7 @@ def _missed_needs(ctx: Ctx, exam: Exam | None, now: datetime) -> dict[str, _Need
     needs: dict[str, _Need] = {}
     for m in ctx.coverage.missed if ctx.coverage else []:
         if m.topic not in ctx.deferred_topics:
-            needs[m.topic] = _Need("study", exam_due, "not taught in this lecture")
+            needs[m.topic] = _Need("study", exam_due, "on this unit's syllabus")
             continue
         seg_id, quote = ctx.deferred_topics[m.topic]
         due, cm_id, how = _named_session(ctx, seg_id, quote)
@@ -985,7 +990,8 @@ def _candidates(ctx: Ctx, needs: dict[str, _Need], exam: Exam | None,
         facts, prov = facts_for(m.topic)
         if need.segment_id:  # deferred to a session that has already happened
             facts.insert(0, need.note)
-        cands.append(_Cand(f"c{len(cands) + 1}", "study", m.topic, f"Not taught in this lecture: {m.why}", facts,
+        # we don't grade the lecture: the candidate is framed as a syllabus topic to learn, not as a gap in the class
+        cands.append(_Cand(f"c{len(cands) + 1}", "study", m.topic, "On this unit's syllabus; study it on your own", facts,
                            {"syllabusSectionId": m.syllabusSectionId, **prov}, exam_due, canonical=True))
         topics_seen.add(m.topic)
     for e in cov.emphasized if cov else []:
@@ -1320,11 +1326,12 @@ def step_notify(ctx: Ctx) -> str:
                                       quote=topic.line))
     when = f"{date.fromisoformat(lec.date):%a %d %b}"
     s1 = f"Your handout for **{lec.courseCode} · {handout.title}** ({when}) is ready: {len(handout.sections)} sections."
+    # we don't grade the lecture: other unit topics are framed as what to study next, not as what the class missed
     if cov and cov.unit and cov.missed:
         names = ", ".join(f"**{m.topic}** [{c.id}]" for m, c in zip(cov.missed, citations))
-        s2 = f"Compared with {cov.unit}, the lecture did not cover {names}."
+        s2 = f"It maps to {cov.unit}. Also on that unit's syllabus: {names}, on your actions list to study."
     elif cov and cov.unit:
-        s2 = f"It covered every topic listed for {cov.unit}."
+        s2 = f"It maps to {cov.unit}."
     else:
         s2 = "I couldn't match this lecture to the syllabus, so there is no coverage check."
     if ctx.actions:

@@ -1,5 +1,5 @@
 // =====================================================================
-// STUDENT-FACING CONTRACT — buildathon  (v3.12)
+// STUDENT-FACING CONTRACT — buildathon  (v3.13)
 // Frontend mocks against these shapes; backend returns exactly these.
 // Backend is FastAPI returning plain JSON. No streaming, no auth.
 //
@@ -9,6 +9,9 @@
 // Activity feed.
 // v3 changes: Class Companion (audio → handout → coverage → actions) as P0;
 // CoverageCard + ActionsCard in the Card union.
+// v3.13: StudySource — where to study a topic. HandoutSection.studyFrom = the syllabus reading list (cited);
+// RelevantCard.studySources = that reading + one AI-suggested online page whose link is checked live.
+// CoverageCard.missed stays in the API, but the UI no longer shows it: we don't grade the lecture.
 // v3.12: student-added calendar tasks (CalendarItem kind "task", source {type:"manual"}, POST/DELETE /calendar/tasks);
 // plan rebuilds keep them and place study blocks around them.
 // v3.11: student-editable interests (GET/POST/DELETE /students/:id/interests), added inline from Make it Relevant.
@@ -286,6 +289,21 @@ export interface RelevantCard {
          | { type: "plan_block"; planBlockId: string }
          | { type: "weak_topic"; course: string; topic: string }
          | { type: "gap"; course: string; topic: string; tag: string };
+  studySources?: StudySource[]; // v3.13: university reading first, then one AI-suggested web page (link checked)
+  studySourcesNote?: string;    // why there is no web source (every suggested link failed the live check)
+}
+
+// Where to study a topic (v3.13). Two kinds, never mixed up:
+//   university — the "Reading:" line of the topic's syllabus section, as written; citationId is that section.
+//   web        — suggested by the model, kept only when the link loaded live (HTTP 200) and the page names
+//                the concept. The UI labels it AI-suggested; it is not a university recommendation.
+export interface StudySource {
+  kind: "university" | "web";
+  title: string;              // university: the reading as listed; web: the page title
+  url?: string;               // web only
+  publisher?: string;         // "CS F212 syllabus · reading list" / "Wikipedia", "MIT OpenCourseWare"
+  why?: string;               // web only: what the page covers, one clause
+  citationId?: string;        // university only: syllabus section id
 }
 
 // ---- Course Planner --------------------------------------------------
@@ -513,6 +531,7 @@ export interface HandoutSection {
   syllabusTopic?: string;     // canonical topic string from the syllabus
   syllabusSectionId?: string; // citation into the syllabus document
   stuck?: { markerIds: string[]; atSec: number[] }; // student flagged this part in class
+  studyFrom?: StudySource;    // v3.13: the syllabus reading for syllabusTopic (kind "university"), looked up on read
 }
 
 export interface Handout {

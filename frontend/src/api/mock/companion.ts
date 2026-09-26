@@ -503,11 +503,11 @@ export function build(opts: {
     add(
       {
         kind: 'study',
-        title: `Self-study: ${m.topic} (skipped in lecture)`,
+        title: `Self-study: ${m.topic}`,
         topic: m.topic,
         minutes: 45,
         dueBy: examDue,
-        why: why('Skipped in class', marksFact(m.topic), examLabel),
+        why: why('On your syllabus for this unit', marksFact(m.topic), examLabel),
         provenance: { syllabusSectionId: m.syllabusSectionId, ...(pastPaperId(m.topic) ? { pastPapersCitationId: pastPaperId(m.topic) } : {}) },
       },
       `study:${m.topic}`,

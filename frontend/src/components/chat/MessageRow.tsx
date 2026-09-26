@@ -68,7 +68,7 @@ function Trace({ m }: { m: Message }) {
 function CardChips({ m }: { m: Message }) {
   const set = useWS((s) => s.set)
   const chips = m.cards.flatMap((c) => {
-    if (c.type === 'coverage') return [{ key: 'coverage', icon: 'fact_check', label: `Coverage · ${c.missed.length} skipped${c.confusion?.length ? ` · ${c.confusion.length} flagged` : ''}`, go: () => set({ panelOpen: true, panelMode: 'context' }) }]
+    if (c.type === 'coverage') return [{ key: 'coverage', icon: 'fact_check', label: `Coverage · ${c.covered.length} covered${c.confusion?.length ? ` · ${c.confusion.length} flagged` : ''}`, go: () => set({ panelOpen: true, panelMode: 'context' }) }]
     if (c.type === 'actions') return [{ key: 'actions', icon: 'checklist', label: `${c.items.length} actions`, go: () => set({ panelOpen: true, panelMode: 'context' }) }]
     if (c.type === 'one_on_one')
       return [

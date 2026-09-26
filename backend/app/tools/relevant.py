@@ -5,12 +5,17 @@ to its concept, course, facts and document sections. One LLM call (prompts/make_
 writes the concept twice from those facts only: plainly ("standard") and through the student's
 interest ("reframed"). Numbers in either text must come from the facts, or the card is rejected.
 Cards are kept per student for the Canvas history. Built 26 Sep 2026 (Feature 2).
+
+v3.13: the card also says where to study the concept (``studySources``): the syllabus reading list
+(code, cited) and one AI-suggested online page whose link is checked live (tools/study_sources.py),
+looked up alongside the reframing call. When no online page passes, ``studySourcesNote`` says why.
 """
 from __future__ import annotations
 
 import json
 import re
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Any
@@ -24,9 +29,11 @@ from app.core.parser import past_papers_section_id, section, syllabus_section_id
 from app.core.records import load_student
 from app.core.state import get_state
 from app.tools import diagnose as dx
+from app.tools import study_sources
 
 TOOL = "make_it_relevant"
 NUM = re.compile(r"\d+(?:\.\d+)?")
+READING = re.compile(r"\s*Reading:.*$")  # the syllabus reading-list line at the end of a topic section
 
 
 class _Relevant(BaseModel):
@@ -41,7 +48,8 @@ def _system_prompt() -> str:
 
 def _section_facts(section_id: str | None) -> list[str]:
     found = section(section_id) if section_id else None
-    return [f"{found[1].heading}: {found[1].text}"] if found else []
+    # the syllabus "Reading:" line is where to study, not a fact about the concept: it goes in studySources
+    return [f"{found[1].heading}: {READING.sub('', found[1].text)}"] if found else []
 
 
 def _graded_rows(student_id: str) -> list[dict[str, Any]]:
@@ -134,6 +142,12 @@ def make(student_id: str, source: dict[str, Any], interest: str | None = None) -
     if not interest:
         raise ValueError("no interest given and the student has none on file")
     concept, course, facts, cites, norm = resolve(student_id, source)
+    syllabus_id = next((c for c in cites if c.startswith("syllabus.")), None)
+    uni = study_sources.university(course, concept, syllabus_id)
+    unit = section(syllabus_id)[1].heading.split(" › ")[0] if syllabus_id and section(syllabus_id) else None
+    pool = ThreadPoolExecutor(max_workers=1)
+    web_job = pool.submit(study_sources.web, concept, course, unit)  # runs while the reframing call does
+    pool.shutdown(wait=False)
     listing = "\n".join(f"- {f}" for f in facts)
     base = (f"CONCEPT: {concept}\nCOURSE: {course}\nSTUDENT: {student.get('name')}\nINTEREST: {interest}\n"
             f"FACTS (the only content you may use):\n{listing}")
@@ -147,8 +161,13 @@ def make(student_id: str, source: dict[str, Any], interest: str | None = None) -
         prompt = f"{base}\n\nYour previous answer stated numbers that are not in FACTS: {', '.join(bad)}. Rewrite it."
     if bad:
         raise RuntimeError(f"reframing stated numbers not in the facts ({', '.join(bad)}); no card made")
+    try:
+        web, web_note = web_job.result(timeout=30)
+    except Exception as exc:  # the card still ships; the note says the online lookup failed
+        web, web_note = None, f"the online lookup failed ({type(exc).__name__})"
     card = {"type": "relevant", "concept": concept, "course": course, "interest": interest,
-            "standard": out.standard.strip(), "reframed": out.reframed.strip(), "citationIds": cites, "source": norm}
+            "standard": out.standard.strip(), "reframed": out.reframed.strip(), "citationIds": cites, "source": norm,
+            "studySources": [s for s in (uni, web) if s], **({"studySourcesNote": web_note} if web_note else {})}
     db.put("relevant", f"rel_{uuid.uuid4().hex[:10]}", {**card, "_createdAt": datetime.now(timezone.utc).isoformat()},
            student_id=student_id)
     return card

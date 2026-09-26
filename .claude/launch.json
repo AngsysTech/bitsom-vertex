@@ -68,6 +68,36 @@
         "--strictPort"
       ],
       "port": 5611
+    },
+    {
+      "name": "sources-backend-8792",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "DB_PATH=/private/tmp/claude-501/-Users-vibhavangadi-ATSPL-ENGG-codespace-bitsom-bitsom-vertex/499af7f9-c8f8-4f33-927f-0cf5e57432f7/scratchpad/verify.db",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/.venv/bin/uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend",
+        "--port",
+        "8792"
+      ],
+      "port": 8792
+    },
+    {
+      "name": "sources-frontend-5620",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "VITE_MOCK=false",
+        "API_PROXY_TARGET=http://localhost:8792",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/node_modules/.bin/vite",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend",
+        "--config",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/vite.config.ts",
+        "--port",
+        "5620",
+        "--strictPort"
+      ],
+      "port": 5620
     }
   ]
 }
