@@ -89,7 +89,7 @@ export function LecturesTab({ courseCode }: { courseCode: string }) {
             </span>
             Record lecture
           </button>
-          <span className="text-xs text-ink-4">mp3, m4a, wav, webm… or drop audio files anywhere here</span>
+          <span className="text-xs text-ink-4">mp3, m4a, mp4, mov… or drop audio or video files anywhere here</span>
         </div>
         {entry.status === 'loading' && !entry.value && (
           <span className="flex items-center gap-2 text-sm text-ink-5">

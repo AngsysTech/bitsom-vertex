@@ -1071,7 +1071,7 @@ export const mockApi: Api = {
     ml.processStartedAt = Date.now()
     ml.lecture.error = undefined
     ml.failWith = !cannedFor(ml.lecture.courseCode)
-      ? `mock mode has sample lectures for ${MOCK_COURSES.join(', ')} only — nothing to build for ${ml.lecture.courseCode}`
+      ? `mock mode has sample lectures for ${MOCK_COURSES.join(', ')} only — nothing to build for ${ml.lecture.courseCode}. Open the app with ?mock=0 (or VITE_MOCK=false) to transcribe it on the backend`
       : !ml.text
         ? 'no transcript'
         : undefined

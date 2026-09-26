@@ -207,16 +207,21 @@ export async function submitLecture(courseCode: string, input: Input, markerIds:
   await upload(job.id)
 }
 
-// What the backend's pipeline accepts: it goes by the file extension (AUDIO_EXTS in backend/app/tools/companion.py).
+// What the backend's pipeline accepts: it goes by the file extension (MEDIA_EXTS in backend/app/tools/companion.py).
+// Lecture videos upload as they are; the backend keeps them and extracts the audio track locally (core/media.py).
 export const AUDIO_EXTS = ['.mp3', '.m4a', '.wav', '.aac', '.ogg', '.oga', '.opus', '.webm', '.flac', '.mp4', '.mpeg', '.mpga', '.aiff', '.aif', '.caf']
-export const AUDIO_ACCEPT = ['audio/*', ...AUDIO_EXTS].join(',')
+export const VIDEO_EXTS = ['.mov', '.m4v', '.qt', '.mkv', '.avi', '.wmv', '.flv', '.3gp', '.mpg', '.ts', '.mts', '.m2ts', '.ogv']
+export const AUDIO_ACCEPT = ['audio/*', 'video/*', ...AUDIO_EXTS, ...VIDEO_EXTS].join(',')
 const extOf = (name: string) => (name.includes('.') ? name.slice(name.lastIndexOf('.')).toLowerCase() : '')
+/** For labels only: an uploaded .mp4 is almost always a video; the backend checks the actual tracks. */
+export const isVideoName = (name?: string) => !!name && (VIDEO_EXTS.includes(extOf(name)) || extOf(name) === '.mp4')
 
 /** Recordings the student already has (file picker or drop): one lecture per file, uploaded in order. */
 export async function uploadAudioFiles(courseCode: string, files: File[]) {
-  const why = (f: File) => (!AUDIO_EXTS.includes(extOf(f.name)) ? 'not an audio format the companion reads' : !f.size ? 'empty file' : null)
+  const ok = (f: File) => AUDIO_EXTS.includes(extOf(f.name)) || VIDEO_EXTS.includes(extOf(f.name))
+  const why = (f: File) => (!ok(f) ? 'not an audio or video format the companion reads' : !f.size ? 'empty file' : null)
   const skipped = files.filter((f) => why(f))
-  set({ uploadError: skipped.length ? `Didn’t add ${skipped.map((f) => `${f.name} (${why(f)})`).join(', ')}. Recordings can be mp3, m4a, wav, webm, ogg, flac or aac.` : null })
+  set({ uploadError: skipped.length ? `Didn’t add ${skipped.map((f) => `${f.name} (${why(f)})`).join(', ')}. Recordings can be mp3, m4a, wav, webm, ogg, flac or aac, or a video (mp4, mov, mkv, avi…).` : null })
   const gen = currentGeneration()
   for (const f of files) {
     if (gen !== currentGeneration()) return // student switched: the rest aren't theirs

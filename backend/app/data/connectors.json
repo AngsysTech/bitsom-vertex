@@ -59,5 +59,15 @@
       "events"
     ],
     "note": "Synthetic data for demo — real sync not built."
+  },
+  {
+    "id": "exam_system",
+    "kind": "exam_system",
+    "name": "Smart Exam grading",
+    "status": "synthetic",
+    "provides": [
+      "graded_answers"
+    ],
+    "note": "Synthetic data for demo — real sync not built."
   }
 ]

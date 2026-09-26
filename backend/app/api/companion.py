@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.core.academics import canonical_course_code, same_course
 from app.core.config import TZ
@@ -23,8 +24,11 @@ async def create_lecture(request: Request) -> dict[str, Any]:
     if ctype.startswith("multipart/form-data"):
         form = await request.form()
         upload = form.get("audio")
-        audio = await upload.read() if upload is not None and hasattr(upload, "read") else None
-        lec = companion.create_lecture(
+        # Starlette has spooled the file to disk; it is copied into the lecture folder (and probed with
+        # ffprobe) in a worker thread, so an hour of lecture video neither fills memory nor blocks the loop.
+        audio = upload.file if upload is not None and hasattr(upload, "file") else None
+        lec = await run_in_threadpool(
+            companion.create_lecture,
             student_id=str(form.get("studentId") or ""), course_code=str(form.get("courseCode") or ""),
             lecture_date=str(form.get("date") or ""), title=form.get("title") or None,
             transcript_text=form.get("transcriptText") or None if audio is None else None,
@@ -57,7 +61,9 @@ def get_lecture(lecture_id: str) -> dict[str, Any]:
 
 @router.get("/lectures/{lecture_id}/audio")
 def get_audio(lecture_id: str) -> FileResponse:
-    return FileResponse(companion.audio_path(lecture_id))
+    path = companion.audio_path(lecture_id)
+    # macOS guesses audio/mp4a-latm for .m4a (the audio extracted from a lecture video); browsers expect audio/mp4.
+    return FileResponse(path, media_type="audio/mp4" if path.suffix.lower() == ".m4a" else None)
 
 
 @router.get("/lectures/{lecture_id}/transcript")

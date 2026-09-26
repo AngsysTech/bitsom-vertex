@@ -143,11 +143,68 @@ if not {'CS F415','CS F407'}.issubset(planned): fail('Rohan planned clash pair m
 ok('student narrative targets, CGPAs, weak spots, prereq and clash traps validate')
 
 # connectorId presence on top-level docs/collections
-for fn in ['catalog.json','role_profiles.json','timetable.json','exam_calendar.json','past_papers.json','resources.json','clubs.json','events.json']:
+for fn in ['catalog.json','role_profiles.json','timetable.json','exam_calendar.json','past_papers.json','resources.json','clubs.json','events.json','gap_tags.json']:
   if 'connectorId' not in loadj(fn): fail(f'connectorId missing {fn}')
 for sfile in (ROOT/'students').glob('*.json'):
   s=json.loads(sfile.read_text())
   for group in ['transcript','registrations','internalMarks']:
     if 'connectorId' not in s[group]: fail(f'connectorId missing {sfile.name} {group}')
 ok('connector provenance present')
+
+# graded answers (exam_system connector, contracts v3.7 GradedAnswerRow): mid-sem, CS F212 + CS F372 only
+GA_COURSES=('CS F212','CS F372')
+GA_KEYS={'courseCode','exam','question','topic','scored','max','rubricFeedback','gapTag','date'}
+ex={c['id']:c for c in loadj('connectors.json')}.get('exam_system',{})
+if (ex.get('kind'),ex.get('status'),ex.get('provides'))!=('exam_system','synthetic',['graded_answers']): fail('exam_system connector missing or wrong')
+gt=loadj('gap_tags.json'); tags={t['tag']:t for t in gt['tags']}
+if gt['connectorId']!='exam_system' or len(tags)!=len(gt['tags']): fail('gap_tags.json: connectorId must be exam_system, tags unique')
+for t in gt['tags']:
+  if not re.fullmatch(r'[a-z0-9]+(-[a-z0-9]+)*',t['tag']): fail(f'gap tag not kebab-case: {t["tag"]}')
+  if t['kind'] not in ('concept','presentation','none') or (t['kind']=='none')!=(t['tag']=='none'): fail(f'gap tag kind: {t["tag"]}')
+  if not t['label'].strip() or '\n' in t['label']: fail(f'gap tag needs a one-line label: {t["tag"]}')
+mid={r['courseCode']:r['midSemDate'] for r in loadj('exam_calendar.json')['courses']}
+vague=re.compile(r'(?i)needs? improvement|good (attempt|effort|work)|well done|work harder|revise (the|this) topic')
+if {p.stem for p in (ROOT/'graded_answers').glob('*.json')}!={p.stem for p in (ROOT/'students').glob('*.json')}: fail('graded_answers/ must hold exactly one file per student')
+ga={}; used=set()
+for sfile in (ROOT/'students').glob('*.json'):
+  sid=sfile.stem; g=loadj(f'graded_answers/{sid}.json'); rows=ga[sid]=g['rows']
+  if g['connectorId']!='exam_system': fail(f'graded_answers/{sid}.json connectorId')
+  seen=set(); sums={}
+  for r in rows:
+    at=f'graded_answers/{sid}.json {r.get("courseCode")} {r.get("question")}'
+    if set(r)!=GA_KEYS: fail(f'{at}: keys differ from GradedAnswerRow: {sorted(set(r)^GA_KEYS)}')
+    if r['courseCode'] not in GA_COURSES or r['exam']!='Mid-sem': fail(f'{at}: only CS F212 / CS F372 mid-sem are in scope')
+    if not re.fullmatch(r'Q\d+[a-z]?',r['question']) or (r['courseCode'],r['question']) in seen: fail(f'{at}: bad or duplicate question label')
+    seen.add((r['courseCode'],r['question']))
+    if r['topic'] not in syll[r['courseCode']]: fail(f'{at}: topic not in syllabus: {r["topic"]}')
+    if r['gapTag'] not in tags: fail(f'{at}: gapTag not in gap_tags.json: {r["gapTag"]}')
+    if not (type(r['scored'])==type(r['max'])==int and 0<=r['scored']<=r['max'] and r['max']>0): fail(f'{at}: scored/max')
+    if (r['gapTag']=='none')!=(r['scored']==r['max']): fail(f'{at}: gapTag "none" exactly when full marks')
+    fb=r['rubricFeedback']
+    if len(fb)<40 or not fb.endswith('.') or re.search(r'[.!?]\s+[A-Z]',fb) or vague.search(fb): fail(f'{at}: rubricFeedback must be one concrete sentence')
+    if r['date']!=mid[r['courseCode']]: fail(f'{at}: date {r["date"]} is not the mid-sem date {mid[r["courseCode"]]}')
+    used.add(r['gapTag']); acc=sums.setdefault((r['courseCode'],r['topic']),[0,0]); acc[0]+=r['scored']; acc[1]+=r['max']
+  for code in GA_COURSES:
+    n=sum(r['courseCode']==code for r in rows)
+    if not 6<=n<=8: fail(f'graded_answers/{sid}.json {code}: {n} questions, expected 6-8')
+  # the file explains the internal mid-sem marks; it never changes them
+  marks={}
+  for r in loadj(f'students/{sid}.json')['internalMarks']['rows']:
+    if r['courseCode'] in GA_COURSES and r['component'].startswith('Mid-sem'):
+      if (r['courseCode'],r['topic']) in marks: fail(f'{sid}: two mid-sem mark rows for {r["courseCode"]} {r["topic"]}')
+      marks[(r['courseCode'],r['topic'])]=[r['scored'],r['max']]
+  diff=sorted(k for k in sums.keys()|marks.keys() if sums.get(k)!=marks.get(k))
+  if diff: fail(f'{sid}: graded sums != internal mid-sem marks for {[(k,sums.get(k),marks.get(k)) for k in diff]}')
+if set(tags)-used: fail(f'gap_tags.json lists unused tags: {sorted(set(tags)-used)}')
+ok('graded answers: in scope, topics and tags resolve, per-topic sums equal internal mid-sem marks')
+def concept_gaps(sid): return [r for r in ga[sid] if tags[r['gapTag']]['kind']=='concept']
+for code,topic,want in [('CS F212','Normalization',{'transitive-dependency-not-removed','bcnf-vs-3nf-confused'}),
+                        ('CS F212','B+ trees',{'split-propagation-missed'}),('CS F372','CPU scheduling',{'rr-quantum-context-switch-ignored'})]:
+  rows=[r for r in ga['meera'] if (r['courseCode'],r['topic'])==(code,topic)]
+  if not want<={r['gapTag'] for r in rows}: fail(f'Meera {code} {topic}: missing gap tags {want-{r["gapTag"] for r in rows}}')
+  if any(r['scored']<r['max'] and tags[r['gapTag']]['kind']!='concept' for r in rows): fail(f'Meera {code} {topic}: every lost mark must carry a concept gap')
+if [r['courseCode'] for r in concept_gaps('aarav')]!=['CS F372']: fail('Aarav: expected exactly one concept gap, in CS F372')
+if 2*sum(r['scored']==r['max'] for r in ga['aarav'])<=len(ga['aarav']): fail('Aarav: expected full marks on most questions')
+if [r['courseCode'] for r in concept_gaps('rohan')]!=['CS F212']: fail('Rohan: expected exactly one concept gap, in CS F212')
+ok("graded-answer traps: Meera's mid-sem gaps explain her weak topics; Aarav and Rohan carry one small gap each")
 print('\nALL VALIDATIONS PASSED')

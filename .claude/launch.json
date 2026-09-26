@@ -4,16 +4,70 @@
     {
       "name": "backend",
       "runtimeExecutable": "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/.venv/bin/uvicorn",
-      "runtimeArgs": ["app.main:app", "--app-dir", "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend", "--port", "8000"],
+      "runtimeArgs": [
+        "app.main:app",
+        "--app-dir",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend",
+        "--port",
+        "8000"
+      ],
       "port": 8000
     },
     {
       "name": "backend-dryrun-8765",
       "runtimeExecutable": "/usr/bin/env",
-      "runtimeArgs": ["DB_PATH=/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/data/demo_run/transcript_run.db",
-                      "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/.venv/bin/uvicorn",
-                      "app.main:app", "--app-dir", "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend", "--port", "8765"],
+      "runtimeArgs": [
+        "DB_PATH=/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/data/demo_run/transcript_run.db",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend/.venv/bin/uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/backend",
+        "--port",
+        "8765"
+      ],
       "port": 8765
+    },
+    {
+      "name": "ui-polish-frontend-5601",
+      "runtimeExecutable": "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/node_modules/.bin/vite",
+      "runtimeArgs": [
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend",
+        "--config",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/vite.config.ts",
+        "--port",
+        "5601",
+        "--strictPort"
+      ],
+      "port": 5601
+    },
+    {
+      "name": "frontend-real-5610",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "VITE_MOCK=false",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/node_modules/.bin/vite",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend",
+        "--config",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/vite.config.ts",
+        "--port",
+        "5610",
+        "--strictPort"
+      ],
+      "port": 5610
+    },
+    {
+      "name": "frontend-mock-dist-5611",
+      "runtimeExecutable": "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/node_modules/.bin/vite",
+      "runtimeArgs": [
+        "preview",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend",
+        "--config",
+        "/Users/vibhavangadi/ATSPL-ENGG/codespace/bitsom/bitsom-vertex/frontend/vite.config.ts",
+        "--port",
+        "5611",
+        "--strictPort"
+      ],
+      "port": 5611
     }
   ]
 }

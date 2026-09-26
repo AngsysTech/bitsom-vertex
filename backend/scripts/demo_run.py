@@ -11,7 +11,7 @@ Order; every step prints its requests, the key response fields and its wall time
   1  POST /demo/reset/:studentId                          (with --reset)
   2  POST /demo/simulate-week/meera                       (meera only; prints clockNow)
   3  POST /lectures                                        (audio; the transcript path if STT failed)
-  4  POST /lectures/:id/markers {atSec: 120, note: "lost here"}
+  4  POST /lectures/:id/markers {atSec: 120, note: "lost here"}   (--marker-sec moves it)
   5  POST /lectures/:id/process, poll every 2 s until ready|failed (cap 180 s); audio failure reruns 3-5 on text
   6  GET  /lectures/:id/handout and /cards
   7  POST /actions/:id {status: accepted} for the first study and the first prep action
@@ -874,8 +874,11 @@ def main() -> int:
     ap.add_argument("--keep-going", action="store_true", help="record failures and run the remaining steps")
     ap.add_argument("--base-url", default="http://127.0.0.1:8000")
     ap.add_argument("--poll-cap", type=int, default=180, help="seconds to wait for a lecture (default 180)")
+    ap.add_argument("--marker-sec", type=int, default=MARKER["atSec"],
+                    help=f"where the stuck marker goes, in seconds of the lecture (default {MARKER['atSec']})")
     ap.add_argument("--log", default=str(Path(__file__).with_name("demo_run.log")))
     args = ap.parse_args()
+    MARKER["atSec"] = args.marker_sec
 
     run = Run(args, Path(args.log))
     hint = ""

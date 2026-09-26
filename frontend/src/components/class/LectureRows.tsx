@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon } from '@/components/Icon'
 import { Spinner } from '@/components/Spinner'
 import { DEFAULT_AGENT } from '@/lib/config'
-import { dismissJob, retryJob, retryMarker } from '@/store/companion'
+import { dismissJob, isVideoName, retryJob, retryMarker } from '@/store/companion'
 import { classPath, navigate } from '@/lib/route'
 import { fmtTime } from '@/lib/format'
 import { mmss } from '@/lib/time'
@@ -29,8 +29,9 @@ function steps(job: LectureJob): { label: string; state: StepState }[] {
     if (activeWhen) return 'active'
     return i < reached ? 'done' : 'todo'
   }
+  const media = isVideoName(job.filename) ? 'video' : 'audio'
   const names = [
-    { todo: text ? 'Send transcript' : 'Upload audio', active: text ? 'Sending transcript…' : 'Uploading audio…', done: text ? 'Transcript received' : 'Audio uploaded', error: 'Upload failed' },
+    { todo: text ? 'Send transcript' : `Upload ${media}`, active: text ? 'Sending transcript…' : `Uploading ${media}…`, done: text ? 'Transcript received' : media === 'video' ? 'Video uploaded' : 'Audio uploaded', error: 'Upload failed' },
     { todo: text ? 'Segment transcript' : 'Transcribe', active: text ? 'Segmenting transcript…' : 'Transcribing…', done: text ? 'Transcript segmented' : 'Transcribed', error: 'Transcription failed' },
     { todo: 'Build handout', active: 'Building handout…', done: 'Handout built', error: 'Handout failed' },
     { todo: 'Check coverage', active: 'Checking coverage…', done: 'Coverage checked', error: 'Coverage check failed' },
@@ -74,7 +75,7 @@ export function JobRow({ job }: { job: LectureJob }) {
   const set = useWS((s) => s.set)
   const lec = job.lecture
   const icon = job.source === 'transcript' ? 'description' : job.source === 'upload' ? 'upload_file' : 'mic'
-  const what = job.source === 'transcript' ? 'Pasted transcript' : job.source === 'upload' ? 'Uploaded audio' : 'Recorded lecture'
+  const what = job.source === 'transcript' ? 'Pasted transcript' : job.source === 'upload' ? (isVideoName(job.filename) ? 'Uploaded video' : 'Uploaded audio') : 'Recorded lecture'
   const failed = job.phase === 'failed' || job.phase === 'upload_failed'
   return (
     <div data-msg-id={`job:${job.id}`} className="py-2 pr-5 pl-[66px]">

@@ -204,7 +204,7 @@ function ClassComposer({ courseCode }: { courseCode: string }) {
           </>
         }
         plus={[
-          { icon: 'upload', label: 'Upload recording', hint: 'Audio you already have: mp3, m4a, wav, webm… (or drop the files here)', onClick: picker.open },
+          { icon: 'upload', label: 'Upload recording', hint: 'Audio or video you already have: mp3, m4a, wav, mp4, mov… (or drop the files here)', onClick: picker.open },
           { icon: 'description', label: 'Paste transcript', hint: 'Text fallback: same pipeline, no transcription', onClick: () => set({ paste: { courseCode } }) },
         ]}
       />

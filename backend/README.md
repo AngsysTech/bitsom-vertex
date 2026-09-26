@@ -23,7 +23,7 @@ next step starts:
 
 | Step | What | Code vs model |
 |---|---|---|
-| transcribe | audio → vendored STT (`core/stt.py`) → ~30 s segments; or `transcriptText` → ~40-word segments with synthetic timestamps | code + provider |
+| transcribe | audio → vendored STT (`core/stt.py`) → ~30 s segments; a video's audio track is extracted locally first (`core/media.py`, ffmpeg); or `transcriptText` → ~40-word segments with synthetic timestamps | code + provider |
 | handout | topic split → vendored note structuring → adapter into `Handout` → syllabus mapping (closed list) | model, verified |
 | coverage | unit topics vs handout: covered / missed / emphasized | model, verified |
 | commitments | next-lecture topics, assignments, readings, deadlines, exam hints | model extracts; code resolves dates |
@@ -49,6 +49,14 @@ Prompts are in `app/prompts/class_companion.md`.
 
 The lecture-ready message, failures and stuck-marker notes land in the class thread
 `<studentId>:class:<courseCode>` (see `core/threads.py`).
+
+Uploads (`audio` in multipart) can be audio (mp3, m4a, wav, webm, ogg, flac, aac…) or a
+lecture video (mp4, mov, mkv, avi, m4v…). They are kept on disk under
+`data/lectures/<lectureId>/` (gitignored): `audio.<ext>` for audio, or `video.<ext>` plus the
+extracted `audio.m4a` (mono 16 kHz AAC, ~20 MB per hour) for video. STT reads the audio
+file, and `GET /lectures/:id/audio` serves it. A file with no audio track is refused with a 400.
+Video needs `ffmpeg`/`ffprobe` on PATH (`brew install ffmpeg`); without them the video goes
+to STT as-is.
 
 Stuck markers (`{atSec, note?}`) are accepted at any status. Code resolves each one to
 the segment covering `atSec`, then the section holding that segment (or the nearest

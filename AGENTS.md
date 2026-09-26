@@ -14,7 +14,7 @@ Below the line (built only if the planner demos cleanly): course recommender, de
 
 ## 2. Rules we must not break (from the brief)
 
-- **No private pre-existing code, with one disclosed exception.** The jury explicitly approved (asked and confirmed ~12:30 today) reusing our prior **audio-to-notes pipeline** for the class companion. That code lives **only** in `backend/app/vendored/audio_notes/` with a `NOTICE.md` stating what was ported, that it predates the challenge, and that the jury approved it. It is named on the slide, in the README and in Q&A. Nothing else from Enstine or any prior private repo is copied, ported, paraphrased or "mimicked" in, by a human or a coding agent — the syllabus coverage step, the actions step, the audit, the planner, the UI and the shared layer are all clean-room, built today from this file and `contracts.ts`.
+- **No private pre-existing code, with one disclosed exception.** The jury explicitly approved reusing two pieces of our prior code: the **audio-to-notes pipeline** (asked ~12:30) for the class companion, and the **mind-map builder + mind-map React component** (asked ~14:20) as a view over the lecture handout. That code lives **only** in `backend/app/vendored/{audio_notes,mindmap}/` and `frontend/src/vendored/mindmap/`, each with a `NOTICE.md` stating what was ported, that it predates the challenge, and that the jury approved it. It is named on the slide, in the README and in Q&A. Nothing else from Enstine or any prior private repo is copied, ported, paraphrased or "mimicked" in, by a human or a coding agent — the syllabus coverage step, the actions step, the audit, the planner, the UI and the shared layer are all clean-room, built today from this file and `contracts.ts`.
 - **Synthetic data only.** No real student data. Every dataset file is generated today and lives in `backend/app/data/`.
 - **No simulated intelligence.** Hardcoding is fine for setup, routing and supporting functions. It is not fine for any response content, recommendation, or reasoning that makes the AI look smarter than it is. If a feature can't be done for real, it goes on the "next" slide, never faked. This applies to club-agent chat especially.
 - **Assumptions stated.** Single program, English documents, synthetic connectors. Say it on the slide.
@@ -66,6 +66,7 @@ Tools:
 - `diagnose_performance` — internal marks × past-paper topic weights → weak topics ranked by `impact`. Output: `WeakTopicsCard`.
 - `build_study_plan` — weekly blocks to the exam calendar, weighted by impact, citing syllabus sections. Output: `StudyPlanCard`.
 - `stuck_markers` (P0, 1:15 decision) — tap-to-flag during recording (timestamp + optional ≤60-char note, no extra audio; the mic is already on the lecture). Backend resolves each marker to a segment, a handout section and a canonical topic. Handout sections get `stuck`, Coverage gets `confusion`, Actions get `review` items with `provenance.markerId`, the lookback recap gets `flaggedTopics`. Markers can also be added on the handout timeline afterwards (demo safety). Types: `StuckMarker`, contracts §9b.
+- `lecture_mind_map` (P1, 2:25 decision, 60-min box, in the demo only if green by 3:30) — a view over the handout: nodes = handout sections and key points (built with the jury-approved mind-map code), overlay in code = stuck flags, exam hints, and **ghost nodes for syllabus topics the lecture skipped**. Lives behind a `Handout | Mind map` toggle in the class channel's Lectures tab. Types: `MindMap`, contracts v3.9. Never a source of new facts.
 - `make_it_relevant` (P0, 1:15 decision) — one LLM call: same facts through the student's interest, no new facts, citations from the source it's attached to (handout section, stuck section, plan block or weak topic). Output: `RelevantCard` with `source`. Offered automatically on stuck sections and on the top weak topic. Rebuilt fresh, prompt-level only.
 
 ### 4.2 Course Planner (`course_planner`) — P1 (below the line since 1:15)
@@ -116,7 +117,7 @@ Every document and record carries a `connectorId`.
 3. **Every week**: lookback 1:1 (recap in code, questions and adjustments grounded in it) → adjusted plan
 Plus: escalation + advisor view, Slack-style shell with right panel, Canvas (handout, calendar, 1:1), student switcher.
 
-**P1 (only if all three rungs demo twice by ~3:30):** degree audit (its citation plumbing is shared, so it's first back in) · course recommender + skills gap · clickable citations · Agents & tools page · coming-soon channels
+**P1 — in flight on isolated branches, each enters the demo only if green and merged by 3:30:** lecture mind map (§9.6) · campus discovery as a calendar source (§9.4) · exam-system gaps in weak topics (§9.5). **P1 — not started, only after those:** degree audit (its citation plumbing is shared) · course recommender + skills gap · clickable citations · Agents & tools polish
 
 **P2:** clubs/social · club agents · Study Buddy timer · Activity feed · `#ask-anything` router
 
@@ -132,7 +133,7 @@ Plus: escalation + advisor view, Slack-style shell with right panel, Canvas (han
 
 ## 7. Demo script (7 minutes, revised 1:15)
 
-1. **In class** (Meera) — start recording the 2-min DBMS clip in the Academic Coach DM; tap "I'm stuck" once at the 2PL-adjacent moment. Stop → Marker rows while it works → handout in Canvas with the stuck section flagged → Coverage card: skipped topic (planted), exam-hint quote with timestamp, confusion point → Actions card: study (skipped topic, past-paper marks in the `why`), review (the stuck part), prep (next lecture's promised topic, due before the next CS F212 session). Accept two.
+1. **In class** (Meera) — open the `cs-f212-dbms` class channel, start recording the 2-min DBMS clip (`Lecture.mp3` upload is the fallback); tap "I'm stuck" once at the 2PL-adjacent moment. Stop → Marker rows while it works → handout in the Lectures tab with the stuck section flagged (toggle to Mind map if shipped: point at the dashed ghost node) → Coverage card: skipped topic (planted), exam-hint quote with timestamp, confusion point → Actions card: study (skipped topic, past-paper marks in the `why`), review (the stuck part), prep (next lecture's promised topic, due before the next CS F212 session). Accept two.
 2. **Make it Relevant** — on the stuck section, one tap → the same concept through cricket, side by side, citations intact. 20 seconds, no more.
 3. **After class** — "What should I study this week?" → weak topics from marks × past papers → weekly plan → Canvas calendar: classes, exams, the two accepted actions and the plan blocks on the same days, no collisions. Point at one block's `why`.
 4. **Every week** — "Run my weekly review" (last week pre-marked, say so) → recap numbers → concern naming a missed topic and a flagged topic → answer one question → complete → the calendar re-flows; ticket appears in the advisor inbox because "share with advisor" was on.
@@ -141,7 +142,7 @@ Plus: escalation + advisor view, Slack-style shell with right panel, Canvas (han
 7. **Architecture, 30s** — connectors (synthetic, disclosed) → grounded student layer → agents; audio-to-notes core from before with jury approval, coverage/actions/plan/lookback built today. Expand one tool trace.
 8. **Next** — course recommender and degree audit as more tools on the same layer, clubs, buddy timer, memory, real connectors, ink/Outlook export.
 
-**Slide:** "Students sit in class, get lost, forget what the lecturer promised, and plan their week from memory. We built a study planner that listens to your classes and adjusts every week: handout checked against the syllabus, 'I'm stuck' markers, actions with exam weight behind them, a calendar around your classes, and a weekly 1:1 that re-plans. Every claim cited to syllabus, past papers or the lecture; a human when the docs run out. Assumptions: single program, English docs, synthetic connectors. Disclosed: audio-to-notes core reused with jury approval; documents are structured markdown/JSON, no PDF ingestion today; everything else built today."
+**Slide:** "Students sit in class, get lost, forget what the lecturer promised, and plan their week from memory. We built a study planner that listens to your classes and adjusts every week: handout checked against the syllabus, 'I'm stuck' markers, actions with exam weight behind them, a calendar around your classes, and a weekly 1:1 that re-plans. Every claim cited to syllabus, past papers or the lecture; a human when the docs run out. Assumptions: single program, English docs, synthetic connectors. Disclosed: audio-to-notes core and mind-map code reused with jury approval; documents are structured markdown/JSON, no PDF ingestion today; everything else built today."
 
 **Q&A prep:**
 - *Why not ChatGPT with PDFs?* Personal records + deterministic audit + rule-conflict resolution + verified citations + refusal/escalation.
@@ -174,3 +175,23 @@ Plus: escalation + advisor view, Slack-style shell with right panel, Canvas (han
 - Commit every 30 minutes with a message that says what demos now.
 - Do not refactor after 3:30. Do not add features after 4:30.
 - If a decision isn't in this file or `contracts.ts`, ask the other person before building it.
+
+## 9. Decisions log since the 1:15 refocus (each already reflected in `contracts.ts`)
+
+9.1 **Class channels (1:25, contracts v3.5).** Sidebar gets a `Classes` group, one channel per registered course (`class:CS F212`). The Academic Coach inside a class channel is hard-scoped to that course; out-of-course questions get "ask me in my DM". Recording, markers, handouts and per-course context live in the class channel; the DM keeps cross-course things (week plan, 1:1, audit). Tabs: Messages · Lectures · Schedule. `GET /classes/:studentId` feeds the sidebar and the Today block.
+
+9.2 **Calendar rail item (1:25).** Rail order: Home · DMs · Calendar · Files · Agents & tools. One calendar component, three placements: full week/month under the rail item, course-filtered Schedule tab in each class channel, and a `Today` block replacing the empty Starred area (next class, next study block, 1:1 ready). Course Planner and Campus Guide render greyed "coming soon"; no mock replies for below-the-line agents.
+
+9.3 **Feature 2 as built (2:05, contracts v3.8).** Impact normalised to the heaviest end-sem topic (ranking unchanged). `POST /demo/simulate-week/:studentId` marks the next 7 days' blocks done/missed (every third missed) **and moves that student's clock forward 7 days** — run it on Meera before the demo, never mid-demo. Exam days get no study blocks. Direct tool endpoints `POST /students/:id/diagnose` and `/plan`. Recap has `blocksMissed`, `prepMet`, `prepMissed`, `movementNote`, `window`. Three model calls per chat reply; the temperature-rejection retry in `llm.py` is to be fixed by remembering the rejection per model.
+
+9.4 **Campus discovery as a calendar source (1:40, contracts v3.6).** Not a fourth agent. `GET /discover/:studentId` returns 3 picks + 1 wildcard tied to weak topics, career goal or interests, with verified anecdotes; accepting a pick creates a `CalendarItem` of kind `event`. UI: a "Worth your time" card on the Calendar page and in the coach DM. Built by an isolated agent (`agents/discover.py`); 3:30 gate.
+
+9.5 **Exam-system gaps (1:50, contracts v3.7).** `graded_answers/<student>.json` (mid-sem, CS F212 + CS F372) with per-question rubric feedback and canonical `gapTag`s, connector `exam_system` (synthetic). `diagnose.py` attaches `gaps[]` to weak topics; plan and action `why` lines may quote the gap label; MIR can target a gap. Per-topic sums must equal the existing internal marks. Sent to the Feature 2 session only after its rung 2 smoke is green.
+
+9.6 **Lecture mind map (2:25, contracts v3.9).** Jury-approved reuse of the Enstine mind-map builder (`enstine-core` → `backend/app/vendored/mindmap/`) and React component (`enstine-notesapp` → `frontend/src/vendored/mindmap/`), each with a NOTICE. A `Handout | Mind map` toggle in the class channel's Lectures tab. Nodes = handout sections and key points; overlay in code = stuck flags, exam hints, and dashed ghost nodes for syllabus topics the lecture skipped. Never a source of new facts. 60-minute box; 3:30 gate.
+
+9.7 **No PDF ingestion (1:30).** Documents are markdown/JSON delivered by connectors; the markdown-heading parser is the only parsing. Disclosed on the slide.
+
+9.8 **Demo dry run (2:15).** `backend/scripts/demo_run.py` walks the demo order against the API using `Lecture.mp3`, checks which course the audio actually matches, and writes `DEMO.md` (exact sequence, fallback per step, timings) and `FINDINGS.md`. `FINDINGS.md` is the fix list for the 3:30 rehearsal; `FIXES.md` tracks owner and status of every break found in integration.
+
+9.9 **Git hygiene.** Root `.gitignore` (`venv/`, `.venv/`, `node_modules/`, `*.db`, `backend/data/lectures/`); one backend agent per folder; commit prefixes `companion:`, `feat2:`, `discover:`, `mindmap:`, `demo-fix:`; contract changes only through `contracts.ts`, announced to every running session in the same minute. Nothing new enters the contract after v3.9 unless a demo step is broken.

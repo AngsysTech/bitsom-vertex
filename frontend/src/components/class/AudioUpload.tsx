@@ -34,7 +34,7 @@ export function UploadButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      data-tip="Add a recording you already have (mp3, m4a, wav…), or drop the files here"
+      data-tip="Add a recording you already have (mp3, m4a, wav… or a video: mp4, mov, mkv…), or drop the files here"
       className="flex h-7 flex-none cursor-pointer items-center gap-1 rounded-md px-1.5 text-[13px] font-bold whitespace-nowrap text-ink transition-colors hover:bg-mist"
     >
       <Icon name="upload" size={18} className="text-ink-5" />
@@ -100,7 +100,7 @@ export function AudioDropZone({ courseCode, children }: { courseCode: string; ch
             <Icon name="upload" size={26} />
           </span>
           <b className="text-[17px] text-ink">Drop to add the recording to {courseCode}</b>
-          <span className="text-[13px] text-ink-5">mp3, m4a, wav, webm, ogg, flac or aac · each file becomes its own lecture</span>
+          <span className="text-[13px] text-ink-5">mp3, m4a, wav, webm, ogg, flac, aac or a video (mp4, mov, mkv…) · each file becomes its own lecture</span>
         </div>
       )}
     </div>

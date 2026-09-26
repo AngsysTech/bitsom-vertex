@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import logging
 import re
+import shutil
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 import time
 import uuid
@@ -25,11 +27,11 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
-from typing import Any, Literal, Optional
+from typing import Any, BinaryIO, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from app.core import academics, db, llm, records, stt
+from app.core import academics, db, llm, media, records, stt
 from app.core.academics import (Exam, TopicWeight, due_iso, iso, lecture_start, next_exam, next_session,
                                 norm_topic, resolve_when, topic_weight)
 from app.core.config import LECTURES_DIR, PROMPTS_DIR, TZ
@@ -51,6 +53,7 @@ AGENT_ID = "academic_coach"
 CONNECTOR_ID = "lms_moodle"
 AUDIO_EXTS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".oga", ".opus", ".webm", ".flac", ".mp4",
               ".mpeg", ".mpga", ".aiff", ".aif", ".caf"}
+MEDIA_EXTS = AUDIO_EXTS | media.VIDEO_EXTS  # a lecture video's audio track is extracted locally (core/media.py)
 MAX_BUNDLE_SEGMENTS = 10  # the vendored notes prompt reads at most 10 evidence chunks per topic
 
 
@@ -158,8 +161,10 @@ class Tracer:
 # ---------------------------------------------------------------------------------
 
 def create_lecture(*, student_id: str, course_code: str, lecture_date: str, title: str | None = None,
-                   transcript_text: str | None = None, audio: bytes | None = None,
+                   transcript_text: str | None = None, audio: bytes | BinaryIO | None = None,
                    audio_filename: str | None = None, source: str | None = None) -> Lecture:
+    """`audio` is the uploaded file's bytes or an open binary file (streamed to disk, so a long lecture
+    video never sits in memory). It may be audio or video; see _store_media."""
     if not student_id or not course_code or not lecture_date:
         raise BadRequest("studentId, courseCode and date are required")
     if load_student(student_id) is None:
@@ -173,20 +178,15 @@ def create_lecture(*, student_id: str, course_code: str, lecture_date: str, titl
 
     lecture_id = f"lec_{uuid.uuid4().hex[:10]}"
     folder = LECTURES_DIR / lecture_id
-    folder.mkdir(parents=True, exist_ok=True)
     audio_url = None
     if transcript_text is not None:
         if not stt.clean_transcript_text(transcript_text):
             raise BadRequest("transcriptText is empty")
+        folder.mkdir(parents=True, exist_ok=True)
         (folder / "transcript.txt").write_text(transcript_text, encoding="utf-8")
         src = "transcript"
     else:
-        ext = ("." + (audio_filename or "").rsplit(".", 1)[-1].lower()) if audio_filename and "." in audio_filename else ""
-        if ext not in AUDIO_EXTS:
-            raise BadRequest(f"unsupported audio type {ext or '(none)'}; use one of {sorted(AUDIO_EXTS)}")
-        if not audio:
-            raise BadRequest("audio file is empty")
-        (folder / f"audio{ext}").write_bytes(audio)
+        _store_media(folder, audio, audio_filename)
         src = "recording" if source == "recording" else "upload"
         audio_url = f"/lectures/{lecture_id}/audio"
     lec = Lecture(id=lecture_id, studentId=student_id, courseCode=course_code, date=day.isoformat(),
@@ -194,12 +194,50 @@ def create_lecture(*, student_id: str, course_code: str, lecture_date: str, titl
     return _save_lecture(lec)
 
 
-def audio_path(lecture_id: str):
+def _store_media(folder: Path, data: bytes | BinaryIO, filename: str | None) -> None:
+    """Keep the upload on disk as audio.<ext>, or as video.<ext> when it has a picture track (its audio is
+    extracted to audio.m4a at transcribe time). Only a file ffprobe reads as having no sound is refused;
+    anything ffprobe can't read goes to STT as before."""
+    ext = ("." + filename.rsplit(".", 1)[-1].lower()) if filename and "." in filename else ""
+    if ext not in MEDIA_EXTS:
+        raise BadRequest(f"unsupported file type {ext or '(none)'}; use audio ({', '.join(sorted(AUDIO_EXTS))}) "
+                         f"or video ({', '.join(sorted(media.VIDEO_EXTS - AUDIO_EXTS))})")
+    folder.mkdir(parents=True, exist_ok=True)
+    upload = folder / f"upload{ext}"
+    if isinstance(data, (bytes, bytearray)):
+        upload.write_bytes(data)
+    else:
+        with upload.open("wb") as out:
+            shutil.copyfileobj(data, out, 1024 * 1024)
+    info = media.probe(upload) if upload.stat().st_size else None
+    if not upload.stat().st_size or (info is not None and not info.audio):
+        shutil.rmtree(folder, ignore_errors=True)
+        raise BadRequest("audio file is empty" if info is None else f"{filename} has no audio track to transcribe")
+    is_video = info.video if info is not None else ext in media.VIDEO_EXTS - AUDIO_EXTS
+    upload.rename(folder / f"{'video' if is_video else 'audio'}{ext}")
+
+
+def audio_path(lecture_id: str) -> Path:
+    """The lecture's audio: the uploaded file, or the track extracted from an uploaded video (the video
+    itself until the extraction has run)."""
     folder = LECTURES_DIR / lecture_id
-    found = sorted(folder.glob("audio.*")) if folder.exists() else []
+    found = (sorted(folder.glob("audio.*")) or sorted(folder.glob("video.*"))) if folder.exists() else []
     if not found:
         raise NotFound(f"no audio for {lecture_id}")
     return found[0]
+
+
+def _stt_input(lecture_id: str) -> tuple[Path, str]:
+    """(file STT reads, trace note). A video's audio track is extracted locally once and kept next to it
+    as audio.m4a, so STT uploads ~20 MB per lecture hour instead of the whole video."""
+    path = audio_path(lecture_id)
+    if not path.name.startswith("video."):
+        return path, ""
+    if not media.available():
+        return path, f"; {path.suffix} video sent as-is (ffmpeg not installed)"
+    out = path.with_name(media.EXTRACTED_AUDIO)
+    secs = media.extract_audio(path, out)
+    return out, f"; audio track extracted locally from the {path.suffix} video in {secs:.1f}s"
 
 
 # ---------------------------------------------------------------------------------
@@ -314,8 +352,9 @@ def step_transcribe(ctx: Ctx) -> str:
     else:
         lec.status = "transcribing"
         _save_lecture(lec)
-        segments = stt.transcribe(str(audio_path(lec.id)))
-        how = f"{stt.provider()} via vendored audio_notes STT, ~30 s segments"
+        path, note = _stt_input(lec.id)
+        segments = stt.transcribe(str(path))
+        how = f"{stt.provider()} via vendored audio_notes STT, ~30 s segments{note}"
     if not segments:
         raise StepError("transcript is empty")
     ctx.segments = [TranscriptSegment(id=s.id, startSec=s.startSec, endSec=s.endSec, text=s.text) for s in segments]

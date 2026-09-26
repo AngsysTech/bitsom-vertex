@@ -37,11 +37,11 @@ REPO = Path(__file__).resolve().parents[2]
 TODAY = date(2026, 9, 26)                            # AGENTS.md: Sat 26 Sep 2026
 END_SEM = (date(2026, 11, 30), date(2026, 12, 10))   # checklist §5 window
 
-# contracts.ts enums (unchanged v3.1 → v3.4; v3.2 renamed credits → units)
+# contracts.ts enums (unchanged v3.1 → v3.4; v3.2 renamed credits → units; v3.7 added graded_answers / exam_system)
 DOCUMENT_KINDS = {"handbook", "circular", "catalog", "syllabus", "exam_calendar", "past_papers",
                   "resources", "club_feed", "events", "role_profiles"}
-RECORD_KINDS = {"transcript", "internal_marks", "registrations"}
-CONNECTOR_KINDS = {"lms", "erp", "academic_office", "placement", "clubs_portal", "manual"}
+RECORD_KINDS = {"transcript", "internal_marks", "registrations", "graded_answers"}
+CONNECTOR_KINDS = {"lms", "erp", "academic_office", "placement", "clubs_portal", "exam_system", "manual"}
 CONNECTOR_STATUS = {"synthetic", "connected", "available"}
 RESOURCE_KINDS = {"ta_hours", "faculty", "library", "tutoring", "lab"}
 REG_STATUS = {"registered", "waitlisted"}
