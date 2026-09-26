@@ -94,7 +94,7 @@ def main() -> int:
             hits = [m.group(0) for m in re.finditer(r"It maps to [^.]+\.|On your syllabus for this unit[^;\"]*", body)]
             print(f"  {kind} {doc_id}: {hits[:3]}")
         return 0
-    backup = db.with_name(f"{db.name}.bak-{datetime.now():%Y%m%d-%H%M%S}")
+    backup = db.with_name(f"{db.stem}.bak-{datetime.now():%Y%m%d-%H%M%S}{db.suffix}")  # *.db: gitignored
     with sqlite3.connect(backup) as dst:
         conn.backup(dst)
     print(f"backup: {backup}")

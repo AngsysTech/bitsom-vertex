@@ -519,7 +519,8 @@ def check_relevant(client: httpx.Client) -> None:
                                                                         "topic": "Normalization"}}, timeout=120)
     card = r.json()
     fields = {"type", "concept", "course", "interest", "standard", "reframed", "citationIds", "source"}
-    ok = r.status_code == 200 and set(card) == fields and card["interest"] == "badminton"
+    optional = {"studySources", "studySourcesNote"}  # v3.13: where to study it
+    ok = r.status_code == 200 and fields <= set(card) <= fields | optional and card["interest"] == "badminton"
     unresolved = [c for c in card.get("citationIds", [])
                   if client.get(f"/documents/{c.split('.')[0] if c.startswith('past_papers') else c.rsplit('.', 2)[0]}"
                                 f"/sections/{c}").status_code != 200]

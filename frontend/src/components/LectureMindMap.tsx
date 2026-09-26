@@ -1,7 +1,8 @@
 // Lecture mind map (contracts.ts v3.9, AGENTS.md §9.6): the handout as a tree, with the coverage
-// overlay drawn on it. That means stuck flags, exam hints and a tick where a review already exists
-// (ghost nodes for skipped syllabus topics are filtered out: the map doesn't grade the lecture). It renders the jury-approved vendored
-// component (src/vendored/mindmap/, see its NOTICE) and restyles it from the outside. Everything
+// overlay drawn on it. That means stuck flags, exam hints and a tick where a review already exists.
+// Ghost nodes for skipped syllabus topics are filtered out: the map doesn't grade the lecture. It
+// renders the jury-approved vendored component (src/vendored/mindmap/, see its NOTICE) and restyles
+// it from the outside. Everything
 // in this file was written 26 Sep 2026. It shows only what GET /lectures/:id/mindmap returns.
 import {
   useCallback,
