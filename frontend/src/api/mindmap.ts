@@ -3,38 +3,12 @@
 // MOCK=true builds the map from the mock lecture's own handout and cards (see mockMap).
 // Built 26 Sep 2026.
 import { API_URL, MOCK } from '@/lib/config'
-import type { ActionsCard, CoverageCard, Handout, HandoutSection, StuckMarker } from '@/types'
+import type { ActionsCard, CoverageCard, Handout, HandoutSection, MindMap, MindMapNode, StuckMarker } from '@/types'
 import { ApiError } from './client'
 import { api } from './index'
 
-// Mirrors contracts.ts v3.9. src/types.ts is still the v2 copy; import these from '@/types'
-// once `npm run sync-types` has run.
-export type MindMapNodeKind = 'root' | 'section' | 'point' | 'ghost_missed'
-
-export interface MindMapNode {
-  id: string
-  kind: MindMapNodeKind
-  label: string // section heading / key point / missed topic
-  parentId?: string
-  handoutSectionId?: string // section + point nodes
-  syllabusSectionId?: string // section (when mapped) and ghost nodes
-  segmentIds?: string[] // provenance; first one is the "jump to" target
-  flags: {
-    stuck?: { markerIds: string[]; atSec: number[] }
-    emphasized?: { quote: string; segmentId: string }
-    missed?: { why: string } // ghost nodes only
-    reviewActionId?: string // an action already exists for this node
-  }
-  order: number
-}
-
-export interface MindMap {
-  lectureId: string
-  courseCode: string
-  builtAt: string
-  nodes: MindMapNode[] // tree via parentId; root has none
-  stats: { sections: number; points: number; stuck: number; missed: number; emphasized: number }
-}
+// MindMap types come from contracts.ts v3.9 (src/types.ts); re-exported for the component.
+export type { MindMap, MindMapNode, MindMapNodeKind } from '@/types'
 
 const enc = encodeURIComponent
 
@@ -50,7 +24,7 @@ async function req<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pro
     throw new ApiError(`Can't reach the backend at ${API_URL}`)
   }
   const data = await res.json().catch(() => null)
-  if (!res.ok) throw new ApiError(data?.error ?? data?.detail ?? `${res.status} ${res.statusText}`)
+  if (!res.ok) throw new ApiError(data?.error ?? data?.detail ?? `${res.status} ${res.statusText}`, res.status)
   return data as T
 }
 

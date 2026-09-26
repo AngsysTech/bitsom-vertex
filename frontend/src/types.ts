@@ -1,5 +1,5 @@
 // =====================================================================
-// STUDENT-FACING CONTRACT — buildathon  (v3.5)
+// STUDENT-FACING CONTRACT — buildathon  (v3.9)
 // Frontend mocks against these shapes; backend returns exactly these.
 // Backend is FastAPI returning plain JSON. No streaming, no auth.
 //
@@ -9,6 +9,11 @@
 // Activity feed.
 // v3 changes: Class Companion (audio → handout → coverage → actions) as P0;
 // CoverageCard + ActionsCard in the Card union.
+// v3.9: MindMap over the handout (jury-approved reuse), GET /lectures/:id/mindmap.
+// v3.8: OneOnOne recap fields as built (blocksMissed, prepMet/Missed, movementNote, window); direct
+// /diagnose and /plan tool endpoints; simulate-week semantics as built (moves the student's clock).
+// v3.7: GradedAnswerRow (exam-system feedback, synthetic), WeakTopic.gaps, MIR source "gap".
+// v3.6: campus discovery as a calendar source (Pick.status/suggestedCalendarItem, CalendarItem source "event", /discover, /picks).
 // v3.5: class channels (ClassChannel, Channel.kind "class", per-course threads, chat courseCode scope),
 // calendar courseCode filter, GET /classes.
 // v3.4: StuckMarker (tap-to-flag in class), confusion in Coverage, MIR sources.
@@ -69,6 +74,7 @@ export type ConnectorKind =
   | "academic_office" // handbook, circulars, exam calendar
   | "placement"     // role profiles, opportunities
   | "clubs_portal"  // club feeds, events
+  | "exam_system"   // per-question graded answers with rubric feedback
   | "manual";       // seeded by hand
 
 export type ConnectorStatus = "synthetic" | "connected" | "available";
@@ -106,7 +112,7 @@ export interface Student {
 }
 
 // Structured records pulled through connectors (synthetic)
-export type StudentRecordKind = "transcript" | "internal_marks" | "registrations";
+export type StudentRecordKind = "transcript" | "internal_marks" | "registrations" | "graded_answers";
 
 export interface TranscriptRow {
   courseCode: string; title: string; units: number; grade: string; semester: number;
@@ -119,12 +125,24 @@ export interface InternalMarkRow {
 export interface RegistrationRow {
   courseCode: string; semester: number; status: "registered" | "waitlisted";
 }
+// Per-question grading output from an exam-grading system (synthetic here).
+// This is where "why you lost marks" comes from; the diagnosis attaches it to weak topics.
+export interface GradedAnswerRow {
+  courseCode: string; exam: string;         // "Mid-sem"
+  question: string;                         // "Q3b"
+  topic: string;                            // canonical syllabus topic
+  scored: number; max: number;
+  rubricFeedback: string;                   // one sentence, what was missing/wrong
+  gapTag: string;                           // canonical, e.g. "transitive-dependency-not-removed"
+  date: string;
+}
 
 export interface StudentRecords {
   studentId: StudentId;
   transcript:     { connectorId: ConnectorId; rows: TranscriptRow[] };
   internalMarks:  { connectorId: ConnectorId; rows: InternalMarkRow[] };
   registrations:  { connectorId: ConnectorId; rows: RegistrationRow[] };
+  gradedAnswers?: { connectorId: ConnectorId; rows: GradedAnswerRow[] }; // connector kind "exam_system"
 }
 
 export interface Agent {
@@ -235,6 +253,12 @@ export interface AuditCard {
 export interface WeakTopic {
   course: string; topic: string; score: string;
   examWeight: number; impact: number; citationId: string;
+  gaps?: {                                  // from GradedAnswerRow, when present
+    tag: string;                            // "transitive-dependency-not-removed"
+    evidence: string;                       // "Q3b mid-sem: decomposed to 3NF without removing the transitive dependency"
+    marksLost: number;
+    citationId: string;                     // the graded-answer row
+  }[];
 }
 export interface WeakTopicsCard { type: "weak_topics"; items: WeakTopic[]; }
 
@@ -256,7 +280,8 @@ export interface RelevantCard {
   citationIds: string[];
   source?: { type: "handout_section"; lectureId: string; sectionId: string; markerId?: string }
          | { type: "plan_block"; planBlockId: string }
-         | { type: "weak_topic"; course: string; topic: string };
+         | { type: "weak_topic"; course: string; topic: string }
+         | { type: "gap"; course: string; topic: string; tag: string };
 }
 
 // ---- Course Planner --------------------------------------------------
@@ -278,10 +303,22 @@ export interface SkillsGapCard {
 
 // ---- Campus Guide ----------------------------------------------------
 
+// Campus discovery — "what's happening that's worth your time", grounded in
+// events.json / clubs.json / club_feed.md and tied to the student's weak topics,
+// career goal or interests. Accepting a pick puts it on the calendar.
 export interface Pick {
+  id: string;
   kind: "club" | "event" | "opportunity";
-  name: string; when?: string; why: string; anecdote?: string;
-  wildcard: boolean; clubAgentId?: AgentId; citationIds: string[];
+  name: string; when?: string; where?: string; why: string; anecdote?: string;
+  relatedTo?: { type: "weak_topic"; course: string; topic: string }
+            | { type: "career_goal"; role: string }
+            | { type: "interest"; interest: string };
+  wildcard: boolean;          // exactly one per response, outside stated interests, with a reason
+  clubAgentId?: AgentId;
+  citationIds: string[];
+  suggestedCalendarItem?: { start: string; end?: string; allDay?: boolean }; // resolved from events.json
+  status: "proposed" | "accepted" | "dismissed";
+  calendarItemId?: string;    // set when accepted
 }
 export interface PicksCard { type: "picks"; items: Pick[]; }
 
@@ -366,7 +403,11 @@ export interface OneOnOne {
     blocksPlanned: number; blocksDone: number;
     completedTopics: string[]; skippedTopics: string[];
     weakTopicMovement: { topic: string; from: number; to: number }[]; // impact score
+    movementNote?: string;                                           // "no new marks this week — movement is 0"
     flaggedTopics: { topic: string; times: number }[];               // stuck markers this week, by topic
+    blocksMissed: number;
+    prepMet: number; prepMissed: number;                             // accepted prep items met/missed before their session
+    window: { from: string; to: string };                            // the 7-day review window (ISO)
     streakDays: number;
   };
   wins: string[];                           // grounded in sessions ("3 sessions on Normalization")
@@ -528,9 +569,41 @@ export interface ActionsCard {
   items: ActionItem[];        // derived from missed + emphasized + commitments
 }
 
+
+// ---- Lecture mind map (jury-approved reuse of the Enstine mind-map code) ----
+// Structure = handout sections; overlay = coverage, markers, exam hints.
+// A view of the same data as the handout, not a new source of facts.
+
+export type MindMapNodeKind = "root" | "section" | "point" | "ghost_missed";
+
+export interface MindMapNode {
+  id: string;
+  kind: MindMapNodeKind;
+  label: string;              // section heading / key point / missed topic
+  parentId?: string;
+  handoutSectionId?: string;  // section + point nodes
+  syllabusSectionId?: string; // section (when mapped) and ghost nodes
+  segmentIds?: string[];      // provenance; first one is the "jump to" target
+  flags: {
+    stuck?: { markerIds: string[]; atSec: number[] };
+    emphasized?: { quote: string; segmentId: string };
+    missed?: { why: string };                 // ghost nodes only
+    reviewActionId?: string;                  // an action already exists for this node
+  };
+  order: number;
+}
+
+export interface MindMap {
+  lectureId: string;
+  courseCode: string;
+  builtAt: string;
+  nodes: MindMapNode[];       // tree via parentId; root has none
+  stats: { sections: number; points: number; stuck: number; missed: number; emphasized: number };
+}
+
 // ---- Calendar: one merged view of classes, exams, study blocks, actions ----
 
-export type CalendarItemKind = "class" | "exam" | "quiz" | "study_block" | "action" | "prep" | "deadline";
+export type CalendarItemKind = "class" | "exam" | "quiz" | "study_block" | "action" | "prep" | "deadline" | "event";
 
 export interface CalendarItem {
   id: string;
@@ -545,7 +618,8 @@ export interface CalendarItem {
     | { type: "timetable" }
     | { type: "exam_calendar"; examId: string }
     | { type: "plan_block"; planBlockId: string }
-    | { type: "action"; actionId: string; lectureId: string };
+    | { type: "action"; actionId: string; lectureId: string }
+    | { type: "event"; pickId: string; eventId?: string; clubSlug?: string }; // accepted campus pick
   status?: "planned" | "done" | "missed";
 }
 
@@ -600,6 +674,8 @@ export interface CalendarItem {
 //   GET  /lectures/:id/transcript           -> Transcript
 //   GET  /lectures/:id/handout              -> Handout       (404 until status "ready")
 //   GET  /lectures/:id/cards                -> { coverage: CoverageCard; actions: ActionsCard }
+//   GET  /lectures/:id/mindmap              -> MindMap        (404 until "ready"; rebuilt when markers/cards change)
+//   POST /lectures/:id/mindmap/rebuild      -> MindMap
 //   POST /lectures/:id/markers {atSec, note?} -> StuckMarker   (works while recording, before processing, or after)
 //   GET  /lectures/:id/markers              -> StuckMarker[]
 //   (markers added after the handout exists are resolved immediately; the coverage/actions
@@ -613,8 +689,18 @@ export interface CalendarItem {
 //   (when a lecture reaches "ready", the backend also appends an agent Message to the
 //    academic_coach thread with the handout summary, coverage + actions cards, and trace)
 //
-// Demo setup (disclosed on stage; touches statuses only, never text)
-//   POST /demo/simulate-week/:studentId     -> { updated: number }   (marks last week's plan blocks done/missed)
+// Campus discovery (isolated; enters the demo only if merged by 3:30)
+//   GET  /discover/:studentId               -> PicksCard   (3 picks + 1 wildcard; cached per student per day)
+//   POST /picks/:id  {status}               -> Pick        ("accepted" creates a CalendarItem kind "event", source {type:"event"})
+//
+// Coach tools, callable directly (the chat router calls the same functions)
+//   POST /students/:id/diagnose             -> WeakTopicsCard   (recomputes and writes StudentState.weakTopics)
+//   POST /students/:id/plan                 -> StudyPlanCard    (rebuilds plan + its calendar items; leaves action/event items alone)
+//
+// Demo setup (disclosed on stage; writes statuses and moves that student's clock, never text)
+//   POST /demo/simulate-week/:studentId     -> { updated: number; clockNow: string }
+//        (marks the next 7 days' plan blocks done/missed — every third missed — then moves the
+//         student's clock forward 7 days so the review has a "last week". Run BEFORE the demo.)
 //
 // Activity (P2)
 //   GET  /activity/:studentId               -> ActivityItem[]

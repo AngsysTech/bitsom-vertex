@@ -53,6 +53,7 @@ function useSourceText() {
       const b = plan?.weeks.flatMap((w) => w.blocks).find((x) => x.id === src.planBlockId)
       return b ? `Plan block · why: ${b.why}` : 'Plan block'
     }
+    if (src.type === 'event') return `Campus pick ${src.pickId}${src.eventId ? ` · event ${src.eventId}` : ''}`
     const lec = lectures?.find((l) => l.id === src.lectureId)
     return `From lecture ${lec ? fmtDM(lec.date) : src.lectureId} · action ${src.actionId}`
   }

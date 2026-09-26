@@ -640,6 +640,10 @@ function currentOneOnOne(s: DStudent): OneOnOne {
     skippedTopics: missedTopics,
     weakTopicMovement: [],
     flaggedTopics: [...flagged].map(([topic, times]) => ({ topic, times })),
+    blocksMissed: missed.length,
+    prepMet: rows.filter((i) => i.kind === 'prep' && i.status === 'done').length,
+    prepMissed: rows.filter((i) => i.kind === 'prep' && i.status === 'missed').length,
+    window: { from: isoLocal(start), to: isoLocal(now) },
     streakDays: streak,
   }
   const existing = oneOnOnes.get(id)

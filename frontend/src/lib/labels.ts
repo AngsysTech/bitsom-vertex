@@ -18,6 +18,7 @@ export const PROVIDES_LABEL: Record<DocumentKind | StudentRecordKind, string> = 
   transcript: 'Transcript',
   internal_marks: 'Internal marks',
   registrations: 'Registrations',
+  graded_answers: 'Graded answers',
 }
 
 export const CONNECTOR_KIND_LABEL: Record<ConnectorKind, string> = {
@@ -26,6 +27,7 @@ export const CONNECTOR_KIND_LABEL: Record<ConnectorKind, string> = {
   academic_office: 'Academic office',
   placement: 'Careers',
   clubs_portal: 'Clubs & events',
+  exam_system: 'Exam system',
   manual: 'Seeded by hand',
 }
 
@@ -96,9 +98,10 @@ export const KIND_STYLE: Record<CalendarItemKind, { label: string; block: string
   prep: { label: 'Prep', block: 'border-warn bg-warn-soft text-ink', dot: '#F59E0B' },
   deadline: { label: 'Deadline', block: 'border-bad bg-white text-ink', dot: '#EF4444' },
   action: { label: 'Action', block: 'border-cyan bg-white text-ink', dot: '#0891B2' },
+  event: { label: 'Event', block: 'border-ink-3 bg-soft text-ink', dot: '#94A3B8' },
 }
 
-export const CALENDAR_KINDS: CalendarItemKind[] = ['class', 'exam', 'quiz', 'study_block', 'prep', 'action', 'deadline']
+export const CALENDAR_KINDS: CalendarItemKind[] = ['class', 'exam', 'quiz', 'study_block', 'prep', 'action', 'deadline', 'event']
 
 /** Kinds a student can mark done / missed / planned. Classes and exams are read-only. */
 export const STUDY_KINDS: CalendarItemKind[] = ['study_block', 'prep', 'action', 'deadline']
